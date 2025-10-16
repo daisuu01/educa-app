@@ -3,7 +3,7 @@
 # （管理者：全員/個別送信・ユーザー：管理者宛のみ・
 #  ユーザー側は自分宛てのタイムライン表示・
 #  personal/messages 自動生成・
-#  Excelからユーザー一括登録機能付き）
+#  管理者はサイドバーで「登録／チャット」切替）
 # =============================================
 
 import streamlit as st
@@ -38,16 +38,14 @@ for key in ["user_id", "user_name", "user_class", "role"]:
         st.session_state[key] = None
 
 # ---------------------------
-# ヘルパー：Firestoreパス生成
+# ヘルパー：パス自動生成
 # ---------------------------
 def ensure_room_doc(class_name: str):
-    """rooms/{class} ドキュメントを作成（なければ）"""
     room_ref = db.collection("rooms").document(class_name)
     if not room_ref.get().exists:
         room_ref.set({"_init": True}, merge=True)
 
 def ensure_personal_thread(class_name: str, user_id: str):
-    """rooms/{class}/personal/{user_id} と messages を自動生成"""
     ensure_room_doc(class_name)
     personal_ref = (
         db.collection("rooms")
@@ -57,7 +55,6 @@ def ensure_personal_thread(class_name: str, user_id: str):
     )
     if not personal_ref.get().exists:
         personal_ref.set({"_createdAt": firestore.SERVER_TIMESTAMP}, merge=True)
-
     msgs_ref = personal_ref.collection("messages")
     exists = next(msgs_ref.limit(1).stream(), None)
     if exists is None:
@@ -98,6 +95,7 @@ def get_users_by_class(class_name: str):
 # ---------------------------
 if st.session_state.user_id is None:
     st.subheader("🔐 ログインしてください")
+
     role = st.radio("ログイン種別を選択", ["👨‍🏫 管理者", "🎓 ユーザー"], horizontal=True)
 
     if role == "👨‍🏫 管理者":
@@ -117,18 +115,15 @@ if st.session_state.user_id is None:
             if not user_id or not password:
                 st.warning("会員番号とパスワードを入力してください。")
                 st.stop()
-
             doc_ref = db.collection("users").document(user_id)
             doc = doc_ref.get()
             if not doc.exists:
                 st.error("会員番号が登録されていません。")
                 st.stop()
-
             data = doc.to_dict()
             if data.get("password") != password:
                 st.error("パスワードが正しくありません。")
                 st.stop()
-
             st.session_state.user_id = user_id
             st.session_state.user_name = data.get("name", "名無し")
             st.session_state.user_class = data.get("class", "未設定")
@@ -140,7 +135,7 @@ if st.session_state.user_id is None:
     st.stop()
 
 # ---------------------------
-# 以降：チャットUI
+# 共通情報とサイドバー
 # ---------------------------
 role = st.session_state.role
 user_name = st.session_state.user_name
@@ -152,65 +147,40 @@ st.sidebar.write(f"👤 名前：{user_name}")
 st.sidebar.write(f"🏫 所属：{user_class}")
 
 if role == "admin":
-    room = st.sidebar.selectbox("閲覧ルームを選択", ["中1", "中2", "中3", "保護者"])
+    room = st.sidebar.selectbox("閲覧ルームを選択", ["中1", "中2", "中3", "保護者"], index=0)
+    mode = st.sidebar.radio("モード選択", ["🗂 ユーザー登録", "💬 チャット"])
 else:
     room = user_class
-    st.sidebar.success(f"🟢 {room} ルーム")
+    mode = "💬 チャット"
 
+# ---------------------------
+# 管理者モード：ユーザー登録
+# ---------------------------
+if role == "admin" and mode == "🗂 ユーザー登録":
+    st.subheader("🗂 ユーザー登録モード")
+    uploaded_file = st.file_uploader("ユーザー情報Excelをアップロード", type=["xlsx"])
+    if uploaded_file:
+        df = pd.read_excel(uploaded_file)
+        st.dataframe(df)
+        if st.button("📤 Firestoreに登録"):
+            for _, row in df.iterrows():
+                user_id = str(row["user_id"])
+                doc_ref = db.collection("users").document(user_id)
+                doc_ref.set({
+                    "name": row["name"],
+                    "class": row["class"],
+                    "password": str(row["password"])
+                })
+                ensure_personal_thread(row["class"], user_id)
+            st.success("✅ 登録が完了しました！")
+    st.stop()
+
+# ---------------------------
+# チャットモード
+# ---------------------------
 st.subheader(f"💬 {room} チャット")
-
-# 自動更新
 st_autorefresh(interval=5000, key="refresh")
 
-# ==================================================
-# 👥 管理者専用：ユーザー登録（Excelから読み込み）
-# ==================================================
-if role == "admin":
-    st.write("---")
-    st.markdown("### 🧾 ユーザー一括登録（Excelアップロード）")
-
-    with st.expander("📂 Excelファイルからユーザー登録", expanded=False):
-        st.markdown("""
-        **アップロードするExcel形式（例）**
-        | 会員番号 | 名前 | パスワード | クラス |
-        |-----------|--------|------------|--------|
-        | S001 | 山田太郎 | pass001 | 中1 |
-        | S002 | 佐藤花子 | pass002 | 中2 |
-        """)
-
-        uploaded_file = st.file_uploader("Excelファイルをアップロードしてください", type=["xlsx"])
-
-        if uploaded_file is not None:
-            try:
-                df = pd.read_excel(uploaded_file)
-                st.dataframe(df)
-
-                required_cols = {"会員番号", "名前", "パスワード", "クラス"}
-                if not required_cols.issubset(set(df.columns)):
-                    st.error("❌ Excelに必要な列がありません。必須列: 会員番号, 名前, パスワード, クラス")
-                else:
-                    if st.button("📤 Firestoreに登録", use_container_width=True):
-                        with st.spinner("Firestoreに登録中..."):
-                            for _, row in df.iterrows():
-                                user_id = str(row["会員番号"]).strip()
-                                name = str(row["名前"]).strip()
-                                password = str(row["パスワード"]).strip()
-                                class_name = str(row["クラス"]).strip()
-                                if not user_id:
-                                    continue
-                                db.collection("users").document(user_id).set({
-                                    "name": name,
-                                    "password": password,
-                                    "class": class_name
-                                }, merge=True)
-                                ensure_personal_thread(class_name, user_id)
-                        st.success("✅ Firestoreへの登録が完了しました！")
-            except Exception as e:
-                st.error(f"Excel読み込み中にエラーが発生しました：{e}")
-
-# ==================================================
-# 送信 UI（既存チャット）
-# ==================================================
 STAMPS = {
     "😊": "https://cdn-icons-png.flaticon.com/512/742/742751.png",
     "👍": "https://cdn-icons-png.flaticon.com/512/2107/2107957.png",
@@ -221,25 +191,15 @@ STAMPS = {
 if role == "admin":
     st.markdown("#### ✉️ 管理者送信")
     target_mode = st.radio("送信先", ["ルーム全員に送信", "特定個人に送信"], horizontal=True)
-
     selected_user_id = None
-    selected_user_label = None
-
     if target_mode == "特定個人に送信":
-        ensure_room_doc(room)
         candidates = get_users_by_class(room)
         if not candidates:
             st.info("このクラスに登録されたユーザーがいません。")
         else:
-            options = []
-            for u in candidates:
-                d = u.to_dict()
-                options.append((u.id, f"{u.id}｜{d.get('name','')}", d.get("name","")))
-            labels = [opt[1] for opt in options]
-            choice = st.selectbox("送信先ユーザー", labels)
-            chosen = options[labels.index(choice)]
-            selected_user_id = chosen[0]
-            selected_user_label = chosen[2]
+            options = [(u.id, f"{u.id}｜{u.to_dict().get('name','')}") for u in candidates]
+            choice = st.selectbox("送信先ユーザー", [opt[1] for opt in options])
+            selected_user_id = options[[opt[1] for opt in options].index(choice)][0]
             ensure_personal_thread(room, selected_user_id)
 
     admin_msg = st.text_input("本文（管理者）")
@@ -249,9 +209,8 @@ if role == "admin":
             if admin_msg.strip():
                 if target_mode == "ルーム全員に送信":
                     send_to_room_all(room, "講師", admin_msg)
-                else:
-                    if selected_user_id:
-                        send_to_personal(room, selected_user_id, "講師", admin_msg)
+                elif selected_user_id:
+                    send_to_personal(room, selected_user_id, "講師", admin_msg)
                 st.rerun()
             else:
                 st.warning("本文を入力してください。")
@@ -263,9 +222,8 @@ if role == "admin":
                     if st.button(emoji):
                         if target_mode == "ルーム全員に送信":
                             send_to_room_all(room, "講師", url, msg_type="stamp")
-                        else:
-                            if selected_user_id:
-                                send_to_personal(room, selected_user_id, "講師", url, msg_type="stamp")
+                        elif selected_user_id:
+                            send_to_personal(room, selected_user_id, "講師", url, msg_type="stamp")
                         st.rerun()
 
 else:
@@ -291,9 +249,9 @@ else:
                         send_to_personal(room, user_id, sender_label, url, msg_type="stamp")
                         st.rerun()
 
-# ==================================================
-# タイムライン表示（既存）
-# ==================================================
+# ---------------------------
+# タイムライン表示
+# ---------------------------
 st.write("---")
 st.markdown("### 🗂 タイムライン")
 
@@ -326,11 +284,17 @@ def render_message_row(msg, role_scope: str):
                     st.rerun()
 
 if role == "admin":
-    st.caption("👀 表示：個別スレッド")
+    st.caption("👀 表示：ルーム全体メッセージ")
+    room_msgs = db.collection("rooms").document(room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+    for m in room_msgs:
+        render_message_row(m, "admin")
+
+    st.write("---")
+    st.caption("👀 表示：個別スレッド（ユーザー選択）")
     users = get_users_by_class(room)
     if users:
         uid_labels = [f"{u.id}｜{u.to_dict().get('name','')}" for u in users]
-        chosen = st.selectbox("閲覧したいユーザー", uid_labels, index=0)
+        chosen = st.selectbox("閲覧したいユーザー", uid_labels)
         chosen_uid = users[uid_labels.index(chosen)].id
         ensure_personal_thread(room, chosen_uid)
         personal_msgs = (
@@ -342,18 +306,35 @@ if role == "admin":
         )
         for m in personal_msgs:
             render_message_row(m, "admin")
+    else:
+        st.info("このクラスにはユーザーが登録されていません。")
+
 else:
     ensure_personal_thread(room, user_id)
-    personal_stream = db.collection("rooms").document(room).collection("personal").document(user_id).collection("messages").order_by(
-        "timestamp", direction=firestore.Query.DESCENDING
-    ).stream()
-    st.caption("👀 あなた宛てのメッセージ")
+    room_stream = db.collection("rooms").document(room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+    personal_stream = db.collection("rooms").document(room).collection("personal").document(user_id).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+    combined = []
+    for m in room_stream:
+        d = m.to_dict()
+        if d.get("type") == "system" and d.get("hidden"):
+            continue
+        combined.append(("all", m))
     for m in personal_stream:
+        d = m.to_dict()
+        if d.get("type") == "system" and d.get("hidden"):
+            continue
+        combined.append(("personal", m))
+    def _ts(x):
+        d = x[1].to_dict()
+        return d.get("timestamp", firestore.SERVER_TIMESTAMP)
+    combined.sort(key=_ts, reverse=True)
+    st.caption("👀 あなた宛てのメッセージ")
+    for origin, m in combined:
         render_message_row(m, "user")
 
-# ==================================================
+# ---------------------------
 # ログアウト
-# ==================================================
+# ---------------------------
 st.sidebar.write("---")
 if st.sidebar.button("🚪 ログアウト"):
     for key in list(st.session_state.keys()):
