@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（会員番号ログイン＋自動ルーム割り当て版）
+# 🎓 educa-app.py（ログイン＋スタンプ＋削除対応）
 # =============================================
 
 import streamlit as st
@@ -25,16 +25,11 @@ st.set_page_config(page_title="Educa Chat", layout="wide")
 st.title("💬 Educa Chat")
 
 # ---------------------------
-# 3. セッション状態初期化
+# 3. セッション初期化
 # ---------------------------
-if "user_id" not in st.session_state:
-    st.session_state.user_id = None
-if "user_name" not in st.session_state:
-    st.session_state.user_name = None
-if "user_class" not in st.session_state:
-    st.session_state.user_class = None
-if "role" not in st.session_state:
-    st.session_state.role = None
+for key in ["user_id", "user_name", "user_class", "role"]:
+    if key not in st.session_state:
+        st.session_state[key] = None
 
 # ---------------------------
 # 4. ログイン画面
@@ -44,7 +39,6 @@ if st.session_state.user_id is None:
 
     role = st.radio("ログイン種別を選択", ["👨‍🏫 管理者", "🎓 ユーザー"], horizontal=True)
 
-    # 管理者モード（簡易）
     if role == "👨‍🏫 管理者":
         if st.button("管理者としてログイン"):
             st.session_state.role = "admin"
@@ -52,9 +46,8 @@ if st.session_state.user_id is None:
             st.session_state.user_class = "全ルーム"
             st.session_state.user_id = "admin"
             st.success("管理者としてログインしました。")
-        st.stop()
+            st.rerun()
 
-    # ユーザーモード
     elif role == "🎓 ユーザー":
         user_id = st.text_input("会員番号", placeholder="例：S12345")
         password = st.text_input("パスワード", type="password")
@@ -105,20 +98,43 @@ else:
 st.subheader(f"💬 {room} チャットルーム")
 
 # ---------------------------
-# 6. 自動更新
+# 6. 自動更新（5秒）
 # ---------------------------
 st_autorefresh(interval=5000, key="refresh")
 
 # ---------------------------
-# 7. メッセージ送信
+# 7. スタンプ選択
 # ---------------------------
-message = st.text_input("メッセージを入力してください")
+st.markdown("### 🦕 スタンプを送信")
+stamps = {
+    "😊": "https://cdn-icons-png.flaticon.com/512/742/742751.png",
+    "👍": "https://cdn-icons-png.flaticon.com/512/2107/2107957.png",
+    "❤️": "https://cdn-icons-png.flaticon.com/512/833/833472.png",
+    "🎉": "https://cdn-icons-png.flaticon.com/512/1973/1973960.png",
+}
+cols = st.columns(len(stamps))
+for i, (emoji, url) in enumerate(stamps.items()):
+    with cols[i]:
+        if st.button(emoji):
+            db.collection("rooms").document(room).collection("messages").add({
+                "sender": user_name,
+                "message": url,
+                "type": "stamp",
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.rerun()
+
+# ---------------------------
+# 8. メッセージ送信
+# ---------------------------
+message = st.text_input("✏️ メッセージを入力してください")
 
 if st.button("送信", use_container_width=True):
     if message.strip():
         db.collection("rooms").document(room).collection("messages").add({
             "sender": user_name,
             "message": message,
+            "type": "text",
             "timestamp": firestore.SERVER_TIMESTAMP
         })
         st.rerun()
@@ -126,20 +142,41 @@ if st.button("送信", use_container_width=True):
         st.warning("メッセージを入力してください。")
 
 # ---------------------------
-# 8. メッセージ表示
+# 9. メッセージ表示＋削除
 # ---------------------------
-messages_ref = db.collection("rooms").document(room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING)
-messages = messages_ref.stream()
-
 st.write("---")
-st.subheader(f"{room}のチャット履歴")
+st.subheader(f"{room} のチャット履歴")
+
+messages_ref = db.collection("rooms").document(room).collection("messages").order_by(
+    "timestamp", direction=firestore.Query.DESCENDING
+)
+messages = messages_ref.stream()
 
 for msg in messages:
     data = msg.to_dict()
-    st.markdown(f"**{data.get('sender', '不明')}**：{data.get('message', '')}")
+    msg_id = msg.id
+    sender = data.get("sender", "不明")
+    msg_type = data.get("type", "text")
+    message = data.get("message", "")
+
+    col1, col2 = st.columns([8, 1])
+    with col1:
+        if msg_type == "stamp":
+            st.markdown(f"**{sender}**：<br><img src='{message}' width='80'>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"**{sender}**：{message}")
+
+    # 削除ボタン
+    if role == "admin" or sender == user_name:
+        with col2:
+            with st.popover("⋮", use_container_width=True):
+                if st.button("削除", key=f"del_{msg_id}", use_container_width=True):
+                    msg.reference.delete()
+                    st.warning("削除しました。")
+                    st.rerun()
 
 # ---------------------------
-# 9. ログアウト
+# 10. ログアウト
 # ---------------------------
 st.sidebar.write("---")
 if st.sidebar.button("🚪 ログアウト"):
