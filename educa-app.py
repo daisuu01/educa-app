@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（ログイン＋スタンプ＋削除対応）
+# 🎓 educa-app.py（ユーザー自身の削除機能付き）
 # =============================================
 
 import streamlit as st
@@ -9,7 +9,7 @@ import json
 from streamlit_autorefresh import st_autorefresh
 
 # ---------------------------
-# 1. Firebase 初期化
+# Firebase 初期化
 # ---------------------------
 if not firebase_admin._apps:
     firebase_json = json.loads(st.secrets["FIREBASE_CREDENTIALS"])
@@ -19,20 +19,20 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 # ---------------------------
-# 2. ページ設定
+# ページ設定
 # ---------------------------
 st.set_page_config(page_title="Educa Chat", layout="wide")
 st.title("💬 Educa Chat")
 
 # ---------------------------
-# 3. セッション初期化
+# セッション初期化
 # ---------------------------
 for key in ["user_id", "user_name", "user_class", "role"]:
     if key not in st.session_state:
         st.session_state[key] = None
 
 # ---------------------------
-# 4. ログイン画面
+# ログイン画面
 # ---------------------------
 if st.session_state.user_id is None:
     st.subheader("🔐 ログインしてください")
@@ -78,7 +78,7 @@ if st.session_state.user_id is None:
     st.stop()
 
 # ---------------------------
-# 5. チャット画面
+# チャット画面
 # ---------------------------
 user_name = st.session_state.user_name
 user_class = st.session_state.user_class
@@ -98,12 +98,12 @@ else:
 st.subheader(f"💬 {room} チャットルーム")
 
 # ---------------------------
-# 6. 自動更新（5秒）
+# 自動更新（5秒）
 # ---------------------------
 st_autorefresh(interval=5000, key="refresh")
 
 # ---------------------------
-# 7. スタンプ選択
+# スタンプ送信
 # ---------------------------
 st.markdown("### 🦕 スタンプを送信")
 stamps = {
@@ -125,7 +125,7 @@ for i, (emoji, url) in enumerate(stamps.items()):
             st.rerun()
 
 # ---------------------------
-# 8. メッセージ送信
+# メッセージ送信
 # ---------------------------
 message = st.text_input("✏️ メッセージを入力してください")
 
@@ -142,7 +142,7 @@ if st.button("送信", use_container_width=True):
         st.warning("メッセージを入力してください。")
 
 # ---------------------------
-# 9. メッセージ表示＋削除
+# メッセージ表示＋削除
 # ---------------------------
 st.write("---")
 st.subheader(f"{room} のチャット履歴")
@@ -166,8 +166,9 @@ for msg in messages:
         else:
             st.markdown(f"**{sender}**：{message}")
 
-    # 削除ボタン
-    if role == "admin" or sender == user_name:
+    # 🔹 削除機能（管理者 or 自分のメッセージ）
+    can_delete = (role == "admin") or (sender == user_name)
+    if can_delete:
         with col2:
             with st.popover("⋮", use_container_width=True):
                 if st.button("削除", key=f"del_{msg_id}", use_container_width=True):
@@ -176,7 +177,7 @@ for msg in messages:
                     st.rerun()
 
 # ---------------------------
-# 10. ログアウト
+# ログアウト
 # ---------------------------
 st.sidebar.write("---")
 if st.sidebar.button("🚪 ログアウト"):
