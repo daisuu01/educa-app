@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（グループチャット対応版）
+# 🎓 educa-app.py（管理者／ユーザー切り替え対応）
 # =============================================
 
 import streamlit as st
@@ -14,7 +14,7 @@ from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=5000, limit=None, key="chat_refresh")
 
 # ---------------------------------------------------
-# 2️⃣ Firebase 初期化（Secrets対応）
+# 2️⃣ Firebase 初期化
 # ---------------------------------------------------
 if not firebase_admin._apps:
     firebase_json = json.loads(st.secrets["FIREBASE_CREDENTIALS"])
@@ -27,61 +27,90 @@ db = firestore.client()
 # 3️⃣ ページ設定
 # ---------------------------------------------------
 st.set_page_config(page_title="Educa Chat", layout="wide")
-st.title("💬 Educa Chat（クラス別チャットルーム）")
+st.title("💬 Educa Chat（管理者／ユーザー切り替え版）")
 
 # ---------------------------------------------------
-# 4️⃣ クラス選択（ルーム選択）
+# 4️⃣ ロール選択
 # ---------------------------------------------------
-st.sidebar.header("🏫 クラスルーム選択")
+role = st.sidebar.radio("ログインタイプを選択", ["👨‍🏫 職員（管理者）", "🎓 生徒・保護者（ユーザー）"])
+
+# ---------------------------------------------------
+# 5️⃣ クラスルーム選択（共通）
+# ---------------------------------------------------
+st.sidebar.header("🏫 クラスルーム")
 rooms = ["中1", "中2", "中3", "保護者"]
-selected_room = st.sidebar.selectbox("チャットルームを選んでください", rooms)
+selected_room = st.sidebar.selectbox("チャットルームを選択", rooms)
 
 st.subheader(f"📚 {selected_room} チャットルーム")
-st.caption("※ ルームを切り替えると別のチャット履歴が表示されます。")
 
 # ---------------------------------------------------
-# 5️⃣ メッセージ送信
+# 6️⃣ 管理者モード
 # ---------------------------------------------------
-col1, col2 = st.columns([1, 3])
-with col1:
-    sender = st.selectbox("送信者", ["生徒", "講師"])
-with col2:
-    message = st.text_input("メッセージを入力してください")
+if role == "👨‍🏫 職員（管理者）":
+    st.markdown("🧑‍🏫 **管理者モード：講師・スタッフ用画面です。**")
+    st.caption("ここから全ルームの送信や削除ができます。")
 
-if st.button("送信", use_container_width=True):
-    if message.strip():
-        try:
-            doc_ref = (
-                db.collection("rooms")
-                .document(selected_room)
-                .collection("messages")
-                .document()
-            )
-            doc_ref.set({
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        sender = "講師"
+    with col2:
+        message = st.text_input("メッセージを入力してください")
+
+    if st.button("送信（管理者）", use_container_width=True):
+        if message.strip():
+            db.collection("rooms").document(selected_room).collection("messages").add({
                 "sender": sender,
                 "message": message,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
-            st.success(f"{selected_room} にメッセージを送信しました！")
-        except Exception as e:
-            st.error(f"Firestore書き込みエラー: {e}")
-    else:
-        st.warning("メッセージを入力してください。")
+            st.success("メッセージを送信しました！")
+        else:
+            st.warning("メッセージを入力してください。")
+
+    # 🔥 管理者だけメッセージ削除可能
+    st.subheader("🗑 メッセージ削除")
+    try:
+        messages_ref = db.collection("rooms").document(selected_room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING)
+        messages = messages_ref.stream()
+        for msg in messages:
+            data = msg.to_dict()
+            text = data.get("message", "")
+            sender = data.get("sender", "")
+            if st.button(f"削除: {sender}『{text[:20]}...』"):
+                msg.reference.delete()
+                st.warning("削除しました！")
+                st.experimental_rerun()
+    except Exception as e:
+        st.error(f"削除時エラー: {e}")
 
 # ---------------------------------------------------
-# 6️⃣ チャット履歴表示
+# 7️⃣ ユーザーモード
 # ---------------------------------------------------
-st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
+else:
+    st.markdown("🎓 **生徒・保護者モード：閲覧・送信専用です。**")
+
+    sender = st.selectbox("送信者", ["生徒", "保護者"])
+    message = st.text_input("メッセージを入力してください")
+
+    if st.button("送信", use_container_width=True):
+        if message.strip():
+            db.collection("rooms").document(selected_room).collection("messages").add({
+                "sender": sender,
+                "message": message,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.success("メッセージを送信しました！")
+        else:
+            st.warning("メッセージを入力してください。")
+
+# ---------------------------------------------------
+# 8️⃣ チャット履歴（共通）
+# ---------------------------------------------------
+st.subheader(f"💬 {selected_room} のチャット履歴")
 
 try:
-    messages_ref = (
-        db.collection("rooms")
-        .document(selected_room)
-        .collection("messages")
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
-    )
+    messages_ref = db.collection("rooms").document(selected_room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING)
     messages = messages_ref.stream()
-
     for msg in messages:
         data = msg.to_dict()
         sender = data.get("sender", "不明")
@@ -90,11 +119,7 @@ try:
             st.markdown(f"🧑‍🏫 **{sender}**：<span style='color:#1565C0'>{text}</span>", unsafe_allow_html=True)
         else:
             st.markdown(f"🎓 **{sender}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
-
 except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
 
-# ---------------------------------------------------
-# 7️⃣ 注意書き
-# ---------------------------------------------------
-st.caption("💡 チャットはルームごとにFirestoreへ保存され、5秒ごとに自動更新されます。")
+st.caption("💡 ロールによって機能が変わります。職員は送信＋削除、生徒は送信のみ可能。")
