@@ -1,63 +1,78 @@
-# ==========================================
-# 🎓 塾チャットアプリ（Step 2：Firebase連携・安全版）
-# ==========================================
+# =============================================
+# 🎓 educa-app.py（Firebase + Streamlit Cloud対応版）
+# =============================================
 
 import streamlit as st
+import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-from datetime import datetime
-import os
 
-# --- Streamlit基本設定 ---
-st.set_page_config(page_title="塾チャット", page_icon="🎓", layout="wide")
-st.title("🎓 塾チャット（リアルタイム版）")
-
-# --- Firebase秘密鍵の安全読込 ---
-# 🔹 秘密鍵（JSONファイル）をアプリと同じフォルダに保存してください。
-# 🔹 例： educa-app2-firebase-adminsdk-fbsvc-13377f7678.json
-# 🔹 ファイル名を以下に正確に指定：
-SERVICE_ACCOUNT_FILE = "educa-app2-firebase-adminsdk-fbsvc-13377f7678.json"
-
-# --- Firebase初期化 ---
+# ---------------------------------------------------
+# 1️⃣ Firebase 初期化（Secrets対応）
+# ---------------------------------------------------
 if not firebase_admin._apps:
-    # ファイルが存在しない場合のチェック
-    if not os.path.exists(SERVICE_ACCOUNT_FILE):
-        st.error(f"Firebase秘密鍵が見つかりません: {SERVICE_ACCOUNT_FILE}")
+    try:
+        # Secrets から JSON 認証情報を読み込み（Streamlit Cloud対応）
+        firebase_json = json.loads(st.secrets["FIREBASE_CREDENTIALS"])
+        cred = credentials.Certificate(firebase_json)
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"Firebase接続エラー: {e}")
         st.stop()
-    cred = credentials.Certificate(SERVICE_ACCOUNT_FILE)
-    firebase_admin.initialize_app(cred)
 
+# Firestore クライアントを作成
 db = firestore.client()
 
-# --- Firestoreコレクション設定 ---
-CHAT_COLLECTION = "messages"
+# ---------------------------------------------------
+# 2️⃣ Streamlit ページ設定
+# ---------------------------------------------------
+st.set_page_config(page_title="Educa Chat", layout="wide")
 
-# --- メッセージ送信エリア ---
-st.subheader("💬 メッセージ送信")
-col1, col2 = st.columns([4, 1])
-with col1:
-    text = st.text_input("メッセージを入力してください")
-with col2:
-    role = st.selectbox("送信者", ["生徒", "先生"])
+st.title("💬 Educa Chat（塾内チャットアプリ）")
+st.caption("Firebase Firestoreと連携したリアルタイムチャット")
+
+# ---------------------------------------------------
+# 3️⃣ Firestore メッセージ送信処理
+# ---------------------------------------------------
+st.subheader("メッセージを送信")
+
+sender = st.selectbox("送信者", ["生徒", "講師"])
+message = st.text_area("メッセージを入力してください")
 
 if st.button("送信"):
-    if text.strip():
-        db.collection(CHAT_COLLECTION).add({
-            "role": role,
-            "text": text,
-            "timestamp": datetime.utcnow()
-        })
-        st.success("✅ メッセージを送信しました。")
-        st.rerun()
+    if message.strip():
+        try:
+            doc_ref = db.collection("messages").document()
+            doc_ref.set({
+                "sender": sender,
+                "message": message,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.success("メッセージを送信しました！")
+        except Exception as e:
+            st.error(f"Firestore書き込みエラー: {e}")
+    else:
+        st.warning("メッセージを入力してください。")
 
-# --- チャット履歴（最新順） ---
-st.subheader("📜 チャット履歴（最新順）")
-messages = db.collection(CHAT_COLLECTION).order_by(
-    "timestamp", direction=firestore.Query.DESCENDING
-).limit(50).stream()
+# ---------------------------------------------------
+# 4️⃣ Firestore メッセージ表示処理
+# ---------------------------------------------------
+st.subheader("📨 チャット履歴")
 
-for m in messages:
-    msg = m.to_dict()
-    ts = msg["timestamp"].strftime("%Y-%m-%d %H:%M:%S") if msg.get("timestamp") else ""
-    icon = "🧑‍🏫" if msg.get("role") == "先生" else "👩‍🎓"
-    st.markdown(f"{icon} **{msg.get('role')} ({ts})**：{msg.get('text')}")
+try:
+    messages_ref = db.collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING)
+    messages = messages_ref.stream()
+
+    for msg in messages:
+        data = msg.to_dict()
+        sender = data.get("sender", "不明")
+        text = data.get("message", "")
+        st.write(f"**{sender}**：{text}")
+
+except Exception as e:
+    st.error(f"Firestore読み込みエラー: {e}")
+
+# ---------------------------------------------------
+# 5️⃣ 注意書き
+# ---------------------------------------------------
+st.caption("💡 データはFirebase Firestoreに保存されます。")
