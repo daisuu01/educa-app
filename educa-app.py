@@ -80,7 +80,7 @@ if st.session_state.user_id is None:
             st.session_state.user_class = data.get("class", "未設定")
             st.session_state.role = "user"
             st.success(f"{st.session_state.user_name} さんがログインしました（{st.session_state.user_class}ルーム）。")
-            st.experimental_rerun()
+            st.rerun()
 
     st.stop()
 
@@ -121,7 +121,7 @@ if st.button("送信", use_container_width=True):
             "message": message,
             "timestamp": firestore.SERVER_TIMESTAMP
         })
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.warning("メッセージを入力してください。")
 
@@ -145,4 +145,4 @@ st.sidebar.write("---")
 if st.sidebar.button("🚪 ログアウト"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    st.experimental_rerun()
+    st.rerun()
