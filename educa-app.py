@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（管理者／ユーザー切り替え対応）
+# 🎓 educa-app.py（チャット右側に三点リーダーで削除対応）
 # =============================================
 
 import streamlit as st
@@ -27,15 +27,15 @@ db = firestore.client()
 # 3️⃣ ページ設定
 # ---------------------------------------------------
 st.set_page_config(page_title="Educa Chat", layout="wide")
-st.title("💬 Educa Chat（管理者／ユーザー切り替え版）")
+st.title("💬 Educa Chat（削除UI対応版）")
 
 # ---------------------------------------------------
-# 4️⃣ ロール選択
+# 4️⃣ ロール選択（職員 or 生徒・保護者）
 # ---------------------------------------------------
 role = st.sidebar.radio("ログインタイプを選択", ["👨‍🏫 職員（管理者）", "🎓 生徒・保護者（ユーザー）"])
 
 # ---------------------------------------------------
-# 5️⃣ クラスルーム選択（共通）
+# 5️⃣ クラス選択
 # ---------------------------------------------------
 st.sidebar.header("🏫 クラスルーム")
 rooms = ["中1", "中2", "中3", "保護者"]
@@ -44,82 +44,65 @@ selected_room = st.sidebar.selectbox("チャットルームを選択", rooms)
 st.subheader(f"📚 {selected_room} チャットルーム")
 
 # ---------------------------------------------------
-# 6️⃣ 管理者モード
+# 6️⃣ メッセージ送信
 # ---------------------------------------------------
 if role == "👨‍🏫 職員（管理者）":
-    st.markdown("🧑‍🏫 **管理者モード：講師・スタッフ用画面です。**")
-    st.caption("ここから全ルームの送信や削除ができます。")
-
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        sender = "講師"
-    with col2:
-        message = st.text_input("メッセージを入力してください")
-
-    if st.button("送信（管理者）", use_container_width=True):
-        if message.strip():
-            db.collection("rooms").document(selected_room).collection("messages").add({
-                "sender": sender,
-                "message": message,
-                "timestamp": firestore.SERVER_TIMESTAMP
-            })
-            st.success("メッセージを送信しました！")
-        else:
-            st.warning("メッセージを入力してください。")
-
-    # 🔥 管理者だけメッセージ削除可能
-    st.subheader("🗑 メッセージ削除")
-    try:
-        messages_ref = db.collection("rooms").document(selected_room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING)
-        messages = messages_ref.stream()
-        for msg in messages:
-            data = msg.to_dict()
-            text = data.get("message", "")
-            sender = data.get("sender", "")
-            if st.button(f"削除: {sender}『{text[:20]}...』"):
-                msg.reference.delete()
-                st.warning("削除しました！")
-                st.experimental_rerun()
-    except Exception as e:
-        st.error(f"削除時エラー: {e}")
-
-# ---------------------------------------------------
-# 7️⃣ ユーザーモード
-# ---------------------------------------------------
+    sender = "講師"
 else:
-    st.markdown("🎓 **生徒・保護者モード：閲覧・送信専用です。**")
-
     sender = st.selectbox("送信者", ["生徒", "保護者"])
-    message = st.text_input("メッセージを入力してください")
 
-    if st.button("送信", use_container_width=True):
-        if message.strip():
-            db.collection("rooms").document(selected_room).collection("messages").add({
-                "sender": sender,
-                "message": message,
-                "timestamp": firestore.SERVER_TIMESTAMP
-            })
-            st.success("メッセージを送信しました！")
-        else:
-            st.warning("メッセージを入力してください。")
+message = st.text_input("メッセージを入力してください")
+
+if st.button("送信", use_container_width=True):
+    if message.strip():
+        db.collection("rooms").document(selected_room).collection("messages").add({
+            "sender": sender,
+            "message": message,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        })
+        st.success("メッセージを送信しました！")
+    else:
+        st.warning("メッセージを入力してください。")
 
 # ---------------------------------------------------
-# 8️⃣ チャット履歴（共通）
+# 7️⃣ チャット履歴（削除UI付き）
 # ---------------------------------------------------
-st.subheader(f"💬 {selected_room} のチャット履歴")
+st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
 
 try:
-    messages_ref = db.collection("rooms").document(selected_room).collection("messages").order_by("timestamp", direction=firestore.Query.DESCENDING)
+    messages_ref = (
+        db.collection("rooms")
+        .document(selected_room)
+        .collection("messages")
+        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+    )
     messages = messages_ref.stream()
+
     for msg in messages:
         data = msg.to_dict()
-        sender = data.get("sender", "不明")
+        sender_name = data.get("sender", "不明")
         text = data.get("message", "")
-        if sender == "講師":
-            st.markdown(f"🧑‍🏫 **{sender}**：<span style='color:#1565C0'>{text}</span>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"🎓 **{sender}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
+        msg_id = msg.id
+
+        # メッセージ行（3列構成：本文 / 余白 / ⋯ボタン）
+        col1, col2, col3 = st.columns([6, 0.2, 0.5])
+        with col1:
+            if sender_name == "講師":
+                st.markdown(f"🧑‍🏫 **{sender_name}**：<span style='color:#1565C0'>{text}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"🎓 **{sender_name}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
+
+        with col3:
+            with st.expander("⋯", expanded=False):
+                if st.button("削除", key=f"delete_{msg_id}"):
+                    msg.reference.delete()
+                    st.warning("メッセージを削除しました。")
+                    st.experimental_rerun()
+
 except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
 
-st.caption("💡 ロールによって機能が変わります。職員は送信＋削除、生徒は送信のみ可能。")
+# ---------------------------------------------------
+# 8️⃣ 注意書き
+# ---------------------------------------------------
+st.caption("💡 各メッセージ右側の『⋯』から削除可能です。全ユーザーに反映されます。")
