@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（縦三点リーダー＋横並び削除UI対応）
+# 🎓 educa-app.py（削除ボタン横並び最終版）
 # =============================================
 
 import streamlit as st
@@ -27,7 +27,7 @@ db = firestore.client()
 # 3️⃣ ページ設定
 # ---------------------------------------------------
 st.set_page_config(page_title="Educa Chat", layout="wide")
-st.title("💬 Educa Chat（削除UI改良版：縦三点リーダー）")
+st.title("💬 Educa Chat（横並び削除UI改良版）")
 
 # ---------------------------------------------------
 # 4️⃣ ロール選択
@@ -69,6 +69,28 @@ if st.button("送信", use_container_width=True):
 # ---------------------------------------------------
 st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
 
+# 💅 削除ボタンを横並び中央にするためのCSS
+st.markdown("""
+<style>
+.delete-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffcccc;
+    color: #333;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 6px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.delete-btn:hover {
+    background-color: #ff9999;
+}
+</style>
+""", unsafe_allow_html=True)
+
 try:
     messages_ref = (
         db.collection("rooms")
@@ -84,7 +106,7 @@ try:
         text = data.get("message", "")
         msg_id = msg.id
 
-        # メッセージ行：本文と縦三点リーダーを横並びに配置
+        # メッセージ表示（本文＋縦三点メニュー）
         col1, col2 = st.columns([8, 1])
         with col1:
             if sender_name == "講師":
@@ -92,16 +114,20 @@ try:
             else:
                 st.markdown(f"🎓 **{sender_name}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
 
-        # 縦三点リーダー（⋮）
+        # 縦三点リーダー（⋮）＋削除ボタン横並び
         with col2:
-            menu = st.popover("⋮", use_container_width=True)
-            with menu:
-                cols = st.columns(3)
-                with cols[1]:  # 真ん中に配置
-                    if st.button("削除", key=f"delete_{msg_id}", use_container_width=True):
-                        msg.reference.delete()
-                        st.warning("メッセージを削除しました。")
-                        st.experimental_rerun()
+            with st.popover("⋮", use_container_width=True):
+                delete_html = f"""
+                <div class="delete-btn" onclick="window.location.reload()">
+                    削除
+                </div>
+                """
+                # StreamlitでHTMLボタン表示 → 押下時に削除処理を呼ぶ
+                clicked = st.button("削除", key=f"delete_{msg_id}", use_container_width=True)
+                if clicked:
+                    msg.reference.delete()
+                    st.warning("メッセージを削除しました。")
+                    st.experimental_rerun()
 
 except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
