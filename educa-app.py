@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（ユーザーは入室ルーム固定／管理者は全ルーム可・表示文削除）
+# 🎓 educa-app.py（スタンプ送信機能付き）
 # =============================================
 
 import streamlit as st
@@ -25,7 +25,7 @@ st.set_page_config(page_title="Educa Chat", layout="wide")
 st.title("💬 Educa Chat")
 
 # ---------------------------------------------------
-# 3️⃣ ロール選択（現時点では手動選択）
+# 3️⃣ ロール選択
 # ---------------------------------------------------
 if "role" not in st.session_state:
     st.session_state.role = None
@@ -73,7 +73,7 @@ st.subheader(f"📚 {selected_room} チャットルーム")
 st_autorefresh(interval=5000, limit=None, key="chat_refresh")
 
 # ---------------------------------------------------
-# 6️⃣ メッセージ送信
+# 6️⃣ メッセージ・スタンプ送信
 # ---------------------------------------------------
 if role == "admin":
     sender = st.selectbox("送信者", ["講師A", "講師B", "職員"])
@@ -82,42 +82,51 @@ else:
 
 message = st.text_input("メッセージを入力してください")
 
-if st.button("送信", use_container_width=True):
-    if message.strip():
-        db.collection("rooms").document(selected_room).collection("messages").add({
-            "sender": sender,
-            "message": message,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        })
-        st.success("メッセージを送信しました！")
-    else:
-        st.warning("メッセージを入力してください。")
+col_msg, col_stamp = st.columns([3, 1])
+with col_msg:
+    if st.button("📨 送信", use_container_width=True):
+        if message.strip():
+            db.collection("rooms").document(selected_room).collection("messages").add({
+                "sender": sender,
+                "message": message,
+                "type": "text",
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.success("メッセージを送信しました！")
+        else:
+            st.warning("メッセージを入力してください。")
+
+# 🔹 スタンプ送信用ポップアップ
+stamps = {
+    "👍": "https://cdn-icons-png.flaticon.com/512/456/456115.png",
+    "❤️": "https://cdn-icons-png.flaticon.com/512/833/833472.png",
+    "😂": "https://cdn-icons-png.flaticon.com/512/742/742751.png",
+    "🎉": "https://cdn-icons-png.flaticon.com/512/197/197484.png",
+    "🙏": "https://cdn-icons-png.flaticon.com/512/1598/1598191.png",
+    "🐸": "https://cdn-icons-png.flaticon.com/512/616/616408.png",
+    "💪": "https://cdn-icons-png.flaticon.com/512/1995/1995574.png",
+}
+
+with col_stamp:
+    with st.popover("😊 スタンプ", use_container_width=True):
+        st.markdown("### スタンプを選択")
+        cols = st.columns(4)
+        for i, (emoji, url) in enumerate(stamps.items()):
+            with cols[i % 4]:
+                if st.button(emoji, key=f"stamp_{i}"):
+                    db.collection("rooms").document(selected_room).collection("messages").add({
+                        "sender": sender,
+                        "message": url,
+                        "type": "stamp",
+                        "timestamp": firestore.SERVER_TIMESTAMP
+                    })
+                    st.success(f"スタンプ {emoji} を送信しました！")
+                    st.experimental_rerun()
 
 # ---------------------------------------------------
-# 7️⃣ チャット履歴表示（削除制御付き）
+# 7️⃣ チャット履歴表示
 # ---------------------------------------------------
 st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
-
-st.markdown("""
-<style>
-.delete-btn {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #ffcccc;
-    color: #333;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 6px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.delete-btn:hover {
-    background-color: #ff9999;
-}
-</style>
-""", unsafe_allow_html=True)
 
 try:
     messages_ref = (
@@ -132,16 +141,17 @@ try:
         data = msg.to_dict()
         sender_name = data.get("sender", "不明")
         text = data.get("message", "")
+        msg_type = data.get("type", "text")
         msg_id = msg.id
 
         col1, col2 = st.columns([8, 1])
         with col1:
-            if sender_name in ["講師A", "講師B", "職員"]:
-                st.markdown(f"🧑‍🏫 **{sender_name}**：<span style='color:#1565C0'>{text}</span>", unsafe_allow_html=True)
+            if msg_type == "stamp":
+                st.markdown(f"**{sender_name}**：<br><img src='{text}' width='80'>", unsafe_allow_html=True)
             else:
-                st.markdown(f"🎓 **{sender_name}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
+                st.markdown(f"**{sender_name}**：{text}")
 
-        # 🔹 削除権限：管理者＝全件／ユーザー＝自分のみ
+        # 削除権限制御
         if role == "admin":
             with col2:
                 with st.popover("⋮", use_container_width=True):
@@ -162,7 +172,7 @@ except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
 
 # ---------------------------------------------------
-# 8️⃣ ログアウト機能
+# 8️⃣ ログアウト
 # ---------------------------------------------------
 st.sidebar.divider()
 if st.sidebar.button("🚪 ログアウト"):
