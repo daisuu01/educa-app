@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（管理者／ユーザー選択＋ルーム制限付きチャット）
+# 🎓 educa-app.py（ユーザーは入室ルーム固定／管理者は全ルーム可）
 # =============================================
 
 import streamlit as st
@@ -29,6 +29,8 @@ st.title("💬 Educa Chat")
 # ---------------------------------------------------
 if "role" not in st.session_state:
     st.session_state.role = None
+if "user_room" not in st.session_state:
+    st.session_state.user_room = None
 
 if st.session_state.role is None:
     st.subheader("🔐 ログインを選択してください")
@@ -40,25 +42,30 @@ if st.session_state.role is None:
             st.success("管理者としてログインしました。")
 
     elif role_choice == "🎓 ユーザー":
+        st.info("ご自身のクラスを選択してログインしてください。")
+        selected_room_before_login = st.selectbox("所属クラス", ["中1", "中2", "中3"])
         if st.button("ユーザーとしてログイン"):
             st.session_state.role = "user"
-            st.success("ユーザーとしてログインしました。")
+            st.session_state.user_room = selected_room_before_login
+            st.success(f"ユーザーとしてログインしました。（{selected_room_before_login}）")
 
     st.stop()
 
 # ---------------------------------------------------
-# 4️⃣ ロールに応じた設定
+# 4️⃣ ロールに応じたルーム設定
 # ---------------------------------------------------
 role = st.session_state.role
 
 if role == "admin":
     st.sidebar.header("👨‍🏫 管理者モード")
     available_rooms = ["中1", "中2", "中3", "保護者"]
+    selected_room = st.sidebar.selectbox("入室するルームを選択", available_rooms)
 else:
     st.sidebar.header("🎓 ユーザーモード")
-    available_rooms = ["中1", "中2", "中3"]
-
-selected_room = st.sidebar.selectbox("入室するルームを選択", available_rooms)
+    # ユーザーはログイン時に選んだクラスに固定
+    selected_room = st.session_state.user_room
+    st.sidebar.write(f"🟢 現在のルーム：**{selected_room}**")
+    st.sidebar.caption("※ 他のルームには入れません")
 
 st.subheader(f"📚 {selected_room} チャットルーム")
 
@@ -89,7 +96,7 @@ if st.button("送信", use_container_width=True):
         st.warning("メッセージを入力してください。")
 
 # ---------------------------------------------------
-# 7️⃣ チャット履歴表示（権限別で削除制御）
+# 7️⃣ チャット履歴表示（削除制御付き）
 # ---------------------------------------------------
 st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
 
@@ -136,9 +143,8 @@ try:
             else:
                 st.markdown(f"🎓 **{sender_name}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
 
-        # 🔹 削除ボタンの制御
+        # 🔹 削除権限：管理者＝全件／ユーザー＝自分のみ
         if role == "admin":
-            # 管理者は全メッセージ削除可
             with col2:
                 with st.popover("⋮", use_container_width=True):
                     if st.button("削除", key=f"delete_{msg_id}", use_container_width=True):
@@ -146,7 +152,6 @@ try:
                         st.warning("削除しました。")
                         st.experimental_rerun()
         else:
-            # ユーザーは自分のメッセージのみ削除可
             if sender_name == sender:
                 with col2:
                     with st.popover("⋮", use_container_width=True):
@@ -159,7 +164,7 @@ except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
 
 # ---------------------------------------------------
-# 8️⃣ ログアウト
+# 8️⃣ ログアウト機能
 # ---------------------------------------------------
 st.sidebar.divider()
 if st.sidebar.button("🚪 ログアウト"):
