@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（削除ボタン横並び最終版）
+# 🎓 educa-app.py（自分の送信メッセージのみ削除可能版）
 # =============================================
 
 import streamlit as st
@@ -27,7 +27,7 @@ db = firestore.client()
 # 3️⃣ ページ設定
 # ---------------------------------------------------
 st.set_page_config(page_title="Educa Chat", layout="wide")
-st.title("💬 Educa Chat（横並び削除UI改良版）")
+st.title("💬 Educa Chat（削除権限付き）")
 
 # ---------------------------------------------------
 # 4️⃣ ロール選択
@@ -65,11 +65,11 @@ if st.button("送信", use_container_width=True):
         st.warning("メッセージを入力してください。")
 
 # ---------------------------------------------------
-# 7️⃣ チャット履歴（縦三点リーダー＋横並び削除UI）
+# 7️⃣ チャット履歴（自分の送信のみ削除可）
 # ---------------------------------------------------
 st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
 
-# 💅 削除ボタンを横並び中央にするためのCSS
+# 💅 CSS調整：削除ボタン横表示
 st.markdown("""
 <style>
 .delete-btn {
@@ -106,7 +106,7 @@ try:
         text = data.get("message", "")
         msg_id = msg.id
 
-        # メッセージ表示（本文＋縦三点メニュー）
+        # メッセージ本文＋縦三点メニュー
         col1, col2 = st.columns([8, 1])
         with col1:
             if sender_name == "講師":
@@ -114,20 +114,19 @@ try:
             else:
                 st.markdown(f"🎓 **{sender_name}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
 
-        # 縦三点リーダー（⋮）＋削除ボタン横並び
+        # 🔹 削除権限チェック：講師は全件可、自分の投稿のみ可
+        can_delete = (role == "👨‍🏫 職員（管理者）") or (sender == sender_name)
+
+        # 縦三点リーダー（⋮）
         with col2:
-            with st.popover("⋮", use_container_width=True):
-                delete_html = f"""
-                <div class="delete-btn" onclick="window.location.reload()">
-                    削除
-                </div>
-                """
-                # StreamlitでHTMLボタン表示 → 押下時に削除処理を呼ぶ
-                clicked = st.button("削除", key=f"delete_{msg_id}", use_container_width=True)
-                if clicked:
-                    msg.reference.delete()
-                    st.warning("メッセージを削除しました。")
-                    st.experimental_rerun()
+            if can_delete:
+                with st.popover("⋮", use_container_width=True):
+                    if st.button("削除", key=f"delete_{msg_id}", use_container_width=True):
+                        msg.reference.delete()
+                        st.warning("メッセージを削除しました。")
+                        st.experimental_rerun()
+            else:
+                st.markdown("<div style='color:gray; text-align:center;'>⋮</div>", unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
@@ -135,4 +134,4 @@ except Exception as e:
 # ---------------------------------------------------
 # 8️⃣ 注意書き
 # ---------------------------------------------------
-st.caption("💡 各メッセージ右側の『⋮』から削除可能です。削除は全ユーザーに即時反映されます。")
+st.caption("💡 自分が送信したメッセージのみ削除できます。講師は全削除可能です。")
