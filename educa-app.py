@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（ユーザー自身の削除機能付き）
+# 🎓 educa-app.py（ユーザー削除範囲制限＋スタンプ対応版）
 # =============================================
 
 import streamlit as st
@@ -103,6 +103,15 @@ st.subheader(f"💬 {room} チャットルーム")
 st_autorefresh(interval=5000, key="refresh")
 
 # ---------------------------
+# 送信者の区分選択（ユーザーのみ）
+# ---------------------------
+if role == "user":
+    sender_role = st.radio("送信者区分を選択", ["生徒", "保護者"], horizontal=True)
+    sender = f"{sender_role}：{user_name}"
+else:
+    sender = st.selectbox("送信者", ["講師A", "講師B", "職員"])
+
+# ---------------------------
 # スタンプ送信
 # ---------------------------
 st.markdown("### 🦕 スタンプを送信")
@@ -117,7 +126,7 @@ for i, (emoji, url) in enumerate(stamps.items()):
     with cols[i]:
         if st.button(emoji):
             db.collection("rooms").document(room).collection("messages").add({
-                "sender": user_name,
+                "sender": sender,
                 "message": url,
                 "type": "stamp",
                 "timestamp": firestore.SERVER_TIMESTAMP
@@ -132,7 +141,7 @@ message = st.text_input("✏️ メッセージを入力してください")
 if st.button("送信", use_container_width=True):
     if message.strip():
         db.collection("rooms").document(room).collection("messages").add({
-            "sender": user_name,
+            "sender": sender,
             "message": message,
             "type": "text",
             "timestamp": firestore.SERVER_TIMESTAMP
@@ -155,19 +164,26 @@ messages = messages_ref.stream()
 for msg in messages:
     data = msg.to_dict()
     msg_id = msg.id
-    sender = data.get("sender", "不明")
+    sender_name = data.get("sender", "不明")
     msg_type = data.get("type", "text")
-    message = data.get("message", "")
+    content = data.get("message", "")
 
     col1, col2 = st.columns([8, 1])
     with col1:
         if msg_type == "stamp":
-            st.markdown(f"**{sender}**：<br><img src='{message}' width='80'>", unsafe_allow_html=True)
+            st.markdown(f"**{sender_name}**：<br><img src='{content}' width='80'>", unsafe_allow_html=True)
         else:
-            st.markdown(f"**{sender}**：{message}")
+            st.markdown(f"**{sender_name}**：{content}")
 
-    # 🔹 削除機能（管理者 or 自分のメッセージ）
-    can_delete = (role == "admin") or (sender == user_name)
+    # 🔹 削除権限ルール：
+    # 管理者 → 全削除可
+    # ユーザー → 自分のメッセージのみ削除可
+    can_delete = False
+    if role == "admin":
+        can_delete = True
+    elif role == "user" and sender_name == sender:
+        can_delete = True
+
     if can_delete:
         with col2:
             with st.popover("⋮", use_container_width=True):
