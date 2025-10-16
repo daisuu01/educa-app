@@ -121,7 +121,7 @@ with col_stamp:
                         "timestamp": firestore.SERVER_TIMESTAMP
                     })
                     st.success(f"スタンプ {emoji} を送信しました！")
-                    st.experimental_rerun()
+                    st.rerun()
 
 # ---------------------------------------------------
 # 7️⃣ チャット履歴表示
@@ -158,7 +158,7 @@ try:
                     if st.button("削除", key=f"delete_{msg_id}", use_container_width=True):
                         msg.reference.delete()
                         st.warning("削除しました。")
-                        st.experimental_rerun()
+                        st.rerun()
         else:
             if sender_name == sender:
                 with col2:
