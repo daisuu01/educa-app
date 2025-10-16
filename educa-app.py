@@ -1,5 +1,5 @@
 # =============================================
-# 🎓 educa-app.py（ユーザー側は自分の投稿のみ三点リーダー表示）
+# 🎓 educa-app.py（管理者／ユーザー選択＋ルーム制限付きチャット）
 # =============================================
 
 import streamlit as st
@@ -9,12 +9,7 @@ from firebase_admin import credentials, firestore
 from streamlit_autorefresh import st_autorefresh
 
 # ---------------------------------------------------
-# 1️⃣ 自動更新設定（5秒ごと）
-# ---------------------------------------------------
-st_autorefresh(interval=5000, limit=None, key="chat_refresh")
-
-# ---------------------------------------------------
-# 2️⃣ Firebase 初期化
+# 1️⃣ Firebase 初期化
 # ---------------------------------------------------
 if not firebase_admin._apps:
     firebase_json = json.loads(st.secrets["FIREBASE_CREDENTIALS"])
@@ -24,30 +19,59 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 # ---------------------------------------------------
-# 3️⃣ ページ設定
+# 2️⃣ ページ設定
 # ---------------------------------------------------
 st.set_page_config(page_title="Educa Chat", layout="wide")
-st.title("💬 Educa Chat（削除権限＋UI最適化版）")
+st.title("💬 Educa Chat")
 
 # ---------------------------------------------------
-# 4️⃣ ロール選択
+# 3️⃣ ロール選択（現時点では手動選択）
 # ---------------------------------------------------
-role = st.sidebar.radio("ログインタイプを選択", ["👨‍🏫 職員（管理者）", "🎓 生徒・保護者（ユーザー）"])
+if "role" not in st.session_state:
+    st.session_state.role = None
+
+if st.session_state.role is None:
+    st.subheader("🔐 ログインを選択してください")
+    role_choice = st.radio("ログイン種別", ["👨‍🏫 管理者", "🎓 ユーザー"], horizontal=True)
+
+    if role_choice == "👨‍🏫 管理者":
+        if st.button("管理者としてログイン"):
+            st.session_state.role = "admin"
+            st.success("管理者としてログインしました。")
+
+    elif role_choice == "🎓 ユーザー":
+        if st.button("ユーザーとしてログイン"):
+            st.session_state.role = "user"
+            st.success("ユーザーとしてログインしました。")
+
+    st.stop()
 
 # ---------------------------------------------------
-# 5️⃣ クラスルーム選択
+# 4️⃣ ロールに応じた設定
 # ---------------------------------------------------
-st.sidebar.header("🏫 クラスルーム")
-rooms = ["中1", "中2", "中3", "保護者"]
-selected_room = st.sidebar.selectbox("チャットルームを選択", rooms)
+role = st.session_state.role
+
+if role == "admin":
+    st.sidebar.header("👨‍🏫 管理者モード")
+    available_rooms = ["中1", "中2", "中3", "保護者"]
+else:
+    st.sidebar.header("🎓 ユーザーモード")
+    available_rooms = ["中1", "中2", "中3"]
+
+selected_room = st.sidebar.selectbox("入室するルームを選択", available_rooms)
 
 st.subheader(f"📚 {selected_room} チャットルーム")
 
 # ---------------------------------------------------
+# 5️⃣ 自動更新設定（5秒ごと）
+# ---------------------------------------------------
+st_autorefresh(interval=5000, limit=None, key="chat_refresh")
+
+# ---------------------------------------------------
 # 6️⃣ メッセージ送信
 # ---------------------------------------------------
-if role == "👨‍🏫 職員（管理者）":
-    sender = "講師"
+if role == "admin":
+    sender = st.selectbox("送信者", ["講師A", "講師B", "職員"])
 else:
     sender = st.selectbox("送信者", ["生徒", "保護者"])
 
@@ -65,11 +89,10 @@ if st.button("送信", use_container_width=True):
         st.warning("メッセージを入力してください。")
 
 # ---------------------------------------------------
-# 7️⃣ チャット履歴（ユーザーは自分の投稿のみ⋮表示）
+# 7️⃣ チャット履歴表示（権限別で削除制御）
 # ---------------------------------------------------
 st.subheader(f"💬 {selected_room} のチャット履歴（自動更新中）")
 
-# 💅 CSS：削除ボタンを横中央揃え
 st.markdown("""
 <style>
 .delete-btn {
@@ -106,37 +129,40 @@ try:
         text = data.get("message", "")
         msg_id = msg.id
 
-        # メッセージ本文＋三点リーダー列
         col1, col2 = st.columns([8, 1])
         with col1:
-            if sender_name == "講師":
+            if sender_name in ["講師A", "講師B", "職員"]:
                 st.markdown(f"🧑‍🏫 **{sender_name}**：<span style='color:#1565C0'>{text}</span>", unsafe_allow_html=True)
             else:
                 st.markdown(f"🎓 **{sender_name}**：<span style='color:#2E7D32'>{text}</span>", unsafe_allow_html=True)
 
-        # 🔹 三点リーダーの表示条件を判定
-        if role == "👨‍🏫 職員（管理者）":
-            # 管理者は全てに表示
+        # 🔹 削除ボタンの制御
+        if role == "admin":
+            # 管理者は全メッセージ削除可
             with col2:
                 with st.popover("⋮", use_container_width=True):
                     if st.button("削除", key=f"delete_{msg_id}", use_container_width=True):
                         msg.reference.delete()
-                        st.warning("メッセージを削除しました。")
+                        st.warning("削除しました。")
                         st.experimental_rerun()
         else:
-            # ユーザーは自分の投稿のみ表示
-            if sender == sender_name:
+            # ユーザーは自分のメッセージのみ削除可
+            if sender_name == sender:
                 with col2:
                     with st.popover("⋮", use_container_width=True):
                         if st.button("削除", key=f"delete_{msg_id}", use_container_width=True):
                             msg.reference.delete()
-                            st.warning("メッセージを削除しました。")
+                            st.warning("削除しました。")
                             st.experimental_rerun()
 
 except Exception as e:
     st.error(f"Firestore読み込みエラー: {e}")
 
 # ---------------------------------------------------
-# 8️⃣ 注意書き
+# 8️⃣ ログアウト
 # ---------------------------------------------------
-st.caption("💡 ユーザーは自分のメッセージのみ削除可能。管理者は全削除可能です。")
+st.sidebar.divider()
+if st.sidebar.button("🚪 ログアウト"):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
