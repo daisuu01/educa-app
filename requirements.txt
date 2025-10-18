@@ -3,3 +3,4 @@ pandas
 openpyxl
 streamlit-autorefresh
 firebase-admin
+python-dotenv

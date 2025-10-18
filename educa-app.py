@@ -13,13 +13,21 @@ import json
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 from google.cloud.firestore_v1 import FieldFilter
+from dotenv import load_dotenv
+import os
 
 # ---------------------------
-# Firebase 初期化
+# Firebase 初期化（.env方式）
 # ---------------------------
+load_dotenv()  # .envを読み込む
+firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
+
+if not firebase_path or not os.path.exists(firebase_path):
+    st.error(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
+    st.stop()
+
 if not firebase_admin._apps:
-    firebase_json = json.loads(st.secrets["FIREBASE_CREDENTIALS"])
-    cred = credentials.Certificate(firebase_json)
+    cred = credentials.Certificate(firebase_path)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
