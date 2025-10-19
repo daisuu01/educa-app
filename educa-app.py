@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 # ---------------------------
 # Firebase 初期化
 # ---------------------------
+
 load_dotenv()
 firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
 
@@ -22,11 +23,15 @@ if not firebase_path or not os.path.exists(firebase_path):
     st.error(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
     st.stop()
 
+# ✅ ここがポイント：すでに初期化済みでなければ実行
 if not firebase_admin._apps:
     cred = credentials.Certificate(firebase_path)
     firebase_admin.initialize_app(cred)
 
-db = firestore.client()
+# すでに初期化済みなら再利用
+app = firebase_admin.get_app()
+db = firestore.client(app)
+
 
 # ---------------------------
 # ページ設定
@@ -37,7 +42,7 @@ st.title("💬 Educa Chat")
 # ---------------------------
 # セッション初期化
 # ---------------------------
-for key in ["user_id", "user_name", "user_class", "role"]:
+for key in ["user_id", "user_name", "user_class", "role", "user_type"]:
     if key not in st.session_state:
         st.session_state[key] = None
 
@@ -82,6 +87,41 @@ def send_message(path: list, sender: str, msg: str, msg_type="text"):
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
+# ---------------------------
+# 既読管理関数
+# ---------------------------
+def mark_as_read(ref, message_id: str, user_id: str):
+    """ユーザーがメッセージを開いたら既読を登録"""
+    try:
+        msg_ref = ref.document(message_id)
+        msg = msg_ref.get()
+        if msg.exists:
+            data = msg.to_dict()
+            read_by = data.get("read_by", [])
+            if user_id not in read_by:
+                read_by.append(user_id)
+                msg_ref.update({"read_by": read_by})
+    except Exception as e:
+        print("mark_as_read error:", e)
+
+# ---------------------------
+# 未読件数カウント関数
+# ---------------------------
+
+def count_unread_messages(ref, user_id: str):
+    """指定スレッドでの未読件数をカウント"""
+    try:
+        msgs = ref.stream()
+        count = 0
+        for m in msgs:
+            d = m.to_dict()
+            read_by = d.get("read_by", [])
+            if user_id not in read_by:
+                count += 1
+        return count
+    except Exception as e:
+        print("count_unread_messages error:", e)
+        return 0
 
 
 def get_users_by_grade(grade: str):
@@ -89,39 +129,79 @@ def get_users_by_grade(grade: str):
     return list(q.stream())
 
 def display_messages(ref):
-    """単一ルームのメッセージ表示"""
+    """単一ルームのメッセージ表示（既読付き）"""
     msgs = ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
     st.write("---")
     for m in msgs:
         d = m.to_dict()
-        if d.get("type") == "stamp":
-            st.markdown(f"**{d.get('sender')}**：<br><img src='{d.get('message')}' width='60'>",
-                        unsafe_allow_html=True)
+        msg_id = m.id
+
+        # === 既読人数を算出 ===
+        read_by = d.get("read_by", [])
+        if len(read_by) > 1:
+            read_status = f" {len(read_by)}人既読"
+        elif len(read_by) == 1:
+            read_status = " 1人既読"
         else:
-            st.markdown(f"**{d.get('sender')}**：{d.get('message')}")
+            read_status = "🔵 未読"
+
+        # === メッセージ表示 ===
+        if d.get("type") == "stamp":
+          st.markdown(
+             f"**{d.get('sender')}**：<br><img src='{d.get('message')}' width='60'>（{read_status}）",
+             unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(f"**{d.get('sender')}**：{d.get('message')}　（{read_status}）")
+
         st.divider()
 
+
 def display_messages_from_refs(ref_list, limit=100):
-    """複数ルームを結合して時系列表示"""
+    """複数ルームを結合して時系列表示（既読ボタン付き）"""
     buffer = []
     for ref in ref_list:
         try:
             for m in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
                 d = m.to_dict()
                 ts = d.get("timestamp") or datetime(1970, 1, 1, tzinfo=timezone.utc)
-                buffer.append((ts, d))
+                buffer.append((ts, d, ref, m.id))
         except Exception:
             continue
     buffer.sort(key=lambda x: x[0], reverse=True)
 
     st.write("---")
-    for _, d in buffer:
-        if d.get("type") == "stamp":
-            st.markdown(f"**{d.get('sender')}**：<br><img src='{d.get('message')}' width='60'>",
-                        unsafe_allow_html=True)
-        else:
-            st.markdown(f"**{d.get('sender')}**：{d.get('message')}")
+    for _, d, ref, msg_id in buffer:
+        read_by = d.get("read_by", [])
+        is_read = st.session_state.user_id in read_by
+
+        # === メッセージ表示部分 ===
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            if d.get("type") == "stamp":
+                st.markdown(
+                    f"**{d.get('sender')}**：<br><img src='{d.get('message')}' width='60'>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(f"**{d.get('sender')}**：{d.get('message')}")
+
+            # 読まれた人数表示
+            if len(read_by) > 0:
+                st.caption(f"👀 既読 {len(read_by)}名")
+
+        with col2:
+            # 既読ボタン
+            if not is_read:
+                if st.button("✅ 既読", key=f"read_{msg_id}"):
+                    mark_as_read(ref, msg_id, st.session_state.user_id)
+                    st.rerun()
+            else:
+                st.markdown("✔️ 既読")
+
         st.divider()
+
+
 
 # ---------------------------
 # スタンプ定義
@@ -150,6 +230,12 @@ if st.session_state.user_id is None:
             st.rerun()
 
     elif role == "🎓 ユーザー":
+        st.subheader("🎓 生徒・保護者ログイン")
+
+    # ここでログイン区分を選択
+        login_type = st.radio("ログイン区分を選択", ["生徒", "保護者"], horizontal=True)
+        user_type = "生徒" if "生徒" in login_type else "保護者"
+
         user_id = st.text_input("会員番号", placeholder="例：S12345")
         password = st.text_input("パスワード", type="password")
 
@@ -158,16 +244,28 @@ if st.session_state.user_id is None:
             if not doc.exists:
                 st.error("会員番号が登録されていません。")
                 st.stop()
+
             data = doc.to_dict()
             if data.get("password") != password:
                 st.error("パスワードが正しくありません。")
                 st.stop()
+
+        # ✅ ログイン情報をセッションに保存
             st.session_state.role = "user"
             st.session_state.user_id = user_id
             st.session_state.user_name = data.get("name", "名無し")
             st.session_state.user_class = data.get("class", "未設定")
-            st.success(f"{st.session_state.user_name} さんでログインしました。")
-            st.rerun()
+            st.session_state.user_type = user_type
+
+            st.success(f"{user_type}として {st.session_state.user_name} さんでログインしました。")
+            #st.rerun()
+            #st.stop()
+
+# ✅ ログイン完了後に次の画面を表示
+if st.session_state.get("login_done"):
+    st.info("✅ ログイン完了しました。メイン画面を読み込み中...")
+    # ここで return せず次のセクションが自然に実行される
+else:
     st.stop()
 
 # ---------------------------
@@ -187,6 +285,39 @@ if role == "admin":
     # 💬 チャットモード
     if mode == "💬 チャット":
         chat_mode = st.sidebar.radio("チャットモード", ["📤 送信", "💬 返信"], label_visibility="collapsed")
+
+        # ======================
+        # 🔔 未読メッセージ数表示（管理者）
+        # ======================
+        st.sidebar.write("### 🔔 未読メッセージ")
+
+        ref_all = db.collection("rooms").document("ALL").collection("messages")
+        unread_all = count_unread_messages(ref_all, user_id)
+        st.sidebar.write(f"📢 全体：{unread_all}件")
+
+        # 各学年ルーム
+        for grade in ["中1","中2","中3","高1","高2","高3"]:
+            ref_grade = db.collection("rooms").document(grade).collection("messages")
+            unread_grade = count_unread_messages(ref_grade, user_id)
+            st.sidebar.write(f"🏫 {grade}：{unread_grade}件")
+
+        # 個人スレッド（管理者専用）
+        st.sidebar.write("### 👤 個人スレッド未読")
+        users_ref = db.collection("users").stream()
+        for u in users_ref:
+            uid = u.id
+            name = u.to_dict().get("name", "")
+            cls = u.to_dict().get("class", "")
+            ref_personal = (
+                db.collection("rooms")
+                .document(cls)
+                .collection("personal")
+                .document(uid)
+                .collection("messages")
+            )
+            unread_personal = count_unread_messages(ref_personal, user_id)
+            if unread_personal > 0:
+                st.sidebar.write(f"　📩 {cls}｜{name}：{unread_personal}件")
 
         # ======== 📤 送信 ========
         if chat_mode == "📤 送信":
@@ -299,9 +430,36 @@ if role == "admin":
 # ユーザー画面
 # ======================================================
 else:
-    st.subheader("✉️ 管理者にメッセージを送る（他ユーザーには非表示）")
-    sender_role = st.radio("送信者区分", ["生徒", "保護者"], horizontal=True)
-    sender_label = f"{sender_role}：{user_name}"
+    #st.subheader("✉️ 管理者にメッセージを送る（他ユーザーには非表示）")
+
+    # ---------------------------
+    # 🔔 未読メッセージ数表示（ユーザー）
+    # ---------------------------
+    ref_all = db.collection("rooms").document("ALL").collection("messages")
+    ref_grade = db.collection("rooms").document(user_class).collection("messages")
+    ref_personal = (
+        db.collection("rooms").document(user_class)
+        .collection("personal")
+        .document(user_id)
+        .collection("messages")
+    )
+
+    # 各スレッドの未読件数を取得
+    unread_all = count_unread_messages(ref_all, user_id)
+    unread_grade = count_unread_messages(ref_grade, user_id)
+    unread_personal = count_unread_messages(ref_personal, user_id)
+
+    # 合計件数
+    total_unread = unread_all + unread_grade + unread_personal
+
+    # 未読がある場合のみ表示
+    if total_unread > 0:
+        st.markdown(f"### 🔔 未読メッセージ（{total_unread}件）")
+        st.write("---")
+
+
+
+    sender_label = f"{st.session_state.user_type}：{user_name}"
     ensure_personal_thread(user_class, user_id)
 
     msg = st.text_input("本文（管理者宛）")
