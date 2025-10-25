@@ -1,0 +1,9 @@
+from firebase_admin import credentials, firestore, initialize_app
+
+cred = credentials.Certificate("educa-app-firebase-adminsdk.json")
+initialize_app(cred)
+db = firestore.client()
+
+print("=== Firestore users コレクションの内容 ===")
+for doc in db.collection("users").stream():
+    print(f"{doc.id}: {doc.to_dict()}")

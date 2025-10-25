@@ -1,6 +1,15 @@
-streamlit
-pandas
-openpyxl
-streamlit-autorefresh
-firebase-admin
-python-dotenv
+# =============================================
+# Educa App requirements.txt（2025-10-24版）
+# =============================================
+
+streamlit==1.39.0
+pandas==2.2.3
+openpyxl==3.1.5
+streamlit-autorefresh==1.0.1
+firebase-admin==6.6.0
+python-dotenv==1.0.1
+openai==1.47.0
+httpx==0.27.2   # openaiの依存で必須（自動でも入るが明示推奨）
+fastapi
+uvicorn
+python-multipart
