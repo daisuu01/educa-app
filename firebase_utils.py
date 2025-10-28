@@ -114,15 +114,12 @@ def _ffill_code_column(df: pd.DataFrame, code_col: str) -> pd.Series:
     # 'nan'/'None'/空文字をNaNに
     col = col.replace({"": pd.NA, "nan": pd.NA, "NaN": pd.NA, "None": pd.NA})
 
-    # 数値型が文字化され '.0' がつくパターンに対応 → ffill 後に整形
     # 前方補完
     col = col.ffill()
 
-    # 補完後にも残る可能性のある '.0' や小数表現を除去
-    # 例: '10100.0' -> '10100'
+    # 小数表現の除去（例: '10100.0' -> '10100'）
     col = col.str.replace(r"\.0$", "", regex=True)
 
-    # 万一「全てがNaNで先頭も空」だった場合の保険（そのまま返す）
     return col
 
 
@@ -188,8 +185,18 @@ def import_students_from_excel_and_csv(excel_file, csv_file):
                     print(f"⚠ {member_id}: コードが空です。スキップ。")
                     continue
 
-                # CSVから初期PW取得
-                # （1列目=会員番号, 2列目=初期PW）
+                # 🔹 追加：コード先頭桁から学年を自動判定（最小限）
+                head = class_code[0]
+                grade = {
+                    "1": "中1",
+                    "2": "中2",
+                    "3": "中3",
+                    "4": "高1",
+                    "5": "高2",
+                    "6": "高3",
+                }.get(head, "")
+
+                # CSVから初期PW取得（1列目=会員番号, 2列目=初期PW）
                 hit = df_csv[df_csv.iloc[:, 0] == member_id]
                 if hit.empty:
                     print(f"⚠ {member_id}: CSVに初期PWが見つかりません。スキップ。")
@@ -203,11 +210,12 @@ def import_students_from_excel_and_csv(excel_file, csv_file):
                     print(f"スキップ: {member_id} は既に登録済み")
                     continue
 
-                # Firestore登録
+                # Firestore登録（🔹 grade を追加）
                 doc_ref.set({
                     "member_id": member_id,
                     "name": name,
                     "class_code": class_code,
+                    "grade": grade,  # ← 追加
                     "role": "student",
                     "init_password_hash": hashed_init,
                     "custom_password_hash": None,
@@ -218,6 +226,7 @@ def import_students_from_excel_and_csv(excel_file, csv_file):
                     "会員番号": member_id,
                     "氏名": name,
                     "クラス": class_code,
+                    "学年": grade,  # ← 表示にも追加
                     "初期PW": init_pw
                 })
 
@@ -246,6 +255,7 @@ def fetch_all_users():
                 "会員番号": data.get("member_id"),
                 "氏名": data.get("name"),
                 "クラス": data.get("class_code"),
+                "学年": data.get("grade"),  # ← 学年も表示（最小限の追加）
                 "PW変更済": "✅" if data.get("password_changed") else "❌"
             })
         return pd.DataFrame(users)

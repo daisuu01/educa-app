@@ -2,5 +2,4 @@ env\Scripts\Activate
 
 pip install -r requirements.txt
 
-python camera_server.py
 streamlit run main.py
