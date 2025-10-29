@@ -29,8 +29,14 @@ db = firestore.client()
 # ==================================================
 def delete_message(user_id: str, message_id: str):
     """Firestore上の特定メッセージを削除"""
-    ref = db.collection("rooms").document("personal").collection(user_id)\
-        .document("messages").collection("items").document(message_id)
+    ref = (
+        db.collection("rooms")
+        .document("personal")
+        .collection(user_id)
+        .document("messages")
+        .collection("items")
+        .document(message_id)
+    )
     ref.delete()
 
 
@@ -94,7 +100,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         if "admin" not in m.get("read_by", []) and m.get("sender", "").startswith("student"):
             personal_ref.document(d.id).update({"read_by": firestore.ArrayUnion(["admin"])})
             m["read_by"] = m.get("read_by", []) + ["admin"]
-        m["id"] = d.id  # ★ 追加：削除用にドキュメントIDを保持
+        m["id"] = d.id  # ★ 削除用にドキュメントIDを保持
         all_msgs.append(m)
 
     # --- クラス宛 ---
@@ -109,6 +115,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         for d in class_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
+                m["id"] = d.id  # ★ 削除用にドキュメントIDを保持（これが重要！）
                 all_msgs.append(m)
 
     # --- 学年宛 ---
@@ -123,6 +130,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         for d in grade_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
+                m["id"] = d.id  # ★ 追加
                 all_msgs.append(m)
 
     # --- 全員宛 ---
@@ -130,6 +138,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
     for d in all_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
         m = d.to_dict()
         if m:
+            m["id"] = d.id  # ★ 追加
             all_msgs.append(m)
 
     all_msgs.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)))
@@ -168,7 +177,6 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 
     # --- 学年宛 ---
     elif target_type == "学年" and grade:
-        # 学年全体宛メッセージ
         ref = (
             db.collection("rooms")
             .document("grade")
@@ -178,8 +186,7 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
         )
         ref.add(data)
 
-        # 学年の生徒に個人スレへコピー（code/class_code の先頭1桁 or grade一致）
-        grade_prefix_map = {"中1":"1","中2":"2","中3":"3","高1":"4","高2":"5","高3":"6"}
+        grade_prefix_map = {"中1": "1", "中2": "2", "中3": "3", "高1": "4", "高2": "5", "高3": "6"}
         prefix = grade_prefix_map.get(grade)
         target_norm = _normalize_grade(grade)
 
@@ -214,9 +221,9 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 # ==================================================
 # 🖥️ 管理者用チャットUI
 # ==================================================
-def show_admin_chat(initial_student_id=None):  # ★ 引数を追加
+def show_admin_chat(initial_student_id=None):
     st.title("💬 管理者チャット管理")
-    # ★ 受信ボックスから遷移直後はオートリフレッシュを一時停止（1回だけ）
+
     if not st.session_state.get("just_opened_from_inbox"):
         st_autorefresh(interval=5000, key="admin_chat_refresh")
     else:
@@ -227,10 +234,7 @@ def show_admin_chat(initial_student_id=None):  # ★ 引数を追加
         st.warning("生徒データが見つかりません。")
         return
 
-    # ★ 受信ボックスから遷移した場合、該当生徒を初期選択対象に設定
-    pre_selected_id = None
-    if initial_student_id:
-        pre_selected_id = initial_student_id
+    pre_selected_id = initial_student_id if initial_student_id else None
 
     st.sidebar.markdown("### 📤 送信先設定")
     target_type = st.sidebar.radio("送信先タイプを選択", ["個人", "全員", "学年", "クラス"], horizontal=False)
@@ -240,22 +244,13 @@ def show_admin_chat(initial_student_id=None):  # ★ 引数を追加
     class_name = None
 
     if target_type == "個人":
-        # 🔎 検索ボックスに初期値をセット（受信ボックス経由ならその生徒）
         default_value = pre_selected_id if pre_selected_id else ""
-        search_id = st.sidebar.text_input(
-            "🔎 チャット相手を検索（会員番号）",
-            value=default_value,
-            key="search_member_id"
-        ).strip()
+        search_id = st.sidebar.text_input("🔎 チャット相手を検索（会員番号）", value=default_value, key="search_member_id").strip()
 
         matched = []
         if search_id:
-            # 完全一致を最優先、なければ前方一致の候補を提示
             exact = [s for s in students if s["id"] == search_id]
-            if exact:
-                matched = exact
-            else:
-                matched = [s for s in students if s["id"].startswith(search_id)]
+            matched = exact if exact else [s for s in students if s["id"].startswith(search_id)]
 
         if matched:
             if len(matched) == 1:
@@ -275,7 +270,6 @@ def show_admin_chat(initial_student_id=None):  # ★ 引数を追加
             u = next((s for s in students if s["id"] == selected_id), None)
             grade = u["grade"] if u else None
             class_name = (u.get("class_code") or u.get("class")) if u else None
-
 
     elif target_type == "学年":
         grade = st.sidebar.selectbox("学年を選択", ["中1", "中2", "中3", "高1", "高2", "高3"])
@@ -303,91 +297,153 @@ def show_admin_chat(initial_student_id=None):  # ★ 引数を追加
         st.subheader(f"🧑‍🎓 {next((s['name'] for s in students if s['id'] == selected_id), selected_id)} さんとのチャット")
 
         messages = get_messages_and_mark_read(selected_id, grade, class_name)
-        # ▼ 最新が上にくるように降順ソート
         messages.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
-
-        # 直近3件＋過去履歴エクスパンダー
         recent = messages[:3]
         older = messages[3:]
 
-        for msg in recent:  # ← 新しい順に上から表示
+        for msg in recent:
             sender = msg.get("sender", "")
             text = msg.get("text", "")
             ts = msg.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
             read_by = msg.get("read_by", [])
+            msg_id = msg.get("id")
 
             if sender == "admin":
-                guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
-                guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
-                st.markdown(
-f"""
-<div style="text-align:right;margin:8px 0;">
-  <div style="display:inline-block;background-color:#d2e3fc;
-              padding:10px 14px;border-radius:12px;
-              max-width:80%;color:#111;">{text}</div>
-  <div style="font-size:0.8em;color:#666;">{ts_str}</div>
-  <div style="font-size:0.85em;margin-top:2px;color:{guardian_color};">{guardian_read}</div>
-</div>
-""", unsafe_allow_html=True)
+               guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
+               guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
 
-                # ★ 追加：管理者送信メッセージに削除ボタン
-                msg_id = msg.get("id")
-                if msg_id and st.button("🗑️ 削除", key=f"del_{msg_id}"):
-                    delete_message(selected_id, msg_id)
-                    st.rerun()
+               col1, col2 = st.columns([9, 1])
+               with col1:
+                   st.markdown(
+                       f"""
+                       <div style="text-align:right;margin:8px 0;">
+                         <div style="display:inline-block;background-color:#d2e3fc;
+                                     padding:10px 14px;border-radius:12px;
+                                     max-width:80%;color:#111;">{text}</div>
+                         <div style="font-size:0.8em;color:#666;margin-top:3px;">{ts_str}</div>
+                         <div style="font-size:0.85em;margin-top:2px;color:{guardian_color};">{guardian_read}</div>
+                       </div>
+                       """,
+                       unsafe_allow_html=True,
+                   )
+
+               with col2:
+                   st.write(f"🧩 recent msg_id={msg_id}, selected_id={selected_id}")
+                   
+                   if msg_id:
+                       # 🔹 ボタンのスタイルをHTML＋CSSで上書き（枠なし・小文字リンク風）
+                       st.markdown(
+                           f"""
+                           <style>
+                           div[data-testid="stButton"][key="del_recent_{msg_id}"] button {{
+                               background-color: transparent !important;
+                               color: #555 !important;
+                               border: none !important;
+                               padding: 0 !important;
+                               font-size: 0.75em !important;
+                               text-decoration: none !important;
+                               cursor: pointer !important;
+                           }}
+                           div[data-testid="stButton"][key="del_recent_{msg_id}"] button:hover {{
+                               color: #000 !important;
+                               text-decoration: underline !important;
+                           }}
+                           </style>
+                           """,
+                           unsafe_allow_html=True
+                       )
+
+                       if st.button("🗑️削除", key=f"del_recent_{msg_id}", help="このメッセージを削除"):
+                           delete_message(selected_id, msg_id)
+                           st.rerun()
+                   else:
+                       st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
+
+
             else:
-                sender_label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
-                st.markdown(
-f"""
-<div style="text-align:left;margin:8px 0;">
-  <div style="font-size:0.8em;color:#666;">{sender_label}</div>
-  <div style="display:inline-block;background-color:#f1f3f4;
-              padding:10px 14px;border-radius:12px;
-              max-width:80%;color:#111;">{text}</div>
-  <div style="font-size:0.8em;color:#666;">{ts_str}</div>
-</div>
-""", unsafe_allow_html=True)
+               sender_label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
+               st.markdown(
+                   f"""
+                   <div style="text-align:left;margin:8px 0;">
+                     <div style="font-size:0.8em;color:#666;">{sender_label}</div>
+                     <div style="display:inline-block;background-color:#f1f3f4;
+                                 padding:10px 14px;border-radius:12px;
+                                 max-width:80%;color:#111;">{text}</div>
+                     <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+                   </div>
+                   """,
+                   unsafe_allow_html=True,
+               )
 
+
+
+
+        # --- 過去履歴表示 ---
         if older:
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for msg in older:  # こちらも新しい順で上から
+                for msg in older:
                     sender = msg.get("sender", "")
                     text = msg.get("text", "")
                     ts = msg.get("timestamp")
                     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
                     read_by = msg.get("read_by", [])
-                    if sender == "admin":
-                        guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
-                        guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
-                        st.markdown(
-f"""
-<div style="text-align:right;margin:8px 0;">
-  <div style="display:inline-block;background-color:#d2e3fc;
-              padding:10px 14px;border-radius:12px;
-              max-width:80%;color:#111;">{text}</div>
-  <div style="font-size:0.8em;color:#666;">{ts_str}</div>
-  <div style="font-size:0.85em;margin-top:2px;color:{guardian_color};">{guardian_read}</div>
-</div>
-""", unsafe_allow_html=True)
+                    msg_id = msg.get("id")
 
-                        # ★ 追加：過去履歴側にも削除ボタン
-                        msg_id = msg.get("id")
-                        if msg_id and st.button("🗑️ 削除", key=f"del_old_{msg_id}"):
-                            delete_message(selected_id, msg_id)
-                            st.rerun()
-                    else:
-                        sender_label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
-                        st.markdown(
-f"""
-<div style="text-align:left;margin:8px 0;">
-  <div style="font-size:0.8em;color:#666;">{sender_label}</div>
-  <div style="display:inline-block;background-color:#f1f3f4;
-              padding:10px 14px;border-radius:12px;
-              max-width:80%;color:#111;">{text}</div>
-  <div style="font-size:0.8em;color:#666;">{ts_str}</div>
-</div>
-""", unsafe_allow_html=True)
+                    if sender == "admin":
+                         guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
+                         guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
+
+                         col1, col2 = st.columns([9, 1])
+                         with col1:
+                             st.markdown(
+                                 f"""
+                                 <div style="text-align:right;margin:8px 0;">
+                                   <div style="display:inline-block;background-color:#d2e3fc;
+                                               padding:10px 14px;border-radius:12px;
+                                               max-width:80%;color:#111;">{text}</div>
+                                   <div style="font-size:0.8em;color:#666;margin-top:3px;">{ts_str}</div>
+                                   <div style="font-size:0.85em;margin-top:2px;color:{guardian_color};">{guardian_read}</div>
+                                 </div>
+                                 """,
+                                 unsafe_allow_html=True,
+                             )
+                         with col2:
+                             if msg_id:
+                                 # 🔹 ボタンのスタイルをHTML＋CSSで上書き（枠なし・小文字リンク風）
+                                 st.markdown(
+                                     f"""
+                                     <style>
+                                     div[data-testid="stButton"][key="del_old_{msg_id}"] button {{
+                                         background-color: transparent !important;
+                                         color: #555 !important;
+                                         border: none !important;
+                                         padding: 0 !important;
+                                         font-size: 0.75em !important;
+                                         text-decoration: none !important;
+                                         cursor: pointer !important;
+                                     }}
+                                     div[data-testid="stButton"][key="del_old_{msg_id}"] button:hover {{
+                                         color: #000 !important;
+                                         text-decoration: underline !important;
+                                     }}
+                                     </style>
+                                     """,
+                                     unsafe_allow_html=True
+                                 )
+
+                                 if st.button("🗑️削除", key=f"del_old_{msg_id}", help="このメッセージを削除"):
+                                     delete_message(selected_id, msg_id)
+                                     st.rerun()
+                             else:
+                                 st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
+
+
+
+
+    # --- 以下（クラス宛、全員宛、学年宛、送信欄）は変更なし ---
+    # （元のコードのままでOK）
+
 
 
 

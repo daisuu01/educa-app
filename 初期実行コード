@@ -1,5 +1,15 @@
+python -m venv env
+
 env\Scripts\Activate
 
 pip install -r requirements.txt
 
 streamlit run main.py
+
+###############################################
+git add .
+git commit -m "メッセージ削除機能追加"
+git push
+
+git pull
+###############################################
