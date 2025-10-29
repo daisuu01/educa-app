@@ -25,19 +25,67 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 # ==================================================
-# 🔹 メッセージ削除関数
+# 🔹 メッセージ削除関数（個人・学年・クラス・全員対応）
 # ==================================================
-def delete_message(user_id: str, message_id: str):
-    """Firestore上の特定メッセージを削除"""
-    ref = (
-        db.collection("rooms")
-        .document("personal")
-        .collection(user_id)
-        .document("messages")
-        .collection("items")
-        .document(message_id)
-    )
-    ref.delete()
+def delete_message(msg: dict, user_id: str):
+    """Firestore上の特定メッセージを削除（送信元に応じて自動判定）"""
+    msg_id = msg.get("id")
+    origin = msg.get("_origin", "personal")  # どの種類のメッセージか
+
+    if not msg_id:
+        return
+
+    try:
+        if origin == "personal":
+            ref = (
+                db.collection("rooms")
+                .document("personal")
+                .collection(user_id)
+                .document("messages")
+                .collection("items")
+                .document(msg_id)
+            )
+
+        elif origin == "class":
+            class_name = msg.get("_class_name")
+            ref = (
+                db.collection("rooms")
+                .document("class")
+                .collection(str(class_name))
+                .document("messages")
+                .collection("items")
+                .document(msg_id)
+            )
+
+        elif origin == "grade":
+            grade = msg.get("_grade")
+            ref = (
+                db.collection("rooms")
+                .document("grade")
+                .collection(str(grade))
+                .document("messages")
+                .collection("items")
+                .document(msg_id)
+            )
+
+        elif origin == "all":
+            ref = (
+                db.collection("rooms")
+                .document("all")
+                .collection("messages")
+                .document(msg_id)
+            )
+
+        else:
+            st.warning(f"⚠️ 未対応のメッセージ種別: {origin}")
+            return
+
+        ref.delete()
+        st.success("✅ メッセージを削除しました。")
+
+    except Exception as e:
+        st.error(f"❌ 削除中にエラー: {e}")
+
 
 
 # 🔸 学年表記ゆれを吸収（最小限の正規化）
@@ -101,6 +149,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
             personal_ref.document(d.id).update({"read_by": firestore.ArrayUnion(["admin"])})
             m["read_by"] = m.get("read_by", []) + ["admin"]
         m["id"] = d.id  # ★ 削除用にドキュメントIDを保持
+        m["_origin"] = "personal"
         all_msgs.append(m)
 
     # --- クラス宛 ---
@@ -116,6 +165,8 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
             m = d.to_dict()
             if m:
                 m["id"] = d.id  # ★ 削除用にドキュメントIDを保持（これが重要！）
+                m["_origin"] = "class"
+                m["_class_name"] = str(class_name)
                 all_msgs.append(m)
 
     # --- 学年宛 ---
@@ -131,6 +182,8 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
             m = d.to_dict()
             if m:
                 m["id"] = d.id  # ★ 追加
+                m["_origin"] = "grade"
+                m["_grade"] = str(grade)
                 all_msgs.append(m)
 
     # --- 全員宛 ---
@@ -139,6 +192,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         m = d.to_dict()
         if m:
             m["id"] = d.id  # ★ 追加
+            m["_origin"] = "all"
             all_msgs.append(m)
 
     all_msgs.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)))
@@ -329,8 +383,6 @@ def show_admin_chat(initial_student_id=None):
                    )
 
                with col2:
-                   st.write(f"🧩 recent msg_id={msg_id}, selected_id={selected_id}")
-                   
                    if msg_id:
                        # 🔹 ボタンのスタイルをHTML＋CSSで上書き（枠なし・小文字リンク風）
                        st.markdown(
@@ -355,7 +407,7 @@ def show_admin_chat(initial_student_id=None):
                        )
 
                        if st.button("🗑️削除", key=f"del_recent_{msg_id}", help="このメッセージを削除"):
-                           delete_message(selected_id, msg_id)
+                           delete_message(msg, selected_id)
                            st.rerun()
                    else:
                        st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
@@ -433,7 +485,7 @@ def show_admin_chat(initial_student_id=None):
                                  )
 
                                  if st.button("🗑️削除", key=f"del_old_{msg_id}", help="このメッセージを削除"):
-                                     delete_message(selected_id, msg_id)
+                                     delete_message(msg, selected_id)
                                      st.rerun()
                              else:
                                  st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
@@ -450,6 +502,7 @@ def show_admin_chat(initial_student_id=None):
     # --- クラス宛履歴 ---
     elif target_type == "クラス" and class_name:
         st.subheader(f"👥 {class_name} 宛メッセージ履歴")
+
         # 直近3件
         ref = (
             db.collection("rooms")
@@ -458,84 +511,300 @@ def show_admin_chat(initial_student_id=None):
             .document("messages")
             .collection("items")
         )
+
         for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream():
             m = d.to_dict()
-            if m:
-                ts = m.get("timestamp")
-                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            if not m:
+                continue
+            msg_id = d.id
+            ts = m.get("timestamp")
+            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+
+            col1, col2 = st.columns([9, 1])
+            with col1:
                 st.markdown(
                     f"""<div style="margin:6px 0;background-color:#f1f3f4;
                     padding:10px 14px;border-radius:12px;">{m.get("text","")}
                     <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                    unsafe_allow_html=True)
+                    unsafe_allow_html=True
+                )
+
+            with col2:
+                # 🔹 ボタンをリンク風に装飾
+                st.markdown(
+                    f"""
+                    <style>
+                    div[data-testid="stButton"][key="del_class_{msg_id}"] button {{
+                        background-color: transparent !important;
+                        color: #555 !important;
+                        border: none !important;
+                        padding: 0 !important;
+                        font-size: 0.75em !important;
+                        text-decoration: none !important;
+                        cursor: pointer !important;
+                    }}
+                    div[data-testid="stButton"][key="del_class_{msg_id}"] button:hover {{
+                        color: #000 !important;
+                        text-decoration: underline !important;
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # 🔹 削除ボタン処理
+                msg_data = {"id": msg_id, "_origin": "class", "_class_name": class_name}
+                if st.button("🗑️削除", key=f"del_class_{msg_id}", help="このメッセージを削除"):
+                    delete_message(msg_data, selected_id)
+                    st.rerun()
 
         # 過去履歴
         with st.expander("📜 過去の履歴を表示"):
             for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
                 m = d.to_dict()
-                if m:
-                    ts = m.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                if not m:
+                    continue
+                msg_id = d.id
+                ts = m.get("timestamp")
+                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+
+                col1, col2 = st.columns([9, 1])
+                with col1:
                     st.markdown(
                         f"""<div style="margin:6px 0;background-color:#f1f3f4;
                         padding:10px 14px;border-radius:12px;">{m.get("text","")}
                         <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                        unsafe_allow_html=True)
+                        unsafe_allow_html=True
+                    )
+
+                with col2:
+                    st.markdown(
+                        f"""
+                        <style>
+                        div[data-testid="stButton"][key="del_class_old_{msg_id}"] button {{
+                            background-color: transparent !important;
+                            color: #555 !important;
+                            border: none !important;
+                            padding: 0 !important;
+                            font-size: 0.75em !important;
+                            text-decoration: none !important;
+                            cursor: pointer !important;
+                        }}
+                        div[data-testid="stButton"][key="del_class_old_{msg_id}"] button:hover {{
+                            color: #000 !important;
+                            text-decoration: underline !important;
+                        }}
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    msg_data = {"id": msg_id, "_origin": "class", "_class_name": class_name}
+                    if st.button("🗑️削除", key=f"del_class_old_{msg_id}", help="このメッセージを削除"):
+                        delete_message(msg_data, selected_id)
+                        st.rerun()
+
 
     # --- 全員・学年宛履歴 ---
     elif target_type == "全員":
         st.subheader("🌏 全員宛メッセージ履歴")
+
         all_ref = db.collection("rooms").document("all").collection("messages")
+
         # 直近3件
         for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream():
             m = d.to_dict()
-            if m:
-                ts = m.get("timestamp")
-                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            if not m:
+                continue
+            msg_id = d.id
+            ts = m.get("timestamp")
+            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+
+            col1, col2 = st.columns([9, 1])
+            with col1:
                 st.markdown(
                     f"""<div style="margin:6px 0;background-color:#f1f3f4;
                     padding:10px 14px;border-radius:12px;">{m.get("text","")}
                     <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                    unsafe_allow_html=True)
-        # 過去履歴
+                    unsafe_allow_html=True
+                )
+
+            with col2:
+                st.markdown(
+                    f"""
+                    <style>
+                    div[data-testid="stButton"][key="del_all_{msg_id}"] button {{
+                        background-color: transparent !important;
+                        color: #555 !important;
+                        border: none !important;
+                        padding: 0 !important;
+                        font-size: 0.75em !important;
+                        text-decoration: none !important;
+                        cursor: pointer !important;
+                    }}
+                    div[data-testid="stButton"][key="del_all_{msg_id}"] button:hover {{
+                        color: #000 !important;
+                        text-decoration: underline !important;
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                msg_data = {"id": msg_id, "_origin": "all"}
+                if st.button("🗑️削除", key=f"del_all_{msg_id}", help="このメッセージを削除"):
+                    delete_message(msg_data, selected_id)
+                    st.rerun()
+
+        # 📜 過去履歴
         with st.expander("📜 過去の履歴を表示"):
             for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
                 m = d.to_dict()
-                if m:
-                    ts = m.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                if not m:
+                    continue
+                msg_id = d.id
+                ts = m.get("timestamp")
+                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+
+                col1, col2 = st.columns([9, 1])
+                with col1:
                     st.markdown(
                         f"""<div style="margin:6px 0;background-color:#f1f3f4;
                         padding:10px 14px;border-radius:12px;">{m.get("text","")}
                         <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                        unsafe_allow_html=True)
+                        unsafe_allow_html=True
+                    )
+
+                with col2:
+                    st.markdown(
+                        f"""
+                        <style>
+                        div[data-testid="stButton"][key="del_all_old_{msg_id}"] button {{
+                            background-color: transparent !important;
+                            color: #555 !important;
+                            border: none !important;
+                            padding: 0 !important;
+                            font-size: 0.75em !important;
+                            text-decoration: none !important;
+                            cursor: pointer !important;
+                        }}
+                        div[data-testid="stButton"][key="del_all_old_{msg_id}"] button:hover {{
+                            color: #000 !important;
+                            text-decoration: underline !important;
+                        }}
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    msg_data = {"id": msg_id, "_origin": "all"}
+                    if st.button("🗑️削除", key=f"del_all_old_{msg_id}", help="このメッセージを削除"):
+                        delete_message(msg_data, selected_id)
+                        st.rerun()
+
 
     elif target_type == "学年" and grade:
         st.subheader(f"🏫 {grade} 宛メッセージ履歴")
-        ref = db.collection("rooms").document("grade").collection(grade).document("messages").collection("items")
+
+        ref = (
+            db.collection("rooms")
+            .document("grade")
+            .collection(grade)
+            .document("messages")
+            .collection("items")
+        )
+
         # 直近3件
         for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream():
             m = d.to_dict()
-            if m:
-                ts = m.get("timestamp")
-                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            if not m:
+                continue
+            msg_id = d.id
+            ts = m.get("timestamp")
+            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+
+            col1, col2 = st.columns([9, 1])
+            with col1:
                 st.markdown(
                     f"""<div style="margin:6px 0;background-color:#f1f3f4;
                     padding:10px 14px;border-radius:12px;">{m.get("text","")}
                     <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                    unsafe_allow_html=True)
-        # 過去履歴
+                    unsafe_allow_html=True
+                )
+
+            with col2:
+                st.markdown(
+                    f"""
+                    <style>
+                    div[data-testid="stButton"][key="del_grade_{msg_id}"] button {{
+                        background-color: transparent !important;
+                        color: #555 !important;
+                        border: none !important;
+                        padding: 0 !important;
+                        font-size: 0.75em !important;
+                        text-decoration: none !important;
+                        cursor: pointer !important;
+                    }}
+                    div[data-testid="stButton"][key="del_grade_{msg_id}"] button:hover {{
+                        color: #000 !important;
+                        text-decoration: underline !important;
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                msg_data = {"id": msg_id, "_origin": "grade", "_grade": grade}
+                if st.button("🗑️削除", key=f"del_grade_{msg_id}", help="このメッセージを削除"):
+                    delete_message(msg_data, selected_id)
+                    st.rerun()
+
+        # 📜 過去履歴
         with st.expander("📜 過去の履歴を表示"):
             for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
                 m = d.to_dict()
-                if m:
-                    ts = m.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                if not m:
+                    continue
+                msg_id = d.id
+                ts = m.get("timestamp")
+                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+
+                col1, col2 = st.columns([9, 1])
+                with col1:
                     st.markdown(
                         f"""<div style="margin:6px 0;background-color:#f1f3f4;
                         padding:10px 14px;border-radius:12px;">{m.get("text","")}
                         <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                        unsafe_allow_html=True)
+                        unsafe_allow_html=True
+                    )
+
+                with col2:
+                    st.markdown(
+                        f"""
+                        <style>
+                        div[data-testid="stButton"][key="del_grade_old_{msg_id}"] button {{
+                            background-color: transparent !important;
+                            color: #555 !important;
+                            border: none !important;
+                            padding: 0 !important;
+                            font-size: 0.75em !important;
+                            text-decoration: none !important;
+                            cursor: pointer !important;
+                        }}
+                        div[data-testid="stButton"][key="del_grade_old_{msg_id}"] button:hover {{
+                            color: #000 !important;
+                            text-decoration: underline !important;
+                        }}
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    msg_data = {"id": msg_id, "_origin": "grade", "_grade": grade}
+                    if st.button("🗑️削除", key=f"del_grade_old_{msg_id}", help="このメッセージを削除"):
+                        delete_message(msg_data, selected_id)
+                        st.rerun()
+
 
     # --- 送信欄 ---
     st.markdown("---")
