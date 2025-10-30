@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from streamlit_autorefresh import st_autorefresh
 from dotenv import load_dotenv
 import os
+import json
+from streamlit.components.v1 import html as components_html
 
 # --- Firebase 初期化 ---
 load_dotenv()

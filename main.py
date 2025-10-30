@@ -3,6 +3,12 @@
 # =============================================
 
 import streamlit as st
+
+# --- ページ設定 ---
+st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
+
+
+
 from firebase_utils import (
     verify_password,
     update_user_password,
@@ -16,8 +22,7 @@ from admin_chat import show_admin_chat
 from admin_inbox import show_admin_inbox
 from firebase_admin import firestore
 
-# --- ページ設定 ---
-st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
+
 
 # --- 状態管理 ---
 if "login" not in st.session_state:
