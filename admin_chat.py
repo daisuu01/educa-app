@@ -27,26 +27,6 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# --- 削除ボタン ---
-
-DOTS_BUTTON_STYLE = """
-<style>
-div[data-testid^="stButton"][key^="dots_"] button {
-  background: transparent !important;
-  color: #888 !important;
-  border: none !important;
-  padding: 0 !important;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  cursor: pointer !important;
-}
-div[data-testid^="stButton"][key^="dots_"] button:hover {
-  color: #444 !important;
-}
-</style>
-"""
-st.markdown(DOTS_BUTTON_STYLE, unsafe_allow_html=True)
-
 # ==================================================
 # 🔹 メッセージ削除関数（個人・学年・クラス・全員対応）
 # ==================================================
@@ -301,18 +281,6 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 def show_admin_chat(initial_student_id=None):
     st.title("💬 管理者チャット管理")
 
-    # --- URLクエリでの操作（削除）を先に処理 ---
-    params = st.query_params
-    if params.get("act") == "del":
-        mid = params.get("mid")
-        uid = params.get("uid")
-        org = params.get("org", "personal")
-        if mid and uid:
-            delete_message({"id": mid, "_origin": org}, uid)
-        # クエリを消して画面をきれいに戻す
-        st.query_params.clear()
-        st.rerun()
-
     if not st.session_state.get("just_opened_from_inbox"):
         st_autorefresh(interval=5000, key="admin_chat_refresh")
     else:
@@ -389,191 +357,92 @@ def show_admin_chat(initial_student_id=None):
         messages = get_messages_and_mark_read(selected_id, grade, class_name)
         messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
 
-        for msg in messages:
-            sender = msg.get("sender", "")
-            text = msg.get("text", "")
-            ts = msg.get("timestamp")
-            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-            read_by = msg.get("read_by", [])
-            msg_id = msg.get("id")
+        # 過去と直近に分割
+        latest = messages[:3]
+        older = messages[3:]
 
-            # --------------------------------------------------------
-            # 🔹 管理者メッセージ（吹き出し＋三点リーダー）
-            # --------------------------------------------------------
-            if sender == "admin":
-                guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
-                guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
-
-                bubble = f"""
-<div style="display:flex; align-items:flex-start; gap:6px; margin:10px 0;">
-
-  <!-- 吹き出し：テキストのみ -->
-  <div style="
-    background:#d2e3fc;
-    padding:10px 14px;
-    border-radius:12px;
-    max-width:80%;
-    display:inline-block;
-    color:#111;
-    word-break:break-word;
-  ">
-    {text}
-  </div>
-
-  <!-- 三点リーダー -->
-  <div style="position:relative; flex-shrink:0;">
-    <button id="dots_{msg_id}" style="
-      background:#fff; border:1px solid #ccc; border-radius:8px;
-      width:28px; height:28px; font-size:16px; cursor:pointer;">
-      ⋯
-    </button>
-
-    <div id="menu_{msg_id}" style="
-      display:none; position:absolute; top:0; left:34px; z-index:2000;
-      background:#fff; border:1px solid #ddd; border-radius:8px; padding:6px;
-      min-width:120px; box-shadow:0 4px 10px rgba(0,0,0,0.08);">
-
-      <button onclick="navigator.clipboard.writeText({json.dumps(text)}); alert('コピーしました');"
-        style="width:100%; text-align:left; background:#fff; border:none; padding:8px; cursor:pointer;">
-        📋 コピー
-      </button>
-
-      <a href='?act=del&mid={msg_id}&uid={selected_id}&org=personal'
-        style="display:block; text-decoration:none; color:#c00; padding:8px;">
-        🗑️ 削除
-      </a>
-    </div>
-  </div>
-</div>
-
-<!-- 🔹 吹き出し外：時刻＋既読 -->
-<div style="font-size:0.8em; color:#666; margin-left:4px; margin-top:-4px;">
-  {ts_str}
-  <span style="color:{guardian_color}; margin-left:6px;">{guardian_read}</span>
-</div>
-
-<script>
-(function(){{  
-  const b = document.getElementById("dots_{msg_id}");
-  const m = document.getElementById("menu_{msg_id}");
-  if (b && m){{  
-    b.onclick = (e)=>{{  
-      e.stopPropagation();
-      m.style.display = (m.style.display === "block") ? "none" : "block";
-    }};
-    document.addEventListener("click",(ev)=>{{  
-      if(!m.contains(ev.target) && ev.target !== b) m.style.display="none";
-    }});
-  }}
-}})();
-</script>
-"""
-                components_html(bubble, height=400, scrolling=False)
-
-
-            # --------------------------------------------------------
-            # 🔹 ユーザー側（右寄せ）
-            # --------------------------------------------------------
-            else:
-                sender_label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
-                st.markdown(
-                    f"""
-                    <div style="text-align:right;margin:10px 0;">
-                        <div style="font-size:0.8em;color:#666;">{sender_label}</div>
-                        <div style="display:inline-block;background-color:#f1f3f4;
-                                    padding:10px 14px;border-radius:12px;
-                                    max-width:80%;color:#111;">{text}</div>
-                        <div style="font-size:0.8em;color:#666;">{ts_str}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-
-
-
-
-
-        # --- 過去履歴 ---
+        # ✅ ① 過去履歴（expanderを上）
         if older:
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for msg in older:
+                for msg in older[::-1]:  # 古い順に
                     sender = msg.get("sender", "")
                     text = msg.get("text", "")
                     ts = msg.get("timestamp")
                     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
                     read_by = msg.get("read_by", [])
-                    msg_id = msg.get("id")
 
                     if sender == "admin":
                         guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
                         guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
-
-                        col1, col2 = st.columns([9, 1])
-                        with col1:
-                            st.markdown(
-                                f"""
-                                <div style="position: relative; text-align:right; margin:8px 0;">
-                                  <div style="display:inline-block; background-color:#d2e3fc;
-                                              padding:10px 14px; border-radius:12px;
-                                              max-width:80%; color:#111; position:relative;">
+                        st.markdown(
+                            f"""
+                            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                                <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
                                     {text}
-                                  </div>
-                                  <div style="font-size:0.8em; color:#666; margin-top:3px;">{ts_str}</div>
-                                  <div style="font-size:0.85em; margin-top:2px; color:{guardian_color};">{guardian_read}</div>
                                 </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
+                            </div>
+                            <div style="font-size:0.8em;color:#666;margin-left:4px;">
+                              {ts_str}
+                              <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
+                        st.markdown(
+                            f"""
+                            <div style="text-align:right;margin:10px 0;">
+                                <div style="font-size:0.8em;color:#666;">{label}</div>
+                                <div style="display:inline-block;background-color:#f1f3f4;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                                    {text}
+                                </div>
+                                <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
-                        with col2:
-                            if msg_id:
-                                st.markdown(
-                                    f"""
-                                    <style>
-                                    .dots-button-old-{msg_id} {{
-                                        position: relative;
-                                        margin-top: -10px;
-                                        background: #f8f9fa;
-                                        border: 1px solid #ddd;
-                                        border-radius: 6px;
-                                        font-size: 13px;
-                                        padding: 2px 6px;
-                                        cursor: pointer;
-                                    }}
-                                    </style>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
+        # ✅ ② 直近3件（新しいほど下に）
+        st.write("### 📌 直近3件")
+        for msg in latest[::-1]:  # ← reverse!
+            sender = msg.get("sender", "")
+            text = msg.get("text", "")
+            ts = msg.get("timestamp")
+            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            read_by = msg.get("read_by", [])
 
-                                toggle_key = f"show_menu_old_{msg_id}"
-                                if toggle_key not in st.session_state:
-                                    st.session_state[toggle_key] = False
-
-                                if st.button("⋯", key=f"dots_old_{msg_id}", help="操作メニューを開く"):
-                                    st.session_state[toggle_key] = not st.session_state[toggle_key]
-
-                                if st.session_state[toggle_key]:
-                                    col_a, col_b = st.columns(2)
-                                    with col_a:
-                                        if st.button("📋 コピー", key=f"copy_old_{msg_id}"):
-                                            import pyperclip
-                                            pyperclip.copy(text)
-                                            st.toast("メッセージをコピーしました。")
-                                            st.session_state[toggle_key] = False
-                                    with col_b:
-                                        if st.button("🗑️ 削除", key=f"del_old_{msg_id}"):
-                                            delete_message(msg, selected_id)
-                                            st.session_state[toggle_key] = False
-                                            st.rerun()
-                            else:
-                                st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
-
-
-
-
-
-
+            if sender == "admin":
+                guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
+                guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
+                st.markdown(
+                    f"""
+                    <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                        <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                            {text}
+                        </div>
+                    </div>
+                    <div style="font-size:0.8em;color:#666;margin-left:4px;">
+                      {ts_str}
+                      <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
+                st.markdown(
+                    f"""
+                    <div style="text-align:right;margin:10px 0;">
+                        <div style="font-size:0.8em;color:#666;">{label}</div>
+                        <div style="display:inline-block;background-color:#f1f3f4;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                            {text}
+                        </div>
+                        <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     # --- 以下（クラス宛、全員宛、学年宛、送信欄）は変更なし ---
     # （元のコードのままでOK）
@@ -585,7 +454,7 @@ def show_admin_chat(initial_student_id=None):
     elif target_type == "クラス" and class_name:
         st.subheader(f"👥 {class_name} 宛メッセージ履歴")
 
-        # 直近3件
+        # Firestore参照
         ref = (
             db.collection("rooms")
             .document("class")
@@ -594,74 +463,80 @@ def show_admin_chat(initial_student_id=None):
             .collection("items")
         )
 
-        for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream():
+        # メッセージ取得（最新→古い）
+        all_msgs = []
+        for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
             m = d.to_dict()
-            if not m:
-                continue
-            msg_id = d.id
+            if m:
+                all_msgs.append(m)
+
+        # 直近3件 & 過去
+        latest = all_msgs[:3]
+        older = all_msgs[3:]
+
+        # ✅ ① 過去履歴（expanderを上）
+        if older:
+            with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+                for m in older[::-1]:  # 古い順
+                    ts = m.get("timestamp")
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    text = m.get("text", "")
+
+                    st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                            <div style="
+                                background:#f1f3f4;
+                                padding:10px 14px;
+                                border-radius:12px;
+                                max-width:80%;
+                                display:inline-block;
+                                color:#111;
+                                word-break:break-word;
+                            ">
+                                {text}
+                            </div>
+                        </div>
+                        <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                          {ts_str}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+        # ✅ ② 直近3件（新しいほど下）
+        st.write("### 📌 直近3件")
+
+        for m in latest[::-1]:  # ← reverse
             ts = m.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
             text = m.get("text", "")
 
-            col1, col2 = st.columns([9, 1])
-            with col1:
-                st.markdown(
-                    f"""<div style="margin:6px 0;background-color:#f1f3f4;
-                    padding:10px 14px;border-radius:12px;">{text}
-                    <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                    unsafe_allow_html=True
-                )
+            st.markdown(
+                f"""
+                <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                    <div style="
+                        background:#f1f3f4;
+                        padding:10px 14px;
+                        border-radius:12px;
+                        max-width:80%;
+                        display:inline-block;
+                        color:#111;
+                        word-break:break-word;
+                    ">
+                        {text}
+                    </div>
+                </div>
+                <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                  {ts_str}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-            # 🔹 三点リーダーボタン（⋯）右上メニュー
-            with col2:
-                if msg_id:
-                    if st.button("⋯", key=f"dots_class_{msg_id}", help="操作メニューを開く"):
-                        with st.popover(f"menu_class_{msg_id}", use_container_width=True):
-                            if st.button("📋 コピー", key=f"copy_class_{msg_id}"):
-                                import pyperclip
-                                pyperclip.copy(text)
-                                st.toast("メッセージをコピーしました。")
-                            if st.button("🗑️ 削除", key=f"del_class_{msg_id}"):
-                                msg_data = {"id": msg_id, "_origin": "class", "_class_name": class_name}
-                                delete_message(msg_data, selected_id)
-                                st.rerun()
-                else:
-                    st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
+        st.divider()
 
-        # 過去履歴
-        with st.expander("📜 過去の履歴を表示"):
-            for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
-                m = d.to_dict()
-                if not m:
-                    continue
-                msg_id = d.id
-                ts = m.get("timestamp")
-                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-                text = m.get("text", "")
 
-                col1, col2 = st.columns([9, 1])
-                with col1:
-                    st.markdown(
-                        f"""<div style="margin:6px 0;background-color:#f1f3f4;
-                        padding:10px 14px;border-radius:12px;">{text}
-                        <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                        unsafe_allow_html=True
-                    )
-
-                with col2:
-                    if msg_id:
-                        if st.button("⋯", key=f"dots_class_old_{msg_id}", help="操作メニューを開く"):
-                            with st.popover(f"menu_class_old_{msg_id}", use_container_width=True):
-                                if st.button("📋 コピー", key=f"copy_class_old_{msg_id}"):
-                                    import pyperclip
-                                    pyperclip.copy(text)
-                                    st.toast("メッセージをコピーしました。")
-                                if st.button("🗑️ 削除", key=f"del_class_old_{msg_id}"):
-                                    msg_data = {"id": msg_id, "_origin": "class", "_class_name": class_name}
-                                    delete_message(msg_data, selected_id)
-                                    st.rerun()
-                    else:
-                        st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
 
     # --- 全員宛履歴 ---
     elif target_type == "全員":
@@ -669,75 +544,79 @@ def show_admin_chat(initial_student_id=None):
 
         all_ref = db.collection("rooms").document("all").collection("messages")
 
-        # 直近3件
-        for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream():
+        # メッセージ取得（最新→古い）
+        all_msgs = []
+        for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
             m = d.to_dict()
-            if not m:
-                continue
-            msg_id = d.id
+            if m:
+                all_msgs.append(m)
+
+        # 直近3件 & 過去
+        latest = all_msgs[:3]
+        older = all_msgs[3:]
+
+        # ✅ ① 過去履歴（expanderを上）
+        if older:
+            with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+                for m in older[::-1]:  # 古い順
+                    ts = m.get("timestamp")
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    text = m.get("text", "")
+
+                    st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                            <div style="
+                                background:#f1f3f4;
+                                padding:10px 14px;
+                                border-radius:12px;
+                                max-width:80%;
+                                display:inline-block;
+                                color:#111;
+                                word-break:break-word;
+                            ">
+                                {text}
+                            </div>
+                        </div>
+                        <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                          {ts_str}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+        # ✅ ② 直近3件（新しいほど下）
+        st.write("### 📌 直近3件")
+
+        for m in latest[::-1]:  # ← reverse
             ts = m.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
             text = m.get("text", "")
 
-            col1, col2 = st.columns([9, 1])
-            with col1:
-                st.markdown(
-                    f"""<div style="margin:6px 0;background-color:#f1f3f4;
-                    padding:10px 14px;border-radius:12px;">{text}
-                    <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                    unsafe_allow_html=True
-                )
+            st.markdown(
+                f"""
+                <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                    <div style="
+                        background:#f1f3f4;
+                        padding:10px 14px;
+                        border-radius:12px;
+                        max-width:80%;
+                        display:inline-block;
+                        color:#111;
+                        word-break:break-word;
+                    ">
+                        {text}
+                    </div>
+                </div>
+                <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                  {ts_str}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-            # 🔹 三点リーダーボタン（⋯）
-            with col2:
-                if msg_id:
-                    if st.button("⋯", key=f"dots_all_{msg_id}", help="操作メニューを開く"):
-                        with st.popover(f"menu_all_{msg_id}", use_container_width=True):
-                            if st.button("📋 コピー", key=f"copy_all_{msg_id}"):
-                                import pyperclip
-                                pyperclip.copy(text)
-                                st.toast("メッセージをコピーしました。")
-                            if st.button("🗑️ 削除", key=f"del_all_{msg_id}"):
-                                msg_data = {"id": msg_id, "_origin": "all"}
-                                delete_message(msg_data, selected_id)
-                                st.rerun()
-                else:
-                    st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
+        st.divider()
 
-        # 📜 過去履歴
-        with st.expander("📜 過去の履歴を表示"):
-            for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
-                m = d.to_dict()
-                if not m:
-                    continue
-                msg_id = d.id
-                ts = m.get("timestamp")
-                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-                text = m.get("text", "")
-
-                col1, col2 = st.columns([9, 1])
-                with col1:
-                    st.markdown(
-                        f"""<div style="margin:6px 0;background-color:#f1f3f4;
-                        padding:10px 14px;border-radius:12px;">{text}
-                        <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                        unsafe_allow_html=True
-                    )
-
-                with col2:
-                    if msg_id:
-                        if st.button("⋯", key=f"dots_all_old_{msg_id}", help="操作メニューを開く"):
-                            with st.popover(f"menu_all_old_{msg_id}", use_container_width=True):
-                                if st.button("📋 コピー", key=f"copy_all_old_{msg_id}"):
-                                    import pyperclip
-                                    pyperclip.copy(text)
-                                    st.toast("メッセージをコピーしました。")
-                                if st.button("🗑️ 削除", key=f"del_all_old_{msg_id}"):
-                                    msg_data = {"id": msg_id, "_origin": "all"}
-                                    delete_message(msg_data, selected_id)
-                                    st.rerun()
-                    else:
-                        st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
 
 
     ######### 学年宛て ###########
@@ -752,75 +631,78 @@ def show_admin_chat(initial_student_id=None):
             .collection("items")
         )
 
-        # 直近3件
-        for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream():
+        # メッセージ取得（最新→古い）
+        grade_msgs = []
+        for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
             m = d.to_dict()
-            if not m:
-                continue
-            msg_id = d.id
+            if m:
+                grade_msgs.append(m)
+
+        # 直近3件 & 過去
+        latest = grade_msgs[:3]
+        older = grade_msgs[3:]
+
+        # ✅ ① 過去履歴（expander上）
+        if older:
+            with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+                for m in older[::-1]:  # 古い順に表示
+                    ts = m.get("timestamp")
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    text = m.get("text", "")
+
+                    st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                            <div style="
+                                background:#f1f3f4;
+                                padding:10px 14px;
+                                border-radius:12px;
+                                max-width:80%;
+                                display:inline-block;
+                                color:#111;
+                                word-break:break-word;
+                            ">
+                                {text}
+                            </div>
+                        </div>
+                        <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                          {ts_str}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+        # ✅ ② 直近3件（新しいほど下）
+        st.write("### 📌 直近3件")
+
+        for m in latest[::-1]:  # 最新→古い を反転
             ts = m.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
             text = m.get("text", "")
 
-            col1, col2 = st.columns([9, 1])
-            with col1:
-                st.markdown(
-                    f"""<div style="margin:6px 0;background-color:#f1f3f4;
-                    padding:10px 14px;border-radius:12px;">{text}
-                    <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                    unsafe_allow_html=True
-                )
+            st.markdown(
+                f"""
+                <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                    <div style="
+                        background:#f1f3f4;
+                        padding:10px 14px;
+                        border-radius:12px;
+                        max-width:80%;
+                        display:inline-block;
+                        color:#111;
+                        word-break:break-word;
+                    ">
+                        {text}
+                    </div>
+                </div>
+                <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                  {ts_str}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-            # 🔹 三点リーダーボタン（⋯）右上メニュー
-            with col2:
-                if msg_id:
-                    if st.button("⋯", key=f"dots_grade_{msg_id}", help="操作メニューを開く"):
-                        with st.popover(f"menu_grade_{msg_id}", use_container_width=True):
-                            if st.button("📋 コピー", key=f"copy_grade_{msg_id}"):
-                                import pyperclip
-                                pyperclip.copy(text)
-                                st.toast("メッセージをコピーしました。")
-                            if st.button("🗑️ 削除", key=f"del_grade_{msg_id}"):
-                                msg_data = {"id": msg_id, "_origin": "grade", "_grade": grade}
-                                delete_message(msg_data, selected_id)
-                                st.rerun()
-                else:
-                    st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
-
-        # 📜 過去履歴
-        with st.expander("📜 過去の履歴を表示"):
-            for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
-                m = d.to_dict()
-                if not m:
-                    continue
-                msg_id = d.id
-                ts = m.get("timestamp")
-                ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-                text = m.get("text", "")
-
-                col1, col2 = st.columns([9, 1])
-                with col1:
-                    st.markdown(
-                        f"""<div style="margin:6px 0;background-color:#f1f3f4;
-                        padding:10px 14px;border-radius:12px;">{text}
-                        <div style="font-size:0.8em;color:#666;">{ts_str}</div></div>""",
-                        unsafe_allow_html=True
-                    )
-
-                with col2:
-                    if msg_id:
-                        if st.button("⋯", key=f"dots_grade_old_{msg_id}", help="操作メニューを開く"):
-                            with st.popover(f"menu_grade_old_{msg_id}", use_container_width=True):
-                                if st.button("📋 コピー", key=f"copy_grade_old_{msg_id}"):
-                                    import pyperclip
-                                    pyperclip.copy(text)
-                                    st.toast("メッセージをコピーしました。")
-                                if st.button("🗑️ 削除", key=f"del_grade_old_{msg_id}"):
-                                    msg_data = {"id": msg_id, "_origin": "grade", "_grade": grade}
-                                    delete_message(msg_data, selected_id)
-                                    st.rerun()
-                    else:
-                        st.markdown("<div style='font-size:0.72em;color:#bbb;text-align:center;'>—</div>", unsafe_allow_html=True)
+        st.divider()
 
 
 
