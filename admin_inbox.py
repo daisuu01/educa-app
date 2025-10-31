@@ -44,6 +44,37 @@ def get_all_students():
 
 
 # ==================================================
+# ✅ 未読件数を数える関数（サイドバー表示用）
+# ==================================================
+def count_unread_messages():
+    students = get_all_students()
+    unread_count = 0
+
+    for s in students:
+        user_id = s["id"]
+        ref = (
+            db.collection("rooms")
+            .document("personal")
+            .collection(user_id)
+            .document("messages")
+            .collection("items")
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .limit(1)
+        )
+
+        for d in ref.stream():
+            msg = d.to_dict()
+            if not msg:
+                continue
+            if msg.get("sender") != "admin":
+                read_by = msg.get("read_by", [])
+                if "admin" not in read_by:
+                    unread_count += 1
+
+    return unread_count
+
+
+# ==================================================
 # 🔹 各生徒の最新受信メッセージを取得
 # ==================================================
 def get_latest_received_messages():
@@ -68,7 +99,7 @@ def get_latest_received_messages():
                 continue
 
             sender = msg.get("sender", "")
-            if sender.startswith("student") or sender.startswith("guardian"):
+            if sender != "admin":
                 read_by = msg.get("read_by", [])
                 is_unread = "admin" not in read_by
                 results.append({
@@ -78,10 +109,10 @@ def get_latest_received_messages():
                     "class": s["class"],
                     "text": msg.get("text", ""),
                     "timestamp": msg.get("timestamp"),
-                    "is_unread": is_unread
+                    "is_unread": is_unread,
+                    "actor": msg.get("actor"),
                 })
 
-    # 新しい順にソート
     results.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
     return results
 
@@ -91,7 +122,6 @@ def get_latest_received_messages():
 # ==================================================
 def show_admin_inbox():
     st.title("📥 受信ボックス（生徒・保護者からのメッセージ）")
-
     st.info("最新のメッセージを一覧表示しています。未読は赤色で表示されます。")
 
     messages = get_latest_received_messages()
@@ -108,6 +138,9 @@ def show_admin_inbox():
         ts = m.get("timestamp")
         ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else "日時不明"
 
+        actor = m.get("actor")
+        who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
+
         bg_color = "#ffe5e5" if m["is_unread"] else "#f7f7f7"
         border_color = "#ff4d4d" if m["is_unread"] else "#ccc"
         font_weight = "bold" if m["is_unread"] else "normal"
@@ -120,7 +153,7 @@ def show_admin_inbox():
                         border-radius:10px;
                         margin:8px 0;">
                 <div style="font-size:1.05em;font-weight:{font_weight};">
-                    🧑‍🎓 {name}（{grade}・{class_name}）
+                    🧑‍🎓 {name}（{grade}・{class_name}） <span style="font-size:0.9em;color:#666;">— {who} から</span>
                 </div>
                 <div style="color:#333;margin-top:4px;">{text}</div>
                 <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
@@ -131,10 +164,9 @@ def show_admin_inbox():
 
         col1, col2 = st.columns([4, 1])
         with col2:
-            # ✅ 開くボタンで個人チャットへ遷移
             if st.button("開く ▶", key=f"open_{m['id']}"):
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
-                st.session_state["open_mode"] = "admin_chat"
-                st.session_state["force_admin_chat"] = True   # ✅ ←これを追加！
+                st.session_state["admin_mode"] = "チャット管理"
+                st.session_state["just_opened_from_inbox"] = True
                 st.rerun()

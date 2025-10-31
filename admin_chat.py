@@ -148,7 +148,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         m = d.to_dict()
         if not m:
             continue
-        if "admin" not in m.get("read_by", []) and m.get("sender", "").startswith("student"):
+        if "admin" not in m.get("read_by", []) and m.get("sender") != "admin":
             personal_ref.document(d.id).update({"read_by": firestore.ArrayUnion(["admin"])})
             m["read_by"] = m.get("read_by", []) + ["admin"]
         m["id"] = d.id  # ★ 削除用にドキュメントIDを保持
@@ -202,8 +202,9 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
     return all_msgs
 
 
+
 # ==================================================
-# 🔹 メッセージ送信（個人・グループ対応）
+# 🔹 メッセージ送信（個人・学年・クラス・全員対応）
 # ==================================================
 def send_message(target_type: str, user_id: str = None, grade: str = None, class_name: str = None, text: str = ""):
     if not text.strip():
@@ -213,7 +214,7 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
         "text": text.strip(),
         "sender": "admin",
         "timestamp": datetime.now(timezone.utc),
-        "read_by": ["admin"],
+        "read_by": ["admin"],  # 管理者は既読
     }
 
     # --- 個人宛 ---
@@ -234,15 +235,17 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 
     # --- 学年宛 ---
     elif target_type == "学年" and grade:
-        ref = (
+        # 学年掲示板
+        grade_ref = (
             db.collection("rooms")
             .document("grade")
             .collection(grade)
             .document("messages")
             .collection("items")
         )
-        ref.add(data)
+        grade_ref.add(data)
 
+        # 学年メンバー全員に personal 複製
         grade_prefix_map = {"中1": "1", "中2": "2", "中3": "3", "高1": "4", "高2": "5", "高3": "6"}
         prefix = grade_prefix_map.get(grade)
         target_norm = _normalize_grade(grade)
@@ -265,14 +268,47 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 
     # --- クラス宛 ---
     elif target_type == "クラス" and class_name:
-        ref = (
+        # ① クラス掲示板に保存
+        class_ref = (
             db.collection("rooms")
             .document("class")
             .collection(str(class_name))
             .document("messages")
             .collection("items")
         )
-        ref.add(data)
+        class_ref.add(data)
+
+        # ② 同クラスの全生徒へ personal にも複製
+        #    class_code == class_name と class == class_name の両方をケア
+        seen_ids = set()
+
+        # class_code マッチ
+        q1 = db.collection("users").where("role", "==", "student").where("class_code", "==", class_name)
+        for u in q1.stream():
+            seen_ids.add(u.id)
+            personal_ref = (
+                db.collection("rooms")
+                .document("personal")
+                .collection(u.id)
+                .document("messages")
+                .collection("items")
+            )
+            personal_ref.add(data)
+
+        # class（名称）マッチ（重複はスキップ）
+        q2 = db.collection("users").where("role", "==", "student").where("class", "==", class_name)
+        for u in q2.stream():
+            if u.id in seen_ids:
+                continue
+            personal_ref = (
+                db.collection("rooms")
+                .document("personal")
+                .collection(u.id)
+                .document("messages")
+                .collection("items")
+            )
+            personal_ref.add(data)
+
 
 
 # ==================================================
@@ -413,8 +449,8 @@ def show_admin_chat(initial_student_id=None):
             read_by = msg.get("read_by", [])
 
             if sender == "admin":
-                guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
-                guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
+                guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
+                guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                 st.markdown(
                     f"""
                     <div style="display:flex; justify-content:flex-start; margin:10px 0;">
