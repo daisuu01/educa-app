@@ -167,5 +167,6 @@ def show_admin_inbox():
             if st.button("開く ▶", key=f"open_{m['id']}"):
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
+                st.session_state["admin_mode"] = "チャット管理"
                 st.session_state["just_opened_from_inbox"] = True
-                st.switch_page("admin_chat.py")
+                st.rerun()

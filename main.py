@@ -16,9 +16,10 @@ from firebase_utils import (
 )
 from english_corrector import show_essay_corrector
 from user_chat import show_chat_page, get_user_meta
-from admin_chat import show_admin_chat
 from admin_inbox import show_admin_inbox, count_unread_messages
 from firebase_admin import firestore
+from admin_chat import show_admin_chat
+
 
 # --- 状態管理 ---
 if "login" not in st.session_state:
@@ -52,6 +53,11 @@ def show_back_button_bottom(key: str):
         st.session_state["student_page"] = "menu"
         st.rerun()
 
+# ===== 受信ボックスからの遷移処理 =====
+if "selected_student_id" in st.session_state:
+    initial_student_id = st.session_state["selected_student_id"]
+else:
+    initial_student_id = None
 
 # =====================================================
 # 🔸 未読メッセージチェック
@@ -160,27 +166,27 @@ if not st.session_state["login"]:
 elif st.session_state["role"] == "admin":
     st.sidebar.title("📋 管理者メニュー")
 
-    # ✅ 未読数を取得してラベルに反映
+    # ✅ 未読数
     unread = count_unread_messages()
     inbox_label = f"受信ボックス（{unread}）" if unread > 0 else "受信ボックス"
 
-    # ✅ 選択肢（表示用）
     options = ["生徒登録", "登録済みユーザー一覧", "チャット管理", inbox_label]
 
-    # ✅ 直前に選んでいたモードを見てデフォルト位置を決める（"受信ボックス（N）"でも復元されるように）
+    # ✅ 前回選択状態復元
     current = st.session_state.get("admin_mode", "生徒登録")
     if isinstance(current, str) and current.startswith("受信ボックス"):
         default_index = 3
     else:
-        base = ["生徒登録", "登録済みユーザー一覧", "チャット管理"]
-        default_index = base.index(current) if current in base else 0
+        base_modes = ["生徒登録", "登録済みユーザー一覧", "チャット管理"]
+        default_index = base_modes.index(current) if current in base_modes else 0
 
-    # ✅ ラジオ作成（表示は「受信ボックス（N）」、内部は通常名に正規化）
     selected_label = st.sidebar.radio("モードを選択してください", options, index=default_index)
     mode = "受信ボックス" if selected_label.startswith("受信ボックス") else selected_label
     st.session_state["admin_mode"] = mode
 
-    # ---- 各モード処理 ----
+    # -------------------------------
+    # 📂 生徒登録
+    # -------------------------------
     if mode == "生徒登録":
         st.markdown("#### 🔽 生徒情報と初期PW対応表をアップロード")
         excel_file = st.file_uploader("📘 Excelファイル", type=["xlsx"])
@@ -194,11 +200,17 @@ elif st.session_state["role"] == "admin":
             else:
                 st.warning("⚠ 登録対象が見つかりません。")
 
+    # -------------------------------
+    # 📋 登録済みユーザー一覧
+    # -------------------------------
     elif mode == "登録済みユーザー一覧":
         st.markdown("#### 👥 Firestore 登録済みユーザー一覧")
-        df_users = fetch_all_users()
-        st.dataframe(df_users, use_container_width=True)
+        df = fetch_all_users()
+        st.dataframe(df, use_container_width=True)
 
+    # -------------------------------
+    # 💬 チャット管理
+    # -------------------------------
     elif mode == "チャット管理":
         # 📩 受信BOXから遷移した場合
         if st.session_state.get("just_opened_from_inbox", False):
@@ -207,36 +219,43 @@ elif st.session_state["role"] == "admin":
             target_name = st.session_state.get("selected_student_name", "")
 
             if target_id:
-                # ✅ 個人チャットモード強制 & 送信先指定
+                # ✅ 個人チャット用ステート固定
                 st.session_state["target_type"] = "個人"
                 st.session_state["target_student_id"] = target_id
+                st.session_state["selected_student_id"] = target_id
 
-                st.markdown(f"### 🧑‍🎓 {target_name} さんとのチャット")
-                show_admin_chat(initial_student_id=target_id)
-            else:
-                show_admin_chat()
+                # ✅ 先にフラグを消して再描画
+                st.session_state["just_opened_from_inbox"] = False
+                st.session_state["admin_mode"] = "チャット管理"
+                st.rerun()
 
-            # ✅ フラグ解除
-            st.session_state["just_opened_from_inbox"] = False
-            st.session_state.pop("selected_student_id", None)
-            st.session_state.pop("selected_student_name", None)
+        # ✅ ここに来た時点で target_student_id がセット済み
+        selected_id = st.session_state.get("target_student_id")
 
+        if selected_id:
+            show_admin_chat(initial_student_id=selected_id)
         else:
             show_admin_chat()
 
-
-
+        # ✅ 余計な open_mode が残っている時の除去
         if "open_mode" in st.session_state and st.session_state["open_mode"] == "admin_chat":
             st.session_state["open_mode"] = None
 
+    # -------------------------------
+    # 📥 受信BOX
+    # -------------------------------
     elif mode == "受信ボックス":
         show_admin_inbox()
+        # 📌 受信BOX→チャット遷移
         if "open_mode" in st.session_state and st.session_state["open_mode"] == "admin_chat":
             st.session_state["open_mode"] = None
-            st.session_state["admin_mode"] = "チャット管理"  # ✅ ← チャットモードへ変更
+            st.session_state["admin_mode"] = "チャット管理"
             st.session_state["just_opened_from_inbox"] = True
-            st.rerun()  # ✅ ← これで確実に遷移！
+            st.rerun()
 
+    # -------------------------------
+    # 🚪 ログアウト
+    # -------------------------------
     st.sidebar.markdown("---")
     if st.sidebar.button("ログアウト"):
         st.session_state["login"] = False
