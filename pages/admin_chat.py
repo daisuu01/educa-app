@@ -321,6 +321,10 @@ def show_admin_chat(initial_student_id=None):
         st_autorefresh(interval=5000, key="admin_chat_refresh")
     else:
         st.session_state["just_opened_from_inbox"] = False
+    
+        # ===== 受信ボックスからの遷移処理 =====
+    if "selected_student_id" in st.session_state and st.session_state["selected_student_id"]:
+        initial_student_id = st.session_state["selected_student_id"]
 
     students = get_all_students()
     if not students:
