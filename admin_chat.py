@@ -112,6 +112,7 @@ def _normalize_grade(s: str) -> str:
 # ==================================================
 # 🔹 生徒一覧を取得
 # ==================================================
+
 def get_all_students():
     users_ref = db.collection("users")
     docs = users_ref.stream()
@@ -422,8 +423,8 @@ def show_admin_chat(initial_student_id=None):
 
                     # --- 管理者メッセージ（左側）
                     if sender in ["admin", "先生", "講師"]:
-                        guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
-                        guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
+                        guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
+                        guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                         st.markdown(
                             f"""
                             <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -444,17 +445,30 @@ def show_admin_chat(initial_student_id=None):
                         label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                         st.markdown(
                             f"""
-                            <div style="text-align:right;margin:10px 0;">
+                            <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+                              <div style="text-align:right;">
                                 <div style="font-size:0.8em;color:#666;">{label}</div>
-                                <div style="display:inline-block;background-color:#f1f3f4;
-                                padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
-                                    {text}
+                                <div style="
+                                  display:inline-block;
+                                  background-color:#f1f3f4;
+                                  padding:8px 12px;
+                                  border-radius:12px;
+                                  width:auto;              /* ← 内容に合わせて縮む */
+                                  max-width:70%;           /* ← 長文だけ折り返し */
+                                  word-wrap:break-word;
+                                  white-space:pre-wrap;
+                                  color:#111;
+                                  text-align:left;         /* ← 吹き出し内は左揃え */
+                                ">
+                                  {text}
                                 </div>
-                                <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+                                <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+                              </div>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
+
 
         # ✅ ② 直近3件（新しいほど下に）
         st.write("### 📌 直近3件")
@@ -487,17 +501,30 @@ def show_admin_chat(initial_student_id=None):
                 label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                 st.markdown(
                     f"""
-                    <div style="text-align:right;margin:10px 0;">
+                    <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+                      <div style="text-align:right;">
                         <div style="font-size:0.8em;color:#666;">{label}</div>
-                        <div style="display:inline-block;background-color:#f1f3f4;
-                        padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
-                            {text}
+                        <div style="
+                          display:inline-block;
+                          background-color:#f1f3f4;
+                          padding:8px 12px;
+                          border-radius:12px;
+                          width:auto;              /* ← 内容に合わせて縮む */
+                          max-width:70%;           /* ← 長文だけ折り返し */
+                          word-wrap:break-word;
+                          white-space:pre-wrap;
+                          color:#111;
+                          text-align:left;         /* ← 吹き出し内は左揃え */
+                        ">
+                          {text}
                         </div>
-                        <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+                        <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+                      </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
+
 
 
     # --- 以下（クラス宛、全員宛、学年宛、送信欄）は変更なし ---

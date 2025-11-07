@@ -26,6 +26,7 @@ db = firestore.client()
 # ==================================================
 # 🔹 生徒一覧を取得
 # ==================================================
+
 def get_all_students():
     users_ref = db.collection("users")
     docs = users_ref.stream()
