@@ -19,7 +19,7 @@ from user_chat import show_chat_page, get_user_meta
 from admin_inbox import show_admin_inbox, count_unread_messages
 from firebase_admin import firestore
 from admin_chat import show_admin_chat
-from admin_schedule import show_admin_schedule
+from admin_schedule import show_schedule_main
 
 
 # --- 状態管理 ---
@@ -259,7 +259,7 @@ elif st.session_state["role"] == "admin":
     # -------------------------------
 
     elif mode == "送信予約":
-        show_admin_schedule()
+        show_schedule_main()
 
 
     # -------------------------------
