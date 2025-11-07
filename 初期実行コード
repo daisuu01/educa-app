@@ -8,7 +8,7 @@ streamlit run main.py
 
 ###############################################
 git add .
-git commit -m "メッセージ削除機能追加"
+git commit -m "チャット機能拡充"
 git push
 
 git pull

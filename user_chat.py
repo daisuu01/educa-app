@@ -52,7 +52,7 @@ def get_all_messages(user_id: str, grade: str, class_name: str, limit: int = 50)
         .document("messages")
         .collection("items")
     )
-    for d in personal_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+    for d in personal_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
         m = d.to_dict()
         if m:
             m["scope"] = "個人"
@@ -68,7 +68,7 @@ def get_all_messages(user_id: str, grade: str, class_name: str, limit: int = 50)
             .document("messages")
             .collection("items")
         )
-        for d in class_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+        for d in personal_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
                 m["scope"] = "クラス"
@@ -85,7 +85,7 @@ def get_all_messages(user_id: str, grade: str, class_name: str, limit: int = 50)
             .document("messages")
             .collection("items")
         )
-        for d in grade_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+        for d in grade_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
                 m["scope"] = "学年"
@@ -94,7 +94,7 @@ def get_all_messages(user_id: str, grade: str, class_name: str, limit: int = 50)
 
     # 全体宛て
     all_ref = db.collection("rooms").document("all").collection("messages")
-    for d in all_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+    for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
         m = d.to_dict()
         if m:
             m["scope"] = "全体"
@@ -238,7 +238,11 @@ def _render_message(user_id: str, msg: dict):
             unsafe_allow_html=True
         )
         if not user_read:
-            if st.button("保護者既読ボタン", key=f"user_read_{msg['id']}", help="このメッセージを既読にします"):
+            if st.button(
+                "保護者既読ボタン",
+                key=f"user_read_{msg.get('scope','unknown')}_{msg['id']}",
+                help="このメッセージを既読にします"
+            ):
                 mark_user_read(user_id, msg)
                 st.rerun()
 
