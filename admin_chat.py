@@ -131,7 +131,7 @@ def get_all_students():
 
 
 # ==================================================
-# 🔹 メッセージ取得＋既読処理（個人＋グループ統合）
+# 🔹 メッセージ取得＋既読処理（個人＋グループ統合）修正版
 # ==================================================
 def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str = None, limit: int = 50):
     all_msgs = []
@@ -144,14 +144,15 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         .document("messages")
         .collection("items")
     )
-    for d in personal_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+    for d in personal_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
         m = d.to_dict()
         if not m:
             continue
-        if "admin" not in m.get("read_by", []) and m.get("sender") != "admin":
+        # ✅ 管理者の既読更新（admin送信でも除外しない）
+        if "admin" not in m.get("read_by", []):
             personal_ref.document(d.id).update({"read_by": firestore.ArrayUnion(["admin"])})
             m["read_by"] = m.get("read_by", []) + ["admin"]
-        m["id"] = d.id  # ★ 削除用にドキュメントIDを保持
+        m["id"] = d.id
         m["_origin"] = "personal"
         all_msgs.append(m)
 
@@ -164,42 +165,51 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
             .document("messages")
             .collection("items")
         )
-        for d in class_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+        for d in class_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
-                m["id"] = d.id  # ★ 削除用にドキュメントIDを保持（これが重要！）
+                m["id"] = d.id
                 m["_origin"] = "class"
                 m["_class_name"] = str(class_name)
                 all_msgs.append(m)
 
     # --- 学年宛 ---
     if grade:
+        # ✅ 学年キーを正規化（例: "中１" → "中1"）
+        def _normalize_grade(g):
+            if not g:
+                return g
+            return g.replace("１", "1").replace("２", "2").replace("３", "3").replace("４", "4").replace("５", "5").replace("６", "6")
+
+        grade_key = _normalize_grade(grade)
         grade_ref = (
             db.collection("rooms")
             .document("grade")
-            .collection(grade)
+            .collection(grade_key)
             .document("messages")
             .collection("items")
         )
-        for d in grade_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+        for d in grade_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
-                m["id"] = d.id  # ★ 追加
+                m["id"] = d.id
                 m["_origin"] = "grade"
-                m["_grade"] = str(grade)
+                m["_grade"] = grade_key
                 all_msgs.append(m)
 
     # --- 全員宛 ---
     all_ref = db.collection("rooms").document("all").collection("messages")
-    for d in all_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).limit(limit).stream():
+    for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
         m = d.to_dict()
         if m:
-            m["id"] = d.id  # ★ 追加
+            m["id"] = d.id
             m["_origin"] = "all"
             all_msgs.append(m)
 
+    # ✅ 表示用：古い順に並べ替え
     all_msgs.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)))
     return all_msgs
+
 
 
 
@@ -211,7 +221,7 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
         return
 
     data = {
-        "text": text.strip(),
+        "message": text.strip(),
         "sender": "admin",
         "timestamp": datetime.now(timezone.utc),
         "read_by": ["admin"],  # 管理者は既読
@@ -397,21 +407,21 @@ def show_admin_chat(initial_student_id=None):
         messages = get_messages_and_mark_read(selected_id, grade, class_name)
         messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
 
-        # 過去と直近に分割
         latest = messages[:3]
         older = messages[3:]
 
         # ✅ ① 過去履歴（expanderを上）
         if older:
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for msg in older[::-1]:  # 古い順に
+                for msg in older[::-1]:
                     sender = msg.get("sender", "")
-                    text = msg.get("text", "")
+                    text = msg.get("message", msg.get("text", ""))
                     ts = msg.get("timestamp")
                     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
                     read_by = msg.get("read_by", [])
 
-                    if sender == "admin":
+                    # --- 管理者メッセージ（左側）
+                    if sender in ["admin", "先生", "講師"]:
                         guardian_read = "✅ 保護者既読" if "student_保護者" in read_by else "❌ 保護者未読"
                         guardian_color = "#1a73e8" if "student_保護者" in read_by else "#d93025"
                         st.markdown(
@@ -428,13 +438,16 @@ def show_admin_chat(initial_student_id=None):
                             """,
                             unsafe_allow_html=True
                         )
-                    else:
-                        label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
+
+                    # --- 生徒または保護者メッセージ（右側）
+                    elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+                        label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                         st.markdown(
                             f"""
                             <div style="text-align:right;margin:10px 0;">
                                 <div style="font-size:0.8em;color:#666;">{label}</div>
-                                <div style="display:inline-block;background-color:#f1f3f4;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                                <div style="display:inline-block;background-color:#f1f3f4;
+                                padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
                                     {text}
                                 </div>
                                 <div style="font-size:0.8em;color:#666;">{ts_str}</div>
@@ -445,14 +458,14 @@ def show_admin_chat(initial_student_id=None):
 
         # ✅ ② 直近3件（新しいほど下に）
         st.write("### 📌 直近3件")
-        for msg in latest[::-1]:  # ← reverse!
+        for msg in latest[::-1]:
             sender = msg.get("sender", "")
-            text = msg.get("text", "")
+            text = msg.get("message", msg.get("text", ""))
             ts = msg.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
             read_by = msg.get("read_by", [])
 
-            if sender == "admin":
+            if sender in ["admin", "先生", "講師"]:
                 guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
                 guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                 st.markdown(
@@ -469,13 +482,15 @@ def show_admin_chat(initial_student_id=None):
                     """,
                     unsafe_allow_html=True
                 )
-            else:
-                label = "👦 生徒" if sender == "student_生徒" else "👨‍👩‍👧 保護者"
+
+            elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+                label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                 st.markdown(
                     f"""
                     <div style="text-align:right;margin:10px 0;">
                         <div style="font-size:0.8em;color:#666;">{label}</div>
-                        <div style="display:inline-block;background-color:#f1f3f4;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                        <div style="display:inline-block;background-color:#f1f3f4;
+                        padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
                             {text}
                         </div>
                         <div style="font-size:0.8em;color:#666;">{ts_str}</div>
@@ -483,6 +498,7 @@ def show_admin_chat(initial_student_id=None):
                     """,
                     unsafe_allow_html=True
                 )
+
 
     # --- 以下（クラス宛、全員宛、学年宛、送信欄）は変更なし ---
     # （元のコードのままでOK）
@@ -520,7 +536,7 @@ def show_admin_chat(initial_student_id=None):
                 for m in older[::-1]:  # 古い順
                     ts = m.get("timestamp")
                     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-                    text = m.get("text", "")
+                    text = m.get("message", m.get("text", ""))
 
                     st.markdown(
                         f"""
@@ -550,7 +566,7 @@ def show_admin_chat(initial_student_id=None):
         for m in latest[::-1]:  # ← reverse
             ts = m.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-            text = m.get("text", "")
+            text = m.get("message", m.get("text", ""))
 
             st.markdown(
                 f"""
@@ -601,7 +617,7 @@ def show_admin_chat(initial_student_id=None):
                 for m in older[::-1]:  # 古い順
                     ts = m.get("timestamp")
                     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-                    text = m.get("text", "")
+                    text = m.get("message", m.get("text", ""))
 
                     st.markdown(
                         f"""
@@ -631,7 +647,7 @@ def show_admin_chat(initial_student_id=None):
         for m in latest[::-1]:  # ← reverse
             ts = m.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-            text = m.get("text", "")
+            text = m.get("message", m.get("text", ""))
 
             st.markdown(
                 f"""
@@ -688,7 +704,7 @@ def show_admin_chat(initial_student_id=None):
                 for m in older[::-1]:  # 古い順に表示
                     ts = m.get("timestamp")
                     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-                    text = m.get("text", "")
+                    text = m.get("message", m.get("text", ""))
 
                     st.markdown(
                         f"""
@@ -718,7 +734,7 @@ def show_admin_chat(initial_student_id=None):
         for m in latest[::-1]:  # 最新→古い を反転
             ts = m.get("timestamp")
             ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
-            text = m.get("text", "")
+            text = m.get("message", m.get("text", ""))
 
             st.markdown(
                 f"""

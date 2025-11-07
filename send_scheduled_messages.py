@@ -43,7 +43,7 @@ def process_scheduled_messages():
             continue
 
         # 送信対象
-        text = data.get("text", "")
+        text = data.get("message", data.get("text", ""))
         target_type = data.get("target_type", "")
         target_id = data.get("target_id", None)
         grade = data.get("grade", None)

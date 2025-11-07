@@ -107,7 +107,7 @@ def get_latest_received_messages():
                     "name": s["name"],
                     "grade": s["grade"],
                     "class": s["class"],
-                    "text": msg.get("text", ""),
+                    "text": msg.get("message", msg.get("text", "")),
                     "timestamp": msg.get("timestamp"),
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
@@ -134,7 +134,7 @@ def show_admin_inbox():
         name = m["name"]
         grade = m["grade"] or "未設定"
         class_name = m["class"] or "-"
-        text = m["text"]
+        text = m.get("message", m.get("text", ""))
         ts = m.get("timestamp")
         ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else "日時不明"
 

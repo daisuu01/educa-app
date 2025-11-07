@@ -124,9 +124,9 @@ def send_message(user_id: str, actor: str, text: str):
         .collection("items")
     )
     ref.add({
-        "text": text.strip(),
-        "sender": user_id,                     # ✅ 固定ID
-        "actor": actor,                        # ✅ 表示用（'student'|'guardian'）
+        "message": text.strip(),
+        "sender": actor,                     # ✅ 固定ID
+        "user_id": user_id,                       # ✅ 表示用（'student'|'guardian'）
         "timestamp": datetime.now(timezone.utc),
         "read_by": [user_id],                  # ✅ 送信者は既読
     })
@@ -194,19 +194,17 @@ def mark_user_read(user_id: str, msg: dict):
 def _render_message(user_id: str, msg: dict):
     sender = msg.get("sender", "")
     actor = msg.get("actor")
-    text = msg.get("text", "")
+    text = msg.get("message", msg.get("text", ""))
     read_by = msg.get("read_by", [])
     ts = msg.get("timestamp")
     ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
 
     # ✅ 新旧データ両対応：自分のメッセージ判定を拡張
-    self_message = (
-        sender == user_id or
-        (isinstance(sender, str) and sender.startswith("student"))
-    )
+    self_message = (msg.get("user_id") == user_id)
+    
 
     if self_message:
-        sender_label = "👦 生徒" if actor == "student" else ("👨‍👩‍👧 保護者" if actor == "guardian" else "👤")
+        sender_label = "👦 生徒" if msg.get("sender") == "student" else "👨‍👩‍👧 保護者"
         admin_read_label = "（既読）" if "admin" in read_by else "（未読）"
 
         col1, col2 = st.columns([9, 1])
