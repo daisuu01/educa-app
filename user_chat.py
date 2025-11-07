@@ -68,7 +68,7 @@ def get_all_messages(user_id: str, grade: str, class_name: str, limit: int = 50)
             .document("messages")
             .collection("items")
         )
-        for d in personal_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
+        for d in class_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
             m = d.to_dict()
             if m:
                 m["scope"] = "クラス"

@@ -149,7 +149,6 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         m = d.to_dict()
         if not m:
             continue
-        # ✅ 管理者の既読更新（admin送信でも除外しない）
         if "admin" not in m.get("read_by", []):
             personal_ref.document(d.id).update({"read_by": firestore.ArrayUnion(["admin"])})
             m["read_by"] = m.get("read_by", []) + ["admin"]
@@ -158,7 +157,8 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         all_msgs.append(m)
 
     # --- クラス宛 ---
-    if class_name:
+    # ✅ 「個人宛の画面」から呼ばれたときは除外（＝user_idが指定されているとき）
+    if class_name and not user_id:
         class_ref = (
             db.collection("rooms")
             .document("class")
