@@ -121,15 +121,40 @@ def get_all_students():
     for d in docs:
         user = d.to_dict()
         if user.get("role") == "student":
+            # Firestoreの name フィールドを最優先で使用
+            full_name = user.get("name", "").strip()
+
+            # name が無ければ last_name + first_name をフォールバック
+            if not full_name:
+                full_name = f"{user.get('last_name', '')} {user.get('first_name', '')}".strip()
+
             students.append({
                 "id": d.id,  # ← 会員番号として利用
                 "grade": user.get("grade", ""),
                 "class": user.get("class_name", ""),
                 "class_code": user.get("class_code", ""),
                 "code": user.get("code", ""),
-                "name": f"{user.get('last_name', '')} {user.get('first_name', '')}".strip() or d.id
+                "name": full_name or d.id,  # ← name を最優先
             })
     return students
+
+
+# def get_all_students():
+#     users_ref = db.collection("users")
+#     docs = users_ref.stream()
+#     students = []
+#     for d in docs:
+#         user = d.to_dict()
+#         if user.get("role") == "student":
+#             students.append({
+#                 "id": d.id,  # ← 会員番号として利用
+#                 "grade": user.get("grade", ""),
+#                 "class": user.get("class_name", ""),
+#                 "class_code": user.get("class_code", ""),
+#                 "code": user.get("code", ""),
+#                 "name": f"{user.get('last_name', '')} {user.get('first_name', '')}".strip() or d.id
+#             })
+#     return students
 
 
 # ==================================================
@@ -404,7 +429,17 @@ def show_admin_chat(initial_student_id=None):
     #################個人宛####################
 
     if target_type == "個人" and selected_id:
-        st.subheader(f"🧑‍🎓 {next((s['name'] for s in students if s['id'] == selected_id), selected_id)} さんとのチャット")
+        u = next((s for s in students if s["id"] == selected_id), None)
+        if u:
+            # nameが空 or idと同じなら重複回避
+            if not u.get("name") or u["name"] == selected_id:
+                display_name = selected_id
+            else:
+                display_name = f"{selected_id} {u['name']}"
+        else:
+            display_name = selected_id
+
+        st.subheader(f"🧑‍🎓 {display_name} さんとのチャット")
 
         messages = get_messages_and_mark_read(selected_id, grade, class_name)
         messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
