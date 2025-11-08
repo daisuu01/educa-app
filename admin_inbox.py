@@ -8,6 +8,7 @@ from firebase_admin import credentials, firestore
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
+import pytz
 
 # --- Firebase 初期化 ---
 load_dotenv()
@@ -137,7 +138,9 @@ def show_admin_inbox():
         class_name = m["class"] or "-"
         text = m.get("message", m.get("text", ""))
         ts = m.get("timestamp")
-        ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else "日時不明"
+        jst = pytz.timezone("Asia/Tokyo")
+        ts_jst = ts.astimezone(jst) if ts else None
+        ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else "日時不明"
 
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
