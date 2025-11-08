@@ -20,6 +20,7 @@ from admin_inbox import show_admin_inbox, count_unread_messages
 from firebase_admin import firestore
 from admin_chat import show_admin_chat
 from admin_schedule import show_schedule_main
+from unread_guardian_list import show_unread_guardian_list
 
 
 # --- 状態管理 ---
@@ -171,7 +172,7 @@ elif st.session_state["role"] == "admin":
     unread = count_unread_messages()
     inbox_label = f"受信ボックス（{unread}）" if unread > 0 else "受信ボックス"
 
-    options = ["生徒登録", "登録済みユーザー一覧", "チャット管理", inbox_label, "送信予約"]
+    options = ["生徒登録", "登録済みユーザー一覧", "チャット管理", inbox_label, "送信予約", "保護者未読一覧"]
 
     # ✅ 前回選択状態復元
     current = st.session_state.get("admin_mode", "生徒登録")
@@ -260,6 +261,13 @@ elif st.session_state["role"] == "admin":
 
     elif mode == "送信予約":
         show_schedule_main()
+
+    # -------------------------------
+    #  保護者未読一覧
+    # -------------------------------
+
+    elif mode == "保護者未読一覧":
+        show_unread_guardian_list() 
 
 
     # -------------------------------
