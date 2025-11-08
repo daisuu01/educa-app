@@ -13,6 +13,7 @@ import re
 import json
 from streamlit.components.v1 import html as components_html
 from textwrap import dedent
+import pytz
 
 # --- Firebase 初期化 ---
 load_dotenv()
@@ -418,7 +419,9 @@ def show_admin_chat(initial_student_id=None):
                     sender = msg.get("sender", "")
                     text = msg.get("message", msg.get("text", ""))
                     ts = msg.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    jst = pytz.timezone("Asia/Tokyo")
+                    ts_jst = ts.astimezone(jst) if ts else None
+                    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     read_by = msg.get("read_by", [])
 
                     # --- 管理者メッセージ（左側）
@@ -476,7 +479,9 @@ def show_admin_chat(initial_student_id=None):
             sender = msg.get("sender", "")
             text = msg.get("message", msg.get("text", ""))
             ts = msg.get("timestamp")
-            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            jst = pytz.timezone("Asia/Tokyo")
+            ts_jst = ts.astimezone(jst) if ts else None
+            ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             read_by = msg.get("read_by", [])
 
             if sender in ["admin", "先生", "講師"]:
@@ -562,7 +567,9 @@ def show_admin_chat(initial_student_id=None):
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
                 for m in older[::-1]:  # 古い順
                     ts = m.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    jst = pytz.timezone("Asia/Tokyo")
+                    ts_jst = ts.astimezone(jst) if ts else None
+                    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
 
                     st.markdown(
@@ -592,7 +599,9 @@ def show_admin_chat(initial_student_id=None):
 
         for m in latest[::-1]:  # ← reverse
             ts = m.get("timestamp")
-            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            jst = pytz.timezone("Asia/Tokyo")
+            ts_jst = ts.astimezone(jst) if ts else None
+            ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
 
             st.markdown(
@@ -643,7 +652,9 @@ def show_admin_chat(initial_student_id=None):
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
                 for m in older[::-1]:  # 古い順
                     ts = m.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    jst = pytz.timezone("Asia/Tokyo")
+                    ts_jst = ts.astimezone(jst) if ts else None
+                    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
 
                     st.markdown(
@@ -673,7 +684,9 @@ def show_admin_chat(initial_student_id=None):
 
         for m in latest[::-1]:  # ← reverse
             ts = m.get("timestamp")
-            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            jst = pytz.timezone("Asia/Tokyo")
+            ts_jst = ts.astimezone(jst) if ts else None
+            ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
 
             st.markdown(
@@ -730,7 +743,9 @@ def show_admin_chat(initial_student_id=None):
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
                 for m in older[::-1]:  # 古い順に表示
                     ts = m.get("timestamp")
-                    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+                    jst = pytz.timezone("Asia/Tokyo")
+                    ts_jst = ts.astimezone(jst) if ts else None
+                    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
 
                     st.markdown(
@@ -760,7 +775,9 @@ def show_admin_chat(initial_student_id=None):
 
         for m in latest[::-1]:  # 最新→古い を反転
             ts = m.get("timestamp")
-            ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+            jst = pytz.timezone("Asia/Tokyo")
+            ts_jst = ts.astimezone(jst) if ts else None
+            ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
 
             st.markdown(

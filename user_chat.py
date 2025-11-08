@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import os
 import json
 from streamlit.components.v1 import html as components_html
+import pytz
 
 # --- Firebase 初期化 ---
 load_dotenv()
@@ -197,7 +198,10 @@ def _render_message(user_id: str, msg: dict):
     text = msg.get("message", msg.get("text", ""))
     read_by = msg.get("read_by", [])
     ts = msg.get("timestamp")
-    ts_str = ts.strftime("%Y-%m-%d %H:%M") if ts else ""
+    # 日本時間に変換して表示
+    jst = pytz.timezone("Asia/Tokyo")
+    ts_jst = ts.astimezone(jst) if ts else None
+    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
 
     # ✅ 新旧データ両対応：自分のメッセージ判定を拡張
     self_message = (msg.get("user_id") == user_id)
