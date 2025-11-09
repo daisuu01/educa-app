@@ -1,27 +1,32 @@
 # =============================================
-# main.py（英作文＋チャット機能統合版・個人チャット遷移対応）
+# main.py（英作文＋チャット機能統合版・個人チャット遷移対応・Firebase安全初期化対応）
 # =============================================
 
 import streamlit as st
+from dotenv import load_dotenv
+import os
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
-from firebase_utils import (
-    verify_password,
-    update_user_password,
-    import_students_from_excel_and_csv,
-    fetch_all_users,
-    USERS,
-)
-from english_corrector import show_essay_corrector
-from user_chat import show_chat_page, get_user_meta
-from admin_inbox import show_admin_inbox, count_unread_messages
-from firebase_admin import firestore
-from admin_chat import show_admin_chat
-from admin_schedule import show_schedule_main
-from unread_guardian_list import show_unread_guardian_list
+# --- Firebase 初期化（安全版）---
+load_dotenv()
+firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
 
+if not firebase_admin._apps:
+    if not firebase_path or not os.path.exists(firebase_path):
+        st.error(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
+        st.stop()
+    try:
+        cred = credentials.Certificate(firebase_path)
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"❌ Firebase初期化エラー: {e}")
+        st.stop()
+
+db = firestore.client()
 
 # --- 状態管理 ---
 if "login" not in st.session_state:
@@ -34,6 +39,25 @@ if "student_page" not in st.session_state:
     st.session_state["student_page"] = "menu"
 if "admin_mode" not in st.session_state:  # ← 管理者モードの保持
     st.session_state["admin_mode"] = "生徒登録"
+
+# --- role を正規化（"admin" → admin に統一）---
+if st.session_state["role"] is not None:
+    st.session_state["role"] = str(st.session_state["role"]).strip('"')
+
+# --- 必要モジュール読込 ---
+from firebase_utils import (
+    verify_password,
+    update_user_password,
+    import_students_from_excel_and_csv,
+    fetch_all_users,
+    USERS,
+)
+from english_corrector import show_essay_corrector
+from user_chat import show_chat_page, get_user_meta
+from admin_inbox import show_admin_inbox, count_unread_messages
+from admin_chat import show_admin_chat
+from admin_schedule import show_schedule_main
+from unread_guardian_list import show_unread_guardian_list
 
 db = firestore.client()
 
@@ -128,10 +152,8 @@ def has_unread_messages(user_id: str) -> bool:
 
     return False
 
-
-
 # ===============================
-# 🔐 ログイン画面
+# 🔐 ログイン画面（複数管理者対応版）
 # ===============================
 if not st.session_state["login"]:
     st.title("エデュカアプリログイン")
@@ -139,33 +161,34 @@ if not st.session_state["login"]:
     password = st.text_input("パスワード", type="password")
 
     if st.button("ログイン"):
-        if member_id == "1001" and password == "educa123":
-            st.session_state.update({"login": True, "role": "admin"})
-            st.session_state["admin_mode"] = "生徒登録"
-            st.rerun()
-        else:
-            doc = USERS.document(member_id).get()
-            if not doc.exists:
-                st.error("⚠️ ユーザーが見つかりません。")
-            else:
-                user = doc.to_dict()
-                if verify_password(password, user):
-                    st.session_state.update(
-                        {
-                            "login": True,
-                            "role": user.get("role", "student"),
-                            "member_id": member_id,
-                        }
-                    )
-                    st.rerun()
-                else:
-                    st.error("❌ パスワードが違います。")
+        # --- Firestore からユーザー情報を取得 ---
+        doc = USERS.document(member_id).get()
 
+        if not doc.exists:
+            st.error("⚠️ ユーザーが見つかりません。")
+        else:
+            user = doc.to_dict()
+            role = user.get("role", "student")
+
+            # --- パスワード検証 ---
+            if verify_password(password, user):
+                st.session_state.update(
+                    {
+                        "login": True,
+                        "role": role,
+                        "member_id": member_id,
+                        "admin_name": user.get("name") if role == "admin" else None,
+                    }
+                )
+                st.success(f"✅ ログインしました（{role}）")
+                st.rerun()
+            else:
+                st.error("❌ パスワードが違います。")
 
 # ===============================
 # 🧭 管理者画面
 # ===============================
-elif st.session_state["role"] == "admin":
+elif st.session_state["login"] and st.session_state["role"] == "admin":
     st.sidebar.title("📋 管理者メニュー")
 
     # ✅ 未読数

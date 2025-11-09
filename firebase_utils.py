@@ -34,15 +34,24 @@ def hash_password(password: str) -> str:
 
 def verify_password(input_pw: str, user_doc: dict) -> bool:
     """
-    入力PWが Firestore 内の初期PW/変更後PW/旧形式(password_hash)のいずれかに一致すれば True
+    入力PWが Firestore 内の初期PW/変更後PW/旧形式(password_hash)のいずれかに一致すれば True。
+    ※ password_hash が「平文（例: '1001'）」のときも許可。
     """
     if not user_doc:
         return False
+
     input_hash = hash_password(input_pw)
     init_hash = user_doc.get("init_password_hash")
     custom_hash = user_doc.get("custom_password_hash")
     legacy_hash = user_doc.get("password_hash")
-    return input_hash in {init_hash, custom_hash, legacy_hash}
+
+    # 🔹 生パスワードを許可（例: legacy_hash が "1001" のとき）
+    if legacy_hash and input_pw == legacy_hash:
+        return True
+
+    # 🔹 通常のハッシュ照合
+    valid_hashes = {h for h in [init_hash, custom_hash, legacy_hash] if h}
+    return input_hash in valid_hashes
 
 
 def update_user_password(member_id: str, new_password: str):
