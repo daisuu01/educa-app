@@ -47,9 +47,13 @@ def get_all_students():
 # ==================================================
 # ✅ 未読件数を数える関数（サイドバー表示用）
 # ==================================================
+
 def count_unread_messages():
     students = get_all_students()
     unread_count = 0
+
+    # ✅ 現在ログインしている管理者のIDを取得
+    current_admin_id = st.session_state.get("member_id")
 
     for s in students:
         user_id = s["id"]
@@ -69,10 +73,12 @@ def count_unread_messages():
                 continue
             if msg.get("sender") != "admin":
                 read_by = msg.get("read_by", [])
-                if "admin" not in read_by:
+                # ✅ 固定文字 "admin" → 現在の管理者ID で判定
+                if current_admin_id and current_admin_id not in read_by:
                     unread_count += 1
 
     return unread_count
+
 
 
 # ==================================================
@@ -80,6 +86,7 @@ def count_unread_messages():
 # ==================================================
 def get_latest_received_messages():
     students = get_all_students()
+    current_admin_id = st.session_state.get("member_id")
     results = []
 
     for s in students:
@@ -103,7 +110,8 @@ def get_latest_received_messages():
             sender = msg.get("sender", "")
             if sender in ["student", "生徒", "guardian", "保護者"]:
                 read_by = msg.get("read_by", [])
-                is_unread = "admin" not in read_by
+                current_admin_id = st.session_state.get("member_id")
+                is_unread = current_admin_id not in read_by if current_admin_id else False
                 results.append({
                     "id": user_id,
                     "name": s["name"],

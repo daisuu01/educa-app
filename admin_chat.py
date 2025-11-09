@@ -163,6 +163,9 @@ def get_all_students():
 def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str = None, limit: int = 50):
     all_msgs = []
 
+    # 🔑 現在ログイン中の管理者ID
+    current_admin_id = st.session_state.get("member_id")
+
     # --- 個人宛 ---
     personal_ref = (
         db.collection("rooms")
@@ -175,9 +178,13 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         m = d.to_dict()
         if not m:
             continue
-        if "admin" not in m.get("read_by", []):
-            personal_ref.document(d.id).update({"read_by": firestore.ArrayUnion(["admin"])})
-            m["read_by"] = m.get("read_by", []) + ["admin"]
+
+        # ✅ この管理者がまだ既読にしていなければ read_by に追加
+        if current_admin_id and current_admin_id not in m.get("read_by", []):
+            personal_ref.document(d.id).update({
+                "read_by": firestore.ArrayUnion([current_admin_id])
+            })
+            m["read_by"] = m.get("read_by", []) + [current_admin_id]
         m["id"] = d.id
         m["_origin"] = "personal"
         all_msgs.append(m)
