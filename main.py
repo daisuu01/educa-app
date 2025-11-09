@@ -269,14 +269,34 @@ elif st.session_state["login"] and st.session_state["role"] == "admin":
     # -------------------------------
     # 📥 受信BOX
     # -------------------------------
+
     elif mode == "受信ボックス":
         show_admin_inbox()
-        # 📌 受信BOX→チャット遷移
-        if "open_mode" in st.session_state and st.session_state["open_mode"] == "admin_chat":
-            st.session_state["open_mode"] = None
-            st.session_state["admin_mode"] = "チャット管理"
-            st.session_state["just_opened_from_inbox"] = True
-            st.rerun()
+
+        # 📌 受信BOX→チャット遷移（クリック1回で自動遷移）
+        if st.session_state.get("just_opened_from_inbox", False):
+            target_id = st.session_state.get("selected_student_id")
+            target_name = st.session_state.get("selected_student_name", "")
+
+            if target_id:
+                # ✅ 個人チャット用ステート設定
+                st.session_state["target_type"] = "個人"
+                st.session_state["target_student_id"] = target_id
+                st.session_state["admin_mode"] = "チャット管理"
+
+                # ✅ 遷移フラグ解除して再描画
+                st.session_state["just_opened_from_inbox"] = False
+                st.rerun()
+
+
+    # elif mode == "受信ボックス":
+    #     show_admin_inbox()
+    #     # 📌 受信BOX→チャット遷移
+    #     if "open_mode" in st.session_state and st.session_state["open_mode"] == "admin_chat":
+    #         st.session_state["open_mode"] = None
+    #         st.session_state["admin_mode"] = "チャット管理"
+    #         st.session_state["just_opened_from_inbox"] = True
+    #         st.rerun()
 
     # -------------------------------
     # ⏰ 送信予約
