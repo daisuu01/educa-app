@@ -1,5 +1,5 @@
 # =============================================
-# admin_inbox.py（管理者用：受信ボックス → 個人チャット遷移対応）
+# admin_inbox.py（改良版：既読も一覧に残るメール型受信ボックス）
 # =============================================
 
 import streamlit as st
@@ -27,7 +27,6 @@ db = firestore.client()
 # ==================================================
 # 🔹 生徒一覧を取得
 # ==================================================
-
 def get_all_students():
     users_ref = db.collection("users")
     docs = users_ref.stream()
@@ -77,7 +76,7 @@ def count_unread_messages():
 
 
 # ==================================================
-# 🔹 各生徒の最新受信メッセージを取得
+# 🔹 各生徒の最新メッセージ（既読・未読どちらも）を取得
 # ==================================================
 def get_latest_received_messages():
     students = get_all_students()
@@ -85,6 +84,7 @@ def get_latest_received_messages():
 
     for s in students:
         user_id = s["id"]
+        # 最新50件くらい取る（未読＋既読含む）
         ref = (
             db.collection("rooms")
             .document("personal")
@@ -92,7 +92,7 @@ def get_latest_received_messages():
             .document("messages")
             .collection("items")
             .order_by("timestamp", direction=firestore.Query.DESCENDING)
-            .limit(1)
+            .limit(50)
         )
 
         for d in ref.stream():
@@ -101,7 +101,7 @@ def get_latest_received_messages():
                 continue
 
             sender = msg.get("sender", "")
-            if sender != "admin":
+            if sender in ["student", "生徒", "guardian", "保護者"]:
                 read_by = msg.get("read_by", [])
                 is_unread = "admin" not in read_by
                 results.append({
@@ -114,30 +114,34 @@ def get_latest_received_messages():
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
                 })
+                # ✅ 最新1件だけ採用（生徒・保護者別けずに最後のメッセージ）
+                break
 
+    # ✅ 最新順でソート
     results.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
     return results
 
 
 # ==================================================
-# 🖥️ 管理者用 受信ボックスUI
+# 🖥️ 管理者用 受信ボックスUI（既読も残る）
 # ==================================================
 def show_admin_inbox():
     st.title("📥 受信ボックス（生徒・保護者からのメッセージ）")
-    st.info("最新のメッセージを一覧表示しています。未読は赤色で表示されます。")
+    st.caption("未読は赤色、既読はグレーで表示されます。")
 
     messages = get_latest_received_messages()
 
     if not messages:
-        st.write("📭 現在、受信メッセージはありません。")
+        st.info("📭 現在、受信メッセージはありません。")
         return
 
     for m in messages:
         name = m["name"]
         grade = m["grade"] or "未設定"
         class_name = m["class"] or "-"
-        text = m.get("message", m.get("text", ""))
+        text = m.get("text", "")
         ts = m.get("timestamp")
+
         jst = pytz.timezone("Asia/Tokyo")
         ts_jst = ts.astimezone(jst) if ts else None
         ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else "日時不明"
@@ -145,9 +149,17 @@ def show_admin_inbox():
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
-        bg_color = "#ffe5e5" if m["is_unread"] else "#f7f7f7"
-        border_color = "#ff4d4d" if m["is_unread"] else "#ccc"
-        font_weight = "bold" if m["is_unread"] else "normal"
+        # ✅ 未読／既読でスタイル分け
+        if m["is_unread"]:
+            bg_color = "#ffe5e5"
+            border_color = "#ff4d4d"
+            font_weight = "bold"
+            opacity = "1.0"
+        else:
+            bg_color = "#f0f0f0"
+            border_color = "#999"
+            font_weight = "normal"
+            opacity = "0.75"
 
         st.markdown(
             f"""
@@ -155,9 +167,11 @@ def show_admin_inbox():
                         border-left:6px solid {border_color};
                         padding:10px 14px;
                         border-radius:10px;
-                        margin:8px 0;">
-                <div style="font-size:1.05em;font-weight:{font_weight};">
-                    🧑‍🎓 {name}（{grade}・{class_name}） <span style="font-size:0.9em;color:#666;">— {who} から</span>
+                        margin:8px 0;
+                        opacity:{opacity};">
+                <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
+                    🧑‍🎓 {name}（{grade}・{class_name}）
+                    <span style="font-size:0.9em;color:#555;">— {who} から</span>
                 </div>
                 <div style="color:#333;margin-top:4px;">{text}</div>
                 <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
@@ -166,9 +180,11 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
+        # 開くボタン
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button("開く ▶", key=f"open_{m['id']}"):
+                # ✅ 開いても削除せず残す仕様
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
                 st.session_state["admin_mode"] = "チャット管理"
