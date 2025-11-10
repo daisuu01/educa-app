@@ -24,18 +24,17 @@ def init_firebase():
         return firestore.client()
 
     try:
-        # ✅ 1️⃣ Streamlit Cloud の Secrets
+        # ✅ 1️⃣ Streamlit Cloud（Secrets利用）
         if hasattr(st, "secrets") and "firebase" in st.secrets:
-            # --- AttrDict をシリアライズ安全な dict に変換 ---
-            firebase_raw = st.secrets["firebase"]
-            firebase_config = json.loads(json.dumps(firebase_raw, default=str))
-            # ↑ json.dumps → str化 → json.loads で確実に dict 化
+            # --- secrets.toml の [firebase] を文字列経由で再構築 ---
+            firebase_str = json.dumps(st.secrets["firebase"])
+            firebase_config = json.loads(firebase_str)  # ← ここで完全に dict へ
 
             cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred)
             print("✅ Firebase initialized via Streamlit Secrets")
 
-        # ✅ 2️⃣ ローカル開発 (.env or JSON)
+        # ✅ 2️⃣ ローカル (.env 経由)
         else:
             load_dotenv()
             firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
@@ -46,7 +45,6 @@ def init_firebase():
             firebase_admin.initialize_app(cred)
             print(f"✅ Firebase initialized via local JSON ({firebase_path})")
 
-        # ✅ Firestore クライアント生成
         db = firestore.client()
         print("✅ Firestore client ready")
         return db
