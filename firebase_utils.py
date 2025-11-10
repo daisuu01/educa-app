@@ -1,5 +1,5 @@
 # =============================================
-# firebase_utils.py（Cloud優先・ローカル併用対応）
+# firebase_utils.py（Cloud優先・ローカル併用対応・AttrDict対応）
 # =============================================
 
 import pandas as pd
@@ -16,42 +16,52 @@ from typing import Dict
 # 🔧 Firebase 初期化
 # ==============================
 
-print("DEBUG: firebase in secrets =", hasattr(st, "secrets"), "->", "firebase" in getattr(st, "secrets", {}))
+def init_firebase():
+    """Streamlit Cloud or local .env から Firebase を初期化"""
+    print("🔍 DEBUG: Firebase 初期化開始")
 
-if not firebase_admin._apps:
+    if firebase_admin._apps:
+        print("ℹ️ Firebase はすでに初期化済み")
+        return firestore.client()
+
     try:
-        # ✅ 優先1：Streamlit Cloud（Secrets経由）
+        # ✅ 1️⃣ Streamlit Cloud の Secrets 優先
         if hasattr(st, "secrets") and "firebase" in st.secrets:
-            firebase_config = dict(st.secrets["firebase"])
+            firebase_config = dict(st.secrets["firebase"])  # AttrDict → dict
             cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred)
             print("✅ Firebase initialized via Streamlit Secrets")
 
-        # ✅ 優先2：ローカル開発環境
+        # ✅ 2️⃣ ローカル開発 (.env 経由)
         else:
             load_dotenv()
             firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
 
-            if not os.path.exists(firebase_path):
+            if not firebase_path or not os.path.exists(firebase_path):
                 raise FileNotFoundError(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
 
             cred = credentials.Certificate(firebase_path)
             firebase_admin.initialize_app(cred)
-            print("✅ Firebase initialized via local JSON")
+            print(f"✅ Firebase initialized via local JSON ({firebase_path})")
 
+        # ✅ Firestore クライアント生成
         db = firestore.client()
+        print("✅ Firestore client ready")
+        return db
 
     except Exception as e:
-        # Cloudでもログに出す（Streamlitまたはprint）
         msg = f"❌ Firebase初期化エラー: {e}"
         try:
             st.error(msg)
         except Exception:
             print(msg)
         raise e
-else:
-    db = firestore.client()
 
+
+# ==============================
+# 🔹 Firestore クライアント生成
+# ==============================
+db = init_firebase()
 USERS = db.collection("users")
 
 
