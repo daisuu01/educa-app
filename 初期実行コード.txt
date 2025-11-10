@@ -1,6 +1,14 @@
+##############3.13仮想環境##############
 python -m venv env
 
 env\Scripts\Activate
+#######################################
+
+##############3.11仮想環境##############
+py -3.11 -m venv env311
+
+env311\Scripts\activate
+#######################################
 
 pip install -r requirements.txt
 

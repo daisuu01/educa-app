@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
-
+from english_conversation import show_english_conversation
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
@@ -331,12 +331,16 @@ elif st.session_state["role"] == "student":
     if not doc.exists:
         st.error("⚠️ ユーザーデータが見つかりません。")
     else:
+        # ===============================
+        # 🎓 生徒メニュー画面
+        # ===============================
         if st.session_state["student_page"] == "menu":
             st.title("🎓 学習メニュー")
             st.markdown("以下から利用する機能を選択してください。")
 
             new_flag = has_unread_messages(member_id)
 
+            # === 1行目：チャット・英作文・パスワード ===
             col1, col2, col3 = st.columns(3)
             with col1:
                 if new_flag:
@@ -392,12 +396,22 @@ elif st.session_state["role"] == "student":
                     st.session_state["student_page"] = "password"
                     st.rerun()
 
+            # === 2行目：英会話トレーナー（全幅） ===
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🎧 英会話トレーナー", use_container_width=True, key="btn_conversation"):
+                st.session_state["student_page"] = "conversation"
+                st.rerun()
+
+            # === 区切り線＋ログアウト ===
             st.markdown("---")
             if st.button("🚪 ログアウト", key="btn_logout"):
                 st.session_state["login"] = False
                 st.session_state["student_page"] = "menu"
                 st.rerun()
 
+        # ===============================
+        # 💬 チャットページ
+        # ===============================
         elif st.session_state["student_page"] == "chat":
             show_back_button_top("back_chat_top")
             grade, class_name = get_user_meta(member_id)
@@ -406,11 +420,25 @@ elif st.session_state["role"] == "student":
             show_chat_page(member_id, grade, class_name)
             show_back_button_bottom("back_chat_bottom")
 
+        # ===============================
+        # 📝 英作文添削ページ
+        # ===============================
         elif st.session_state["student_page"] == "essay":
             show_back_button_top("back_essay_top")
             show_essay_corrector(member_id)
             show_back_button_bottom("back_essay_bottom")
 
+        # ===============================
+        # 🎧 英会話トレーナーページ
+        # ===============================
+        elif st.session_state["student_page"] == "conversation":
+            show_back_button_top("back_conversation_top")
+            show_english_conversation()
+            show_back_button_bottom("back_conversation_bottom")
+
+        # ===============================
+        # 🔑 パスワード変更ページ
+        # ===============================
         elif st.session_state["student_page"] == "password":
             show_back_button_top("back_pw_top")
             st.title("🔑 パスワード変更")
@@ -427,3 +455,4 @@ elif st.session_state["role"] == "student":
                     st.success("✅ パスワードを変更しました。")
 
             show_back_button_bottom("back_pw_bottom")
+
