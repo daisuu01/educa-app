@@ -14,22 +14,33 @@ from firebase_admin import credentials, firestore
 from english_conversation import show_english_conversation
 
 
-# --- Firebase 初期化（安全版）---
+# --- Firebase 初期化（Streamlit Cloud／ローカル両対応・安全版）---
+import json
 load_dotenv()
-firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
 
 if not firebase_admin._apps:
-    if not firebase_path or not os.path.exists(firebase_path):
-        st.error(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
-        st.stop()
     try:
-        cred = credentials.Certificate(firebase_path)
+        # ✅ ① Streamlit Cloud 環境（secrets.toml に [firebase] がある場合）
+        if "firebase" in st.secrets:
+            firebase_config = st.secrets["firebase"]
+            # json.dumps → json.loads で dict を安全に整形
+            cred = credentials.Certificate(json.loads(json.dumps(firebase_config)))
+        else:
+            # ✅ ② ローカル環境（.env のパスを使う場合）
+            firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
+            if not firebase_path or not os.path.exists(firebase_path):
+                raise FileNotFoundError(f"Firebase認証ファイルが見つかりません: {firebase_path}")
+            cred = credentials.Certificate(firebase_path)
+
         firebase_admin.initialize_app(cred)
+        db = firestore.client()
+
     except Exception as e:
         st.error(f"❌ Firebase初期化エラー: {e}")
         st.stop()
+else:
+    db = firestore.client()
 
-db = firestore.client()
 
 # --- 状態管理 ---
 if "login" not in st.session_state:
