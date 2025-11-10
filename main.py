@@ -3,13 +3,16 @@
 # =============================================
 
 import streamlit as st
+
+# --- ページ設定 ---
+st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
+
 from dotenv import load_dotenv
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from english_conversation import show_english_conversation
-# --- ページ設定 ---
-st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
+
 
 # --- Firebase 初期化（安全版）---
 load_dotenv()
