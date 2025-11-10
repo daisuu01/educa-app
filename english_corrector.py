@@ -10,6 +10,14 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
 
+
+
+st.write("🔍 DEBUG: secretsキー一覧 →", list(st.secrets.keys()))
+st.write("🔍 OPENAIキー(secrets):", st.secrets.get("OPENAI_API_KEY", "None"))
+st.write("🔍 OPENAIキー(env):", os.getenv("OPENAI_API_KEY", "None"))
+
+
+
 # --- OpenAI 初期化 ---
 load_dotenv()
 

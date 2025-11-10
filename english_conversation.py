@@ -16,6 +16,15 @@ from langchain.memory import ConversationBufferMemory
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
+
+
+st.write("🔍 DEBUG: secretsキー一覧 →", list(st.secrets.keys()))
+st.write("🔍 OPENAIキー(secrets):", st.secrets.get("OPENAI_API_KEY", "None"))
+st.write("🔍 OPENAIキー(env):", os.getenv("OPENAI_API_KEY", "None"))
+
+
+
+
 # --- ✅ Pydanticエラー回避 ---
 ChatOpenAI.model_rebuild()
 
