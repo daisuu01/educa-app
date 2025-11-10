@@ -159,7 +159,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
         .document("messages")
         .collection("items")
     )
-    for d in personal_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
+    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
         m = d.to_dict()
         if not m:
             continue
@@ -184,7 +184,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
             .document("messages")
             .collection("items")
         )
-        for d in class_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
+        for d in class_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
             m = d.to_dict()
             if m:
                 m["id"] = d.id
@@ -208,7 +208,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
             .document("messages")
             .collection("items")
         )
-        for d in grade_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
+        for d in grade_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
             m = d.to_dict()
             if m:
                 m["id"] = d.id
@@ -218,7 +218,7 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
 
     # --- 全員宛 ---
     all_ref = db.collection("rooms").document("all").collection("messages")
-    for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream():
+    for d in all_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
         m = d.to_dict()
         if m:
             m["id"] = d.id
@@ -580,7 +580,7 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         all_msgs = []
-        for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
+        for d in ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
             m = d.to_dict()
             if m:
                 all_msgs.append(m)
@@ -665,7 +665,7 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         all_msgs = []
-        for d in all_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
+        for d in ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
             m = d.to_dict()
             if m:
                 all_msgs.append(m)
@@ -756,7 +756,7 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         grade_msgs = []
-        for d in ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream():
+        for d in ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
             m = d.to_dict()
             if m:
                 grade_msgs.append(m)
