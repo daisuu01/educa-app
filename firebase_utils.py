@@ -1,5 +1,5 @@
 # =============================================
-# firebase_utils.py（Excel+CSV登録／二重PW対応／コード列空欄の前方補完を堅牢化）
+# firebase_utils.py（Cloud優先・ローカル併用対応）
 # =============================================
 
 import pandas as pd
@@ -8,20 +8,49 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
 import os
+import json
+import streamlit as st
 from typing import Dict
 
 # ==============================
 # 🔧 Firebase 初期化
 # ==============================
-load_dotenv()
-firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
-
 if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_path)
-    firebase_admin.initialize_app(cred)
+    try:
+        # ✅ 優先1：Streamlit Cloud（Secrets経由）
+        if hasattr(st, "secrets") and "firebase" in st.secrets:
+            firebase_config = dict(st.secrets["firebase"])
+            cred = credentials.Certificate(firebase_config)
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase initialized via Streamlit Secrets")
 
-db = firestore.client()
+        # ✅ 優先2：ローカル開発環境
+        else:
+            load_dotenv()
+            firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
+
+            if not os.path.exists(firebase_path):
+                raise FileNotFoundError(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
+
+            cred = credentials.Certificate(firebase_path)
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase initialized via local JSON")
+
+        db = firestore.client()
+
+    except Exception as e:
+        # Cloudでもログに出す（Streamlitまたはprint）
+        msg = f"❌ Firebase初期化エラー: {e}"
+        try:
+            st.error(msg)
+        except Exception:
+            print(msg)
+        raise e
+else:
+    db = firestore.client()
+
 USERS = db.collection("users")
+
 
 
 # ==============================
