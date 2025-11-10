@@ -1,5 +1,5 @@
 # =============================================
-# english_corrector.py（カメラ統合・Firestore履歴＋重複防止・外部リンク削除・初回許可ポップアップ対応）
+# english_corrector.py（Secrets対応・ローカル両対応版）
 # =============================================
 
 import streamlit as st
@@ -12,9 +12,18 @@ from datetime import datetime
 
 # --- OpenAI 初期化 ---
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+
+# ① Streamlit Secrets → ② .env の順で探索
+api_key = None
+if "OPENAI_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENAI_API_KEY"]
+elif os.getenv("OPENAI_API_KEY"):
+    api_key = os.getenv("OPENAI_API_KEY")
+
 if not api_key:
-    st.error("❌ OPENAI_API_KEY が設定されていません。.env または Streamlit Secrets を確認してください。")
+    st.error("❌ OPENAI_API_KEY が設定されていません。Streamlit Secrets または .env を確認してください。")
+    st.stop()
+
 client = OpenAI(api_key=api_key)
 
 # --- Firebase 初期化 ---
