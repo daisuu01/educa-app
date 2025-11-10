@@ -1,5 +1,5 @@
 # =============================================
-# firebase_utils.py（Cloud優先・ローカル併用対応・AttrDict対応）
+# firebase_utils.py（Cloud優先・ローカル併用・AttrDict再帰変換対応）
 # =============================================
 
 import pandas as pd
@@ -10,14 +10,26 @@ from dotenv import load_dotenv
 import os
 import json
 import streamlit as st
-from typing import Dict
+from typing import Dict, Any
+
+
+# ==============================
+# 🔧 AttrDict → dict（再帰変換関数）
+# ==============================
+def to_dict(obj: Any):
+    """st.secretsのAttrDictをネストごとdictに変換"""
+    if isinstance(obj, dict):
+        return {k: to_dict(v) for k, v in obj.items()}
+    elif hasattr(obj, "_asdict"):  # namedtupleなど対応
+        return to_dict(obj._asdict())
+    else:
+        return obj
+
 
 # ==============================
 # 🔧 Firebase 初期化
 # ==============================
-
 def init_firebase():
-    """Streamlit Cloud or local .env から Firebase を初期化"""
     print("🔍 DEBUG: Firebase 初期化開始")
 
     if firebase_admin._apps:
@@ -25,14 +37,15 @@ def init_firebase():
         return firestore.client()
 
     try:
-        # ✅ 1️⃣ Streamlit Cloud の Secrets 優先
+        # ✅ 1️⃣ Cloud: Streamlit Secrets
         if hasattr(st, "secrets") and "firebase" in st.secrets:
-            firebase_config = dict(st.secrets["firebase"])  # AttrDict → dict
+            firebase_raw = st.secrets["firebase"]
+            firebase_config = to_dict(firebase_raw)  # ← ★再帰的にdict化
             cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred)
             print("✅ Firebase initialized via Streamlit Secrets")
 
-        # ✅ 2️⃣ ローカル開発 (.env 経由)
+        # ✅ 2️⃣ ローカル: .env or JSON
         else:
             load_dotenv()
             firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
@@ -44,7 +57,6 @@ def init_firebase():
             firebase_admin.initialize_app(cred)
             print(f"✅ Firebase initialized via local JSON ({firebase_path})")
 
-        # ✅ Firestore クライアント生成
         db = firestore.client()
         print("✅ Firestore client ready")
         return db
