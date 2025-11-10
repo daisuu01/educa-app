@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import os
 import json
 import streamlit as st
-from typing import Any
+from typing import Dict
 
 
 def init_firebase():
