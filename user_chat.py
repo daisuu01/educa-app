@@ -3,28 +3,11 @@
 # =============================================
 
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_utils import db  # ✅ Cloud／ローカル共通の接続
 from datetime import datetime, timezone
 from streamlit_autorefresh import st_autorefresh
-from dotenv import load_dotenv
-import os
-import json
-from streamlit.components.v1 import html as components_html
 import pytz
 
-# --- Firebase 初期化 ---
-load_dotenv()
-firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
-
-if not firebase_admin._apps:
-    if not firebase_path or not os.path.exists(firebase_path):
-        st.error("❌ Firebase認証ファイルが見つかりません。")
-        st.stop()
-    cred = credentials.Certificate(firebase_path)
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 
 # ==================================================

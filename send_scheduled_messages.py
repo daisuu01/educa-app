@@ -3,22 +3,10 @@
 # 予約送信スクリプト（5分おきチェック）
 # =============================================
 
-import firebase_admin
-from firebase_admin import credentials, firestore
 from datetime import datetime, timezone
-import os
+from firebase_utils import db  # ✅ Cloud/ローカル共通の初期化
+from admin_chat import send_message
 
-from dotenv import load_dotenv
-load_dotenv()  # ← これを追加
-
-# --- Firebase 初期化 ---
-firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_path)
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 # --- send_message() の読み込み（admin_chat.pyから）
 from admin_chat import send_message

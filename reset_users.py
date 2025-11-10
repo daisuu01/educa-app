@@ -1,17 +1,6 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
-import os
-from dotenv import load_dotenv
+from firebase_utils import db  # ✅ Cloud / ローカル 両対応の共通接続
+import sys
 
-# --- Firebase 初期化 ---
-load_dotenv()
-firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
-
-if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_path)
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 # --- users コレクションを初期化 ---
 def reset_users_collection():

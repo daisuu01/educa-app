@@ -3,24 +3,9 @@
 # Firestore「rooms」コレクションを削除→正しい構造で再構築
 # =============================================
 
-import firebase_admin
-from firebase_admin import credentials, firestore
-from dotenv import load_dotenv
 import os
+from firebase_utils import db  # ✅ 共通初期化
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
-
-# --- Firebase 初期化 ---
-load_dotenv()
-firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
-
-if not firebase_admin._apps:
-    if not firebase_path or not os.path.exists(firebase_path):
-        raise FileNotFoundError("❌ Firebase認証ファイルが見つかりません。")
-    cred = credentials.Certificate(firebase_path)
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
-
 
 # ==================================================
 # 🔹 Firestore のコレクションを再帰的に削除

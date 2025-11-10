@@ -22,9 +22,8 @@ if not firebase_admin._apps:
     try:
         # ✅ ① Streamlit Cloud 環境（secrets.toml に [firebase] がある場合）
         if "firebase" in st.secrets:
-            firebase_config = st.secrets["firebase"]
-            # json.dumps → json.loads で dict を安全に整形
-            cred = credentials.Certificate(json.loads(json.dumps(firebase_config)))
+            firebase_config = dict(st.secrets["firebase"])  # ← これだけでOK
+            cred = credentials.Certificate(firebase_config)
         else:
             # ✅ ② ローカル環境（.env のパスを使う場合）
             firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
@@ -40,6 +39,7 @@ if not firebase_admin._apps:
         st.stop()
 else:
     db = firestore.client()
+
 
 
 # --- 状態管理 ---
