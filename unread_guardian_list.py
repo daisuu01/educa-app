@@ -32,7 +32,7 @@ def show_unread_guardian_list():
         # 最新の管理者メッセージのみ取得
         msgs = (
             msg_ref.where("sender", "==", "admin")
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .order_by("timestamp", direction="DESCENDING")
             .limit(1)
             .stream()
         )
