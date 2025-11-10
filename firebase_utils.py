@@ -13,9 +13,16 @@ import streamlit as st
 from typing import Any
 
 
-# ==============================
-# 🔧 Firebase 初期化
-# ==============================
+def attr_to_dict(obj):
+    """AttrDict を再帰的に Python の dict に変換"""
+    if isinstance(obj, dict):
+        return {k: attr_to_dict(v) for k, v in obj.items()}
+    elif hasattr(obj, "items"):  # AttrDict の場合
+        return {k: attr_to_dict(v) for k, v in obj.items()}
+    else:
+        return obj
+
+
 def init_firebase():
     print("🔍 DEBUG: Firebase 初期化開始")
 
@@ -24,17 +31,15 @@ def init_firebase():
         return firestore.client()
 
     try:
-        # ✅ 1️⃣ Streamlit Cloud（Secrets利用）
+        # ✅ 1️⃣ Streamlit Cloud（Secrets優先）
         if hasattr(st, "secrets") and "firebase" in st.secrets:
-            # --- secrets.toml の [firebase] を文字列経由で再構築 ---
-            firebase_str = json.dumps(st.secrets["firebase"])
-            firebase_config = json.loads(firebase_str)  # ← ここで完全に dict へ
-
+            raw = st.secrets["firebase"]
+            firebase_config = attr_to_dict(raw)  # ← 再帰的に AttrDict → dict
             cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred)
             print("✅ Firebase initialized via Streamlit Secrets")
 
-        # ✅ 2️⃣ ローカル (.env 経由)
+        # ✅ 2️⃣ ローカル開発環境
         else:
             load_dotenv()
             firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
@@ -63,7 +68,6 @@ def init_firebase():
 # ==============================
 db = init_firebase()
 USERS = db.collection("users")
-
 
 
 
