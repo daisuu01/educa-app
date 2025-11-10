@@ -13,43 +13,39 @@ import streamlit as st
 from typing import Any
 
 
-def attr_to_dict(obj):
-    """AttrDict を再帰的に Python の dict に変換"""
-    if isinstance(obj, dict):
-        return {k: attr_to_dict(v) for k, v in obj.items()}
-    elif hasattr(obj, "items"):  # AttrDict の場合
-        return {k: attr_to_dict(v) for k, v in obj.items()}
-    else:
-        return obj
-
-
 def init_firebase():
     print("🔍 DEBUG: Firebase 初期化開始")
 
+    # すでに初期化済みなら再利用
     if firebase_admin._apps:
         print("ℹ️ Firebase はすでに初期化済み")
         return firestore.client()
 
     try:
-        # ✅ 1️⃣ Streamlit Cloud（Secrets優先）
+        # ✅ 1️⃣ Streamlit Cloud の Secrets 優先
         if hasattr(st, "secrets") and "firebase" in st.secrets:
-            raw = st.secrets["firebase"]
-            firebase_config = attr_to_dict(raw)  # ← 再帰的に AttrDict → dict
+            # --- AttrDict → dict に変換（最強パターン） ---
+            firebase_raw = st.secrets["firebase"]
+
+            # ↓ AttrDictを文字列経由で完全変換
+            firebase_config = json.loads(json.dumps(eval(str(dict(firebase_raw)))))
+
+            # --- Firebase初期化 ---
             cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred)
             print("✅ Firebase initialized via Streamlit Secrets")
 
-        # ✅ 2️⃣ ローカル開発環境
+        # ✅ 2️⃣ ローカル環境 (.env / JSON)
         else:
             load_dotenv()
             firebase_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "educa-app-firebase-adminsdk.json")
-            if not firebase_path or not os.path.exists(firebase_path):
+            if not os.path.exists(firebase_path):
                 raise FileNotFoundError(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
-
             cred = credentials.Certificate(firebase_path)
             firebase_admin.initialize_app(cred)
             print(f"✅ Firebase initialized via local JSON ({firebase_path})")
 
+        # ✅ Firestore クライアント
         db = firestore.client()
         print("✅ Firestore client ready")
         return db
