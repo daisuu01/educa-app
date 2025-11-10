@@ -15,6 +15,9 @@ from typing import Dict
 # ==============================
 # 🔧 Firebase 初期化
 # ==============================
+
+print("DEBUG: firebase in secrets =", hasattr(st, "secrets"), "->", "firebase" in getattr(st, "secrets", {}))
+
 if not firebase_admin._apps:
     try:
         # ✅ 優先1：Streamlit Cloud（Secrets経由）
