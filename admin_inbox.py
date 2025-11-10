@@ -49,7 +49,7 @@ def count_unread_messages():
             .collection(user_id)
             .document("messages")
             .collection("items")
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .order_by("timestamp", direction=db._client.query.Query.DESCENDING)
             .limit(1)
         )
 
@@ -84,7 +84,7 @@ def get_latest_received_messages():
             .collection(user_id)
             .document("messages")
             .collection("items")
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .order_by("timestamp", direction=db._client.query.Query.DESCENDING)
             .limit(50)
         )
 
