@@ -36,17 +36,22 @@ if not OPENAI_API_KEY:
 # --- OpenAI 初期化 ---
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# --- LangChain Memory 初期化 ---
-if "conversation_memory" not in st.session_state:
+# --- ✅ LangChain Memory 安全初期化 ---
+if "conversation_memory" not in st.session_state or not isinstance(
+    st.session_state.get("conversation_memory"), ConversationBufferMemory
+):
     st.session_state.conversation_memory = ConversationBufferMemory(return_messages=True)
 
+# --- LLM ---
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.6, api_key=OPENAI_API_KEY)
-
 
 
 # --- AI応答生成 ---
 def get_ai_reply(user_text: str) -> str:
-    memory = st.session_state.conversation_memory
+    memory = st.session_state.get("conversation_memory")
+    if not memory:
+        st.session_state.conversation_memory = ConversationBufferMemory(return_messages=True)
+        memory = st.session_state.conversation_memory
 
     system_prompt = """
 あなたは優しい英会話講師です。
@@ -216,10 +221,20 @@ def show_english_conversation():
 
     st.markdown("---")
     st.subheader("💬 会話履歴（今回のセッション）")
-    history = st.session_state.conversation_memory.load_memory_variables({}).get("history", [])
+
+    try:
+        memory = st.session_state.get("conversation_memory")
+        if memory:
+            history = memory.load_memory_variables({}).get("history", [])
+        else:
+            history = []
+    except Exception as e:
+        st.error(f"⚠️ メモリ読み込みエラー: {e}")
+        history = []
+
     if history:
         for m in history:
-            role = "👤 You" if m.type == "human" else "🤖 AI"
+            role = "👤 You" if getattr(m, "type", "") == "human" else "🤖 AI"
             st.markdown(f"**{role}:** {m.content}")
     else:
         st.caption("まだ会話履歴がありません。Start → Stop → 送信で会話を始めてみましょう。")

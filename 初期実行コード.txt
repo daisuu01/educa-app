@@ -14,6 +14,8 @@ pip install -r requirements.txt
 
 streamlit run main.py
 
+
+https://share.streamlit.io/
 ###############################################
 git add .
 git commit -m "チャット機能拡充"
