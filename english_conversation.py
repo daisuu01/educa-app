@@ -21,11 +21,19 @@ ChatOpenAI.model_rebuild()
 
 # --- 環境変数読み込み ---
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# ✅ Secrets と .env の両対応
+OPENAI_API_KEY = None
+if "OPENAI_API_KEY" in st.secrets:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+elif os.getenv("OPENAI_API_KEY"):
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 if not OPENAI_API_KEY:
-    st.error("❌ OPENAI_API_KEY が設定されていません。")
+    st.error("❌ OPENAI_API_KEY が設定されていません。Streamlit Cloud の Secrets または .env を確認してください。")
     st.stop()
 
+# --- OpenAI 初期化 ---
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # --- LangChain Memory 初期化 ---
@@ -33,6 +41,7 @@ if "conversation_memory" not in st.session_state:
     st.session_state.conversation_memory = ConversationBufferMemory(return_messages=True)
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.6, api_key=OPENAI_API_KEY)
+
 
 
 # --- AI応答生成 ---
