@@ -168,7 +168,14 @@ def show_english_conversation():
         key="mobile-english-conversation",
         mode=WebRtcMode.SENDRECV,
         audio_receiver_size=1024,
-        media_stream_constraints={"audio": True, "video": False},
+        media_stream_constraints={
+            "audio": {
+                "echoCancellation": True,
+                "noiseSuppression": True,
+                "autoGainControl": True,
+            },
+            "video": False,
+        },
         async_processing=True,
         audio_processor_factory=AudioProcessor,
     )
