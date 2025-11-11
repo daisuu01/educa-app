@@ -166,7 +166,7 @@ def show_english_conversation():
 
     ctx = webrtc_streamer(
         key="mobile-english-conversation",
-        mode=WebRtcMode.SENDONLY,
+        mode=WebRtcMode.SENDRECV,
         audio_receiver_size=1024,
         media_stream_constraints={"audio": True, "video": False},
         async_processing=True,
