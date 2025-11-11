@@ -53,3 +53,8 @@ typing-extensions==4.12.2  # LangChain互換性維持
 
 
 pydantic==2.8.2
+
+
+
+pip uninstall av -y
+pip install av==10.0.0

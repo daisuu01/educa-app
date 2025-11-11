@@ -10,6 +10,7 @@ py -3.11 -m venv env311
 env311\Scripts\activate
 #######################################
 pip install -r requirements.txt
+python -c "import io; import pip._internal; pip._internal.main(['install', '-r', 'requirements.txt'],) if False else [pip._internal.main(['install', p.strip()]) for p in io.open('requirements.txt', encoding='utf-8').read().splitlines() if p and not p.startswith('#')]"
 
 streamlit run main.py
 
