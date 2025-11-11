@@ -27,7 +27,7 @@ python-multipart==0.0.9
 
 # 🔊 スマホ対応WebRTC録音（streamlit-webrtc + av 必須）
 streamlit-webrtc==0.47.7
-av==12.2.0
+av==16.0.1
 
 # 🎧 音声処理（numpy / ffmpeg）
 numpy==1.26.4
@@ -55,4 +55,3 @@ typing-extensions==4.12.2  # LangChain互換性維持
 pydantic==2.8.2
 
 
-av==16.0.1
