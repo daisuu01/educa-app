@@ -7,7 +7,8 @@ from firebase_utils import db  # ✅ Cloud／ローカル共通の接続
 from datetime import datetime, timezone
 from streamlit_autorefresh import st_autorefresh
 import pytz
-
+from firebase_admin import firestore
+from google.cloud import firestore
 
 
 # ==================================================
