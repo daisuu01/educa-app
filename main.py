@@ -7,6 +7,23 @@ import streamlit as st
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
+st.markdown("""
+<style>
+/* スピナー非表示 */
+.stSpinner { display: none !important; }
+
+/* フェード無効化（画面の白っぽさ削除） */
+.block-container:has(.stSpinner) {
+    opacity: 1 !important;
+}
+
+/* ボタン連打時のちらつき軽減 */
+button[kind="primary"] {
+    transition: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 from dotenv import load_dotenv
 import os
 import firebase_admin
