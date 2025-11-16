@@ -10,6 +10,7 @@ import json
 from streamlit.components.v1 import html as components_html
 from textwrap import dedent
 import pytz
+from firebase_admin import firestore
 from firebase_utils import db
 
 
