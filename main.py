@@ -9,19 +9,75 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 
 st.markdown("""
 <style>
-/* スピナー非表示 */
-.stSpinner { display: none !important; }
+/* ================================
+   スピナー完全非表示
+===================================*/
+.stSpinner, div[data-testid="stSpinner"] {
+    display: none !important;
+}
 
-/* フェード無効化（画面の白っぽさ削除） */
-.block-container:has(.stSpinner) {
+/* ================================
+   「Running...」オーバーレイを削除
+===================================*/
+.css-1dp5vir, .runningIndicator, .block-container:has(.stSpinner) {
     opacity: 1 !important;
 }
 
-/* ボタン連打時のちらつき軽減 */
-button[kind="primary"] {
+/* ================================
+   画面フェード（白っぽい透明幕）抹消
+===================================*/
+.stApp > header, .stApp {
+    transition: none !important;
+    opacity: 1 !important;
+}
+.block-container {
     transition: none !important;
 }
+
+/* ボタン押下時の一瞬の白フェード除去 */
+button, .stButton > button {
+    transition: none !important;
+}
+
+/* ================================
+   Streamlit 1.40〜1.41 新UI対策
+===================================*/
+[data-testid="stStatusWidget"] {
+    display: none !important;
+}
+
+/* ================================
+   画面の一瞬の“ちらつき”対策
+===================================*/
+html, body, .stApp {
+    animation: none !important;
+    opacity: 1 !important;
+}
 </style>
+
+<script>
+// =============================
+// JSで強制的にオーバーレイ消去
+// =============================
+const removeRunningOverlay = () => {
+    const overlaySelectors = [
+        'div[aria-label="Running"]',
+        'div[role="alert"]',
+        'div[aria-live="polite"]',
+        'div[data-testid="stStatusWidget"]'
+    ];
+    overlaySelectors.forEach(sel => {
+        const elements = document.querySelectorAll(sel);
+        elements.forEach(e => e.style.display = "none");
+    });
+};
+
+// MutationObserverで常に監視し“Running”を即除去
+const observer = new MutationObserver(() => removeRunningOverlay());
+observer.observe(document.body, { childList: true, subtree: true });
+
+setInterval(removeRunningOverlay, 200);
+</script>
 """, unsafe_allow_html=True)
 
 from dotenv import load_dotenv
