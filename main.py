@@ -9,74 +9,46 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 
 st.markdown("""
 <style>
-/* ================================
-   スピナー完全非表示
-===================================*/
+/* スピナー非表示 */
 .stSpinner, div[data-testid="stSpinner"] {
     display: none !important;
 }
 
-/* ================================
-   「Running...」オーバーレイを削除
-===================================*/
-.css-1dp5vir, .runningIndicator, .block-container:has(.stSpinner) {
-    opacity: 1 !important;
-}
-
-/* ================================
-   画面フェード（白っぽい透明幕）抹消
-===================================*/
-.stApp > header, .stApp {
-    transition: none !important;
-    opacity: 1 !important;
-}
-.block-container {
-    transition: none !important;
-}
-
-/* ボタン押下時の一瞬の白フェード除去 */
-button, .stButton > button {
-    transition: none !important;
-}
-
-/* ================================
-   Streamlit 1.40〜1.41 新UI対策
-===================================*/
+/* Running 表示削除 */
 [data-testid="stStatusWidget"] {
     display: none !important;
 }
 
-/* ================================
-   画面の一瞬の“ちらつき”対策
-===================================*/
-html, body, .stApp {
-    animation: none !important;
+/* 通常のフェードを上書きするための保険 */
+.stApp, .block-container {
+    transition: none !important;
     opacity: 1 !important;
 }
 </style>
 
 <script>
 // =============================
-// JSで強制的にオーバーレイ消去
+// 透明フェード（opacity 0.33）を強制無効化
 // =============================
-const removeRunningOverlay = () => {
-    const overlaySelectors = [
-        'div[aria-label="Running"]',
-        'div[role="alert"]',
-        'div[aria-live="polite"]',
-        'div[data-testid="stStatusWidget"]'
-    ];
-    overlaySelectors.forEach(sel => {
-        const elements = document.querySelectorAll(sel);
-        elements.forEach(e => e.style.display = "none");
+function forceFullOpacity() {
+    const elements = document.querySelectorAll('div, section, main, header');
+    elements.forEach(el => {
+        if (el.style.opacity && el.style.opacity < 1) {
+            el.style.opacity = "1";   // 強制上書き
+        }
     });
-};
+}
 
-// MutationObserverで常に監視し“Running”を即除去
-const observer = new MutationObserver(() => removeRunningOverlay());
+// Streamlit の DOM 変化を常に監視
+const observer = new MutationObserver(() => {
+    forceFullOpacity();
+});
+
+// body 全体を監視
 observer.observe(document.body, { childList: true, subtree: true });
 
-setInterval(removeRunningOverlay, 200);
+// 0.2 秒に1回、保険で実行
+setInterval(forceFullOpacity, 200);
 </script>
 """, unsafe_allow_html=True)
 
