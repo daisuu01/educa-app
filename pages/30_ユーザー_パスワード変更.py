@@ -16,7 +16,7 @@ if role != "admin":
 # 🔐 ユーザー：パスワード変更ページ
 # ======================================
 
-st.set_page_config(page_title="パスワード変更", layout="centered")
+#st.set_page_config(page_title="パスワード変更", layout="centered")
 
 st.title("🔑 パスワード変更")
 
