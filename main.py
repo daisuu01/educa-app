@@ -184,7 +184,7 @@ else:
         st.markdown("---")
         if st.button("🚪 ログアウト"):
             st.session_state.clear()
-            st.experimental_rerun()
+            st.rerun()
 
     # ==============================
     # 👨‍🏫 管理者メニュー
@@ -220,7 +220,7 @@ else:
         st.markdown("---")
         if st.button("🚪 ログアウト"):
             st.session_state.clear()
-            st.experimental_rerun()
+            st.rerun()
 
 
 
