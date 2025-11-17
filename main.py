@@ -7,40 +7,48 @@ import streamlit as st
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
-st.markdown("""
-<style>
-/* スピナー非表示 */
-.stSpinner, div[data-testid="stSpinner"] { 
-    display: none !important; 
-}
+role = st.session_state.get("role")
 
-/* Running 表示削除 */
-[data-testid="stStatusWidget"] { 
-    display: none !important; 
-}
+# ---- 生徒のみサイドバー非表示 ----
+if role == "student":
+    st.markdown("""
+    <style>
+    /* スピナー非表示 */
+    .stSpinner, div[data-testid="stSpinner"] { 
+        display: none !important; 
+    }
 
-/* フェード削除（白くなるのを抑制） */
-.stApp, .block-container { 
-    opacity: 1 !important; 
-    transition: none !important; 
-}
+    /* Running 表示削除 */
+    [data-testid="stStatusWidget"] { 
+        display: none !important; 
+    }
 
-/* 🔥 サイドバー完全非表示 */
-section[data-testid="stSidebar"] {
-    display: none !important;
-}
+    /* フェード削除 */
+    .stApp, .block-container { 
+        opacity: 1 !important; 
+        transition: none !important; 
+    }
 
-/* 🔥 Streamlit が勝手に生成する自動タイトルを非表示 */
-div[data-testid="stHeader"] h1 {
-    display: none !important;
-}
+    /* 🔥 生徒はサイドバーを完全に消す */
+    section[data-testid="stSidebar"] {
+        display: none !important;
+    }
+    div[data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+    span[data-testid="stSidebarHeader"] {
+        display: none !important;
+    }
 
-/*（補強）ページタイトルに余白つきで再描画される部分も完全に非表示 */
-header[data-testid="stHeader"] {
-    display: none !important;
-}
-</style>
-""", unsafe_allow_html=True)
+    /* 🔥 Streamlit の自動タイトル削除 */
+    div[data-testid="stHeader"] h1 {
+        display: none !important;
+    }
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 
 from firebase_utils import (
