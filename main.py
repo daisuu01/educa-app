@@ -133,7 +133,7 @@ if not st.session_state["login"]:
                 st.session_state["member_id"] = member_id
                 st.session_state["admin_name"] = user.get("name") if role == "admin" else None
                 st.success(f"✅ ログインしました（{role}）")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("❌ パスワードが違います。")
 
