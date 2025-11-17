@@ -46,6 +46,5 @@ if st.button("変更を保存"):
 # 🔙 戻るボタン
 # ----------------------------
 st.markdown("---")
-if st.button("⬅️ メニューに戻る"):
-    st.session_state["student_page"] = "menu"
-    st.rerun()
+if st.button("⬅️ メニューに戻る", use_container_width=True):
+    st.switch_page("main.py")
