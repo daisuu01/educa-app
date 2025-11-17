@@ -149,8 +149,8 @@ def extract_english_part(reply: str) -> str:
 
 # --- メインUI ---
 def show_english_conversation():
-    st.title("🎧 英会話トレーナー（スマホ対応・WebRTC版）")
-    st.caption("🎙️ Start → Stop → この録音でAIに送信")
+    # st.title("🎧 英会話トレーナー（スマホ対応・WebRTC版）")
+    # st.caption("🎙️ Start → Stop → この録音でAIに送信")
 
     col1, col2 = st.columns(2)
     with col1:
