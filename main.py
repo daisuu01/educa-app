@@ -10,20 +10,38 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 st.markdown("""
 <style>
 /* スピナー非表示 */
-.stSpinner, div[data-testid="stSpinner"] { display: none !important; }
+.stSpinner, div[data-testid="stSpinner"] { 
+    display: none !important; 
+}
 
 /* Running 表示削除 */
-[data-testid="stStatusWidget"] { display: none !important; }
+[data-testid="stStatusWidget"] { 
+    display: none !important; 
+}
 
-/* フェード削除 */
-.stApp, .block-container { opacity: 1 !important; transition: none !important; }
+/* フェード削除（白くなるのを抑制） */
+.stApp, .block-container { 
+    opacity: 1 !important; 
+    transition: none !important; 
+}
 
 /* 🔥 サイドバー完全非表示 */
 section[data-testid="stSidebar"] {
     display: none !important;
 }
+
+/* 🔥 Streamlit が勝手に生成する自動タイトルを非表示 */
+div[data-testid="stHeader"] h1 {
+    display: none !important;
+}
+
+/*（補強）ページタイトルに余白つきで再描画される部分も完全に非表示 */
+header[data-testid="stHeader"] {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 from firebase_utils import (
     verify_password,
