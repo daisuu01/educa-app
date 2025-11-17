@@ -8,6 +8,17 @@ from firebase_admin import firestore
 from firebase_utils import USERS
 from user_chat import show_chat_page, get_user_meta
 
+role = st.session_state.get("role", None)
+
+# ---- 管理者以外はサイドバー非表示 ----
+if role != "admin":
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] {display: none !important;}
+    div[data-testid="stSidebarNav"] {display: none !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    
 # --- Firebase クライアント ---
 db = firestore.client()
 

@@ -1,6 +1,17 @@
 import streamlit as st
 from english_conversation import show_english_conversation
 
+role = st.session_state.get("role", None)
+
+# ---- 管理者以外はサイドバー非表示 ----
+if role != "admin":
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] {display: none !important;}
+    div[data-testid="stSidebarNav"] {display: none !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    
 # ==============================
 # 🎧 ユーザー：英会話トレーナー
 # ==============================

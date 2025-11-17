@@ -1,6 +1,17 @@
 import streamlit as st
 from firebase_utils import update_user_password
 
+role = st.session_state.get("role", None)
+
+# ---- 管理者以外はサイドバー非表示 ----
+if role != "admin":
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] {display: none !important;}
+    div[data-testid="stSidebarNav"] {display: none !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    
 # ======================================
 # 🔐 ユーザー：パスワード変更ページ
 # ======================================
