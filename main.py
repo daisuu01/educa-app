@@ -7,10 +7,15 @@ import streamlit as st
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
+# ---------------------------------------------------------
+# 🔥 ログイン前 or 生徒 → サイドバー非表示
+# ---------------------------------------------------------
+login = st.session_state.get("login", False)
 role = st.session_state.get("role", None)
 
-# ---- 管理者以外はサイドバー完全非表示 ----
-if role != "admin":
+hide_sidebar = (not login) or (role == "student")
+
+if hide_sidebar:
     st.markdown("""
     <style>
     /* スピナー非表示 */
@@ -29,27 +34,15 @@ if role != "admin":
         transition: none !important; 
     }
 
-    /* 🔥 サイドバー完全非表示（未ログイン＋生徒） */
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
-    div[data-testid="stSidebar"] {
-        display: none !important;
-    }
-    div[data-testid="stSidebarNav"] {
-        display: none !important;
-    }
-    span[data-testid="stSidebarHeader"] {
-        display: none !important;
-    }
+    /* 🔥 サイドバー完全非表示（ログイン前 + 生徒） */
+    section[data-testid="stSidebar"] { display: none !important; }
+    div[data-testid="stSidebar"] { display: none !important; }
+    div[data-testid="stSidebarNav"] { display: none !important; }
+    span[data-testid="stSidebarHeader"] { display: none !important; }
 
     /* 🔥 Streamlit の自動タイトル削除 */
-    div[data-testid="stHeader"] h1 {
-        display: none !important;
-    }
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
+    div[data-testid="stHeader"] h1 { display: none !important; }
+    header[data-testid="stHeader"] { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
 
