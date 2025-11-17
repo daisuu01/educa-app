@@ -7,14 +7,20 @@ import streamlit as st
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
-# --- 見た目系（スピナー/フェード抑制：今までのやつを簡略版で維持） ---
 st.markdown("""
 <style>
+/* スピナー非表示 */
 .stSpinner, div[data-testid="stSpinner"] { display: none !important; }
+
+/* Running 表示削除 */
 [data-testid="stStatusWidget"] { display: none !important; }
-.stApp, .block-container {
-    transition: none !important;
-    opacity: 1 !important;
+
+/* フェード削除 */
+.stApp, .block-container { opacity: 1 !important; transition: none !important; }
+
+/* 🔥 サイドバー完全非表示 */
+section[data-testid="stSidebar"] {
+    display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
