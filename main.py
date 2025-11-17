@@ -148,9 +148,9 @@ def has_unread_messages(user_id: str) -> bool:
 # ==============================
 # 🔐 ログイン画面
 # ==============================
-st.title("エデュカアプリログイン")
 
 if not st.session_state["login"]:
+    st.title("エデュカアプリログイン")
     member_id = st.text_input("会員番号")
     password = st.text_input("パスワード", type="password")
 
