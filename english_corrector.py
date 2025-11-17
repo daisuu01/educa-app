@@ -186,7 +186,7 @@ def extract_text_from_image_bytes(image_bytes_b64: str) -> str:
 # 🖥️ Streamlit アプリ UI
 # ==================================================
 def show_essay_corrector(user_id: str):
-    st.title("📝 英作文添削システム")
+    #st.title("")
 
     mode = st.radio(
         "モードを選択",
