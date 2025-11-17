@@ -240,7 +240,7 @@ def _render_message(user_id: str, msg: dict):
 # 🔹 チャットUI
 # ==================================================
 def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
-    st.title("💬 チャット（先生との1対1）")
+    st.title("")
 
     st_autorefresh(interval=5000, key="chat_refresh")
 
