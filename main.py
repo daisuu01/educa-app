@@ -7,10 +7,10 @@ import streamlit as st
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
 
-role = st.session_state.get("role")
+role = st.session_state.get("role", None)
 
-# ---- 生徒のみサイドバー非表示 ----
-if role == "student":
+# ---- 管理者以外はサイドバー完全非表示 ----
+if role != "admin":
     st.markdown("""
     <style>
     /* スピナー非表示 */
@@ -29,8 +29,11 @@ if role == "student":
         transition: none !important; 
     }
 
-    /* 🔥 生徒はサイドバーを完全に消す */
+    /* 🔥 サイドバー完全非表示（未ログイン＋生徒） */
     section[data-testid="stSidebar"] {
+        display: none !important;
+    }
+    div[data-testid="stSidebar"] {
         display: none !important;
     }
     div[data-testid="stSidebarNav"] {
@@ -49,6 +52,7 @@ if role == "student":
     }
     </style>
     """, unsafe_allow_html=True)
+
 
 
 from firebase_utils import (
