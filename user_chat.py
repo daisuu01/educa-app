@@ -295,17 +295,3 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
                 st.session_state["__clear_chat_input__"] = True
                 st.rerun()
 
-# =============================================
-# ▼▼▼ ページとして呼び出されたときの入口 ▼▼▼
-# =============================================
-
-user_id = st.session_state.get("member_id")
-
-# 🔥 最低限のチェックのみ（login を見ると誤作動する）
-if not user_id:
-    st.error("⚠️ ログイン情報がありません。main.py からアクセスしてください。")
-    st.stop()
-
-grade, class_name = get_user_meta(user_id)
-
-show_chat_page(user_id, grade, class_name)

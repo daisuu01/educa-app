@@ -446,20 +446,14 @@ elif st.session_state["role"] == "student":
                         """,
                         unsafe_allow_html=True,
                     )
-                    # if st.button("▶ 開く", use_container_width=True, key="btn_chat_new"):
-                    #     st.session_state["student_page"] = "chat"
-                    #     st.rerun()
                     if st.button("▶ 開く", use_container_width=True, key="btn_chat_new"):
-                        st.session_state["member_id"] = member_id   # ←🔥必須
-                        st.switch_page("user_chat.py")
+                        st.session_state["student_page"] = "chat"
+                        st.rerun()
 
                 else:
-                    # if st.button("💬 チャット", use_container_width=True, key="btn_chat"):
-                    #     st.session_state["student_page"] = "chat"
-                    #     st.rerun()
                     if st.button("💬 チャット", use_container_width=True, key="btn_chat"):
-                        st.session_state["member_id"] = member_id   # ←🔥必須
-                        st.switch_page("user_chat.py")
+                        st.session_state["student_page"] = "chat"
+                        st.rerun()
 
             with col2:
                 if st.button("📝 英作文添削", use_container_width=True, key="btn_essay"):
