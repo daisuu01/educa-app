@@ -299,11 +299,13 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
 # ▼▼▼ ページとして呼び出されたときの入口 ▼▼▼
 # =============================================
 
-if "login" not in st.session_state or st.session_state["login"] is not True:
-    st.error("⚠️ ログインが必要です。")
+user_id = st.session_state.get("member_id")
+
+# 🔥 最低限のチェックのみ（login を見ると誤作動する）
+if not user_id:
+    st.error("⚠️ ログイン情報がありません。main.py からアクセスしてください。")
     st.stop()
 
-user_id = st.session_state.get("member_id")
 grade, class_name = get_user_meta(user_id)
 
 show_chat_page(user_id, grade, class_name)
