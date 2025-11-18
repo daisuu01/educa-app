@@ -240,6 +240,7 @@ def _render_message(user_id: str, msg: dict):
 # 🔹 チャットUI
 # ==================================================
 def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
+    st.title("チャット")
 
     st_autorefresh(interval=5000, key="chat_refresh")
 
@@ -294,3 +295,15 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
                 st.session_state["__clear_chat_input__"] = True
                 st.rerun()
 
+# =============================================
+# ▼▼▼ ページとして呼び出されたときの入口 ▼▼▼
+# =============================================
+
+if "login" not in st.session_state or st.session_state["login"] is not True:
+    st.error("⚠️ ログインが必要です。")
+    st.stop()
+
+user_id = st.session_state.get("member_id")
+grade, class_name = get_user_meta(user_id)
+
+show_chat_page(user_id, grade, class_name)

@@ -59,6 +59,15 @@ from firebase_admin import credentials, firestore
 from english_conversation import show_english_conversation
 
 
+def go(page: str):
+    """指定ページへ遷移"""
+    page_file = f"{page}.py"
+    if os.path.exists(page_file):
+        st.switch_page(page_file)
+    else:
+        st.error(f"ページが存在しません: {page_file}")
+
+
 # --- Firebase 初期化（Streamlit Cloud／ローカル両対応・安全版）---
 import json
 load_dotenv()
@@ -437,13 +446,18 @@ elif st.session_state["role"] == "student":
                         """,
                         unsafe_allow_html=True,
                     )
+                    # if st.button("▶ 開く", use_container_width=True, key="btn_chat_new"):
+                    #     st.session_state["student_page"] = "chat"
+                    #     st.rerun()
                     if st.button("▶ 開く", use_container_width=True, key="btn_chat_new"):
-                        st.session_state["student_page"] = "chat"
-                        st.rerun()
+                        st.switch_page("user_chat.py")
+
                 else:
+                    # if st.button("💬 チャット", use_container_width=True, key="btn_chat"):
+                    #     st.session_state["student_page"] = "chat"
+                    #     st.rerun()
                     if st.button("💬 チャット", use_container_width=True, key="btn_chat"):
-                        st.session_state["student_page"] = "chat"
-                        st.rerun()
+                        st.switch_page("user_chat.py")
 
             with col2:
                 if st.button("📝 英作文添削", use_container_width=True, key="btn_essay"):
