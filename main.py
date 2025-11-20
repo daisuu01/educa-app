@@ -15,13 +15,43 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 st.markdown("""
 <style>
 /* ==== サイドバー完全非表示 ==== */
-[data-testid="stSidebar"] { display: none !important; visibility: hidden !important; }
-button[kind="secondary"] { display: none !important; }
+[data-testid="stSidebar"] { 
+    display: none !important; 
+    visibility: hidden !important; 
+}
+button[kind="secondary"] { 
+    display: none !important; 
+    visibility: hidden !important;
+}
+
+/* ==== 🚫 隠し開閉ボタン（▷ / 三本線）も完全非表示 ==== */
+/* chevron（▷ アイコン） */
+svg[data-testid="icon-chevron-right"],
+svg[data-testid="icon-chevron-left"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ハンバーガー（三本線） */
+svg[data-testid="icon-hamburger"],
+svg[aria-label="Open sidebar"],
+svg[aria-label="Close sidebar"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* サイドバーのナビゲーション領域も削除 */
+[data-testid="stSidebarNav"] {
+    display: none !important;
+    visibility: hidden !important;
+}
 
 /* メインコンテンツを最大化（余白消去） */
 div[data-testid="stAppViewContainer"] > section:first-child {
     width: 100% !important;
     max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
 }
 
 /* ==== スピナー非表示 & フェード殺し ==== */
@@ -29,6 +59,7 @@ div[data-testid="stAppViewContainer"] > section:first-child {
 [data-testid="stStatusWidget"] { display: none !important; }
 .stApp, .block-container { opacity: 1 !important; transition: none !important; }
 </style>
+
 """, unsafe_allow_html=True)
 
 # ================================
