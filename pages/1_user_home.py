@@ -162,7 +162,7 @@ with col1:
 # -------------------------
 with col2:
     if st.button("📝 英作文添削", use_container_width=True):
-        st.switch_page("pages/20_ユーザー_英作文添削.py")
+        st.switch_page("pages/20_user_english_corrector.py")
 
 # -------------------------
 # 🔑 パスワード変更
