@@ -142,11 +142,13 @@ if not st.session_state["login"]:
 
                 st.success("ログイン成功")
 
+                st.write("DEBUG ROLE:", role, type(role))
+
                 # rerun は不要！ switch_page が rerun を含む
                 if st.session_state["role"] == "admin":
-                    st.switch_page("1000_admin_home")
+                    st.switch_page("pages/1000_admin_home.py")
                 else:
-                    st.switch_page("1_user_home")
+                    st.switch_page("pages/1_user_home.py")
 
             else:
                 st.error("❌ パスワードが違います。")
