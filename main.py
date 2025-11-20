@@ -13,30 +13,26 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 
 # --- CSS（サイドバー完全非表示＋フェード殺し） ---
 st.markdown("""
-<style>
-/* ==== サイドバー本体を非表示 ==== */
+/* === これが今回の犯人。完全に非表示にする === */
+[data-testid="stSidebarCollapsedControl"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* サイドバー関連の残りもすべて念のため殺す */
 [data-testid="stSidebar"] {
     display: none !important;
     visibility: hidden !important;
 }
-
-/* ==== Sidebar Toggle（PC版 ▷）を完全非表示 ==== */
-button[data-testid="stSidebarHeader"],
-button[data-testid="stSidebarToggle"],
-button[aria-label="Toggle sidebar"],
-button[aria-label="Open sidebar"],
-button[aria-label="Close sidebar"] {
+[data-testid="stSidebarNav"] {
     display: none !important;
     visibility: hidden !important;
 }
-
-/* Toolbar 内のトグルも削除 */
-[data-testid="stToolbar"] button {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-/* アイコンそのものを殺す（念のため） */
+button[kind="secondary"],
+button[aria-label="Menu"],
+button[title="Menu"],
 svg[data-testid="icon-chevron-right"],
 svg[data-testid="icon-chevron-left"],
 svg[data-testid="icon-hamburger"] {
@@ -44,21 +40,14 @@ svg[data-testid="icon-hamburger"] {
     visibility: hidden !important;
 }
 
-/* ==== スマホ版 Menu ボタン（▷）も完全非表示 ==== */
-button[title="Menu"],
-button[aria-label="Menu"],
-button[data-testid="menu"] {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-/* ==== 左側のサイドバーの領域を完全縮小 ==== */
+/* メイン領域を全幅化 */
 div[data-testid="stAppViewContainer"] > section:first-child {
     margin-left: 0 !important;
     padding-left: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
 }
+
 
 /* ==== スピナー非表示 & フェード殺し ==== */
 .stSpinner, div[data-testid="stSpinner"] { display: none !important; }
