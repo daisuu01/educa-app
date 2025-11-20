@@ -14,44 +14,50 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 # --- CSS（サイドバー完全非表示＋フェード殺し） ---
 st.markdown("""
 <style>
-/* ==== サイドバー完全非表示 ==== */
-[data-testid="stSidebar"] { 
-    display: none !important; 
-    visibility: hidden !important; 
-}
-button[kind="secondary"] { 
-    display: none !important; 
+/* ==== サイドバー本体を非表示 ==== */
+[data-testid="stSidebar"] {
+    display: none !important;
     visibility: hidden !important;
 }
 
-/* ==== 🚫 隠し開閉ボタン（▷ / 三本線）も完全非表示 ==== */
-/* chevron（▷ アイコン） */
+/* ==== Sidebar Toggle（PC版 ▷）を完全非表示 ==== */
+button[data-testid="stSidebarHeader"],
+button[data-testid="stSidebarToggle"],
+button[aria-label="Toggle sidebar"],
+button[aria-label="Open sidebar"],
+button[aria-label="Close sidebar"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Toolbar 内のトグルも削除 */
+[data-testid="stToolbar"] button {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* アイコンそのものを殺す（念のため） */
 svg[data-testid="icon-chevron-right"],
-svg[data-testid="icon-chevron-left"] {
+svg[data-testid="icon-chevron-left"],
+svg[data-testid="icon-hamburger"] {
     display: none !important;
     visibility: hidden !important;
 }
 
-/* ハンバーガー（三本線） */
-svg[data-testid="icon-hamburger"],
-svg[aria-label="Open sidebar"],
-svg[aria-label="Close sidebar"] {
+/* ==== スマホ版 Menu ボタン（▷）も完全非表示 ==== */
+button[title="Menu"],
+button[aria-label="Menu"],
+button[data-testid="menu"] {
     display: none !important;
     visibility: hidden !important;
 }
 
-/* サイドバーのナビゲーション領域も削除 */
-[data-testid="stSidebarNav"] {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-/* メインコンテンツを最大化（余白消去） */
+/* ==== 左側のサイドバーの領域を完全縮小 ==== */
 div[data-testid="stAppViewContainer"] > section:first-child {
-    width: 100% !important;
-    max-width: 100% !important;
     margin-left: 0 !important;
     padding-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 /* ==== スピナー非表示 & フェード殺し ==== */
