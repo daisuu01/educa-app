@@ -22,23 +22,28 @@ st.markdown("""
     pointer-events: none !important;
 }
 
-/* サイドバー関連の残りもすべて念のため殺す */
+/* サイドバー本体も非表示 */
 [data-testid="stSidebar"] {
     display: none !important;
     visibility: hidden !important;
 }
-[data-testid="stSidebarNav"] {
+
+/* サイドバーのナビだけ非表示 */
+nav[data-testid="stSidebarNav"] {
     display: none !important;
-    visibility: hidden !important;
 }
-button[kind="secondary"],
-button[aria-label="Menu"],
-button[title="Menu"],
-svg[data-testid="icon-chevron-right"],
+
+/* サイドバーの三本線メニュー icon/hamburger だけ非表示 */
+svg[data-testid="icon-hamburger"],
 svg[data-testid="icon-chevron-left"],
-svg[data-testid="icon-hamburger"] {
+svg[data-testid="icon-chevron-right"] {
     display: none !important;
-    visibility: hidden !important;
+}
+
+/* ！！重要！！：ログインボタンまで消えないように修正 */
+button[aria-label="Menu"],       /* メニューボタンだけ */
+button[title="Menu"] {           /* メニューボタンだけ */
+    display: none !important;
 }
 
 /* メイン領域を全幅化 */
@@ -49,12 +54,12 @@ div[data-testid="stAppViewContainer"] > section:first-child {
     max-width: 100% !important;
 }
 
-
 /* ==== スピナー非表示 & フェード殺し ==== */
 .stSpinner, div[data-testid="stSpinner"] { display: none !important; }
 [data-testid="stStatusWidget"] { display: none !important; }
 .stApp, .block-container { opacity: 1 !important; transition: none !important; }
 </style>
+
 
 """, unsafe_allow_html=True)
 
