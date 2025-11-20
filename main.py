@@ -152,7 +152,7 @@ else:
     if st.session_state["role"] == "admin":
         st.switch_page("管理者_ホーム")
     else:
-        st.switch_page("ユーザー_ホーム")
+        st.switch_page("user_home")
 
 
 
