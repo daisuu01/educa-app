@@ -143,7 +143,7 @@ if not st.session_state["login"]:
                 st.success("ログイン成功")
 
                 # rerun は不要！ switch_page が rerun を含む
-                if role == "admin":
+                if st.session_state["role"] == "admin":
                     st.switch_page("pages/1000_admin_home.py")
                 else:
                     st.switch_page("pages/1_user_home.py")
