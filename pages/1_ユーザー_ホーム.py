@@ -152,11 +152,11 @@ with col1:
         """, unsafe_allow_html=True)
 
         if st.button("▶ 開く", use_container_width=True, key="go_chat_new"):
-            st.switch_page("10_ユーザー_チャット.py")
+            st.switch_page("10_ユーザー_チャット")
 
     else:
         if st.button("💬 チャット", use_container_width=True):
-            st.switch_page("10_ユーザー_チャット.py")
+            st.switch_page("10_ユーザー_チャット")
 
 # -------------------------
 # 📝 英作文添削
