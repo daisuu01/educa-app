@@ -169,13 +169,13 @@ with col2:
 # -------------------------
 with col3:
     if st.button("🔑 パスワード変更", use_container_width=True):
-        st.switch_page("pages/40_ユーザー_パスワード変更.py")
+        st.switch_page("pages/40_user_password_change.py")
 
 # === 2行目：英会話トレーナー（全幅） ===
 st.markdown("<br>", unsafe_allow_html=True)
 
 if st.button("🎧 英会話トレーナー", use_container_width=True):
-    st.switch_page("pages/30_ユーザー_英会話トレーナー.py")
+    st.switch_page("pages/30_user_english_conversation.py")
 
 # === ログアウト ===
 st.markdown("---")
