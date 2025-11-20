@@ -33,4 +33,4 @@ show_chat_page(member_id, grade, class_name)
 # --- 戻る ---
 st.markdown("---")
 if st.button("⬅️ ホームへ戻る"):
-    st.switch_page("1_ユーザー_ホーム.py")
+    st.switch_page("1_ユーザー_ホーム")
