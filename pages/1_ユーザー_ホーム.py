@@ -152,31 +152,31 @@ with col1:
         """, unsafe_allow_html=True)
 
         if st.button("▶ 開く", use_container_width=True, key="go_chat_new"):
-            st.switch_page("10_ユーザー_チャット")
+            st.switch_page("ユーザー_チャット")
 
     else:
         if st.button("💬 チャット", use_container_width=True):
-            st.switch_page("10_ユーザー_チャット")
+            st.switch_page("ユーザー_チャット")
 
 # -------------------------
 # 📝 英作文添削
 # -------------------------
 with col2:
     if st.button("📝 英作文添削", use_container_width=True):
-        st.switch_page("20_ユーザー_英作文添削.py")
+        st.switch_page("ユーザー_英作文添削")
 
 # -------------------------
 # 🔑 パスワード変更
 # -------------------------
 with col3:
     if st.button("🔑 パスワード変更", use_container_width=True):
-        st.switch_page("40_ユーザー_パスワード変更.py")
+        st.switch_page("ユーザー_パスワード変更")
 
 # === 2行目：英会話トレーナー（全幅） ===
 st.markdown("<br>", unsafe_allow_html=True)
 
 if st.button("🎧 英会話トレーナー", use_container_width=True):
-    st.switch_page("30_ユーザー_英会話トレーナー.py")
+    st.switch_page("ユーザー_英会話トレーナー")
 
 # === ログアウト ===
 st.markdown("---")
