@@ -108,15 +108,22 @@ if "member_id" not in st.session_state:
 # ============================
 # 🔐 ログイン画面
 # ============================
+# ============================
+# 🔐 ログイン画面（Enter 対応）
+# ============================
 if not st.session_state["login"]:
 
     st.title("エデュカアプリログイン")
 
-    member_id = st.text_input("会員番号")
-    password = st.text_input("パスワード", type="password")
+    # 🔥 フォームを使うと Enter キーでログインできる！
+    with st.form("login_form", clear_on_submit=False):
+        member_id = st.text_input("会員番号")
+        password = st.text_input("パスワード", type="password")
 
-    if st.button("ログイン"):
+        # ← フォームの submit ボタン（Enter でも発火）
+        submitted = st.form_submit_button("ログイン")
 
+    if submitted:   # ← Enter または ボタンでここに来る
         doc = USERS.document(member_id).get()
 
         if not doc.exists:
