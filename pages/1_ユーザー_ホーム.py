@@ -29,7 +29,10 @@ div[data-testid="stAppViewContainer"] > section:first-child {
 
 # --- ログインチェック ---
 if not st.session_state.get("login"):
-    st.switch_page("../main.py")
+    st.session_state["login"] = False
+    st.session_state["role"] = None
+    st.session_state["member_id"] = None
+    st.rerun()
 
 member_id = st.session_state.get("member_id")
 
