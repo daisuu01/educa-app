@@ -184,6 +184,6 @@ if st.button("🎧 英会話トレーナー", use_container_width=True):
 # === ログアウト ===
 st.markdown("---")
 if st.button("🚪 ログアウト"):
-    st.session_state["login"] = False
-    st.session_state["member_id"] = None
+    for key in ["login", "member_id", "role"]:
+        st.session_state[key] = None
     st.rerun()
