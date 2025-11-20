@@ -29,10 +29,7 @@ div[data-testid="stAppViewContainer"] > section:first-child {
 
 # --- ログインチェック ---
 if not st.session_state.get("login"):
-    st.session_state["login"] = False
-    st.session_state["role"] = None
-    st.session_state["member_id"] = None
-    st.rerun()
+    st.switch_page("main.py")
 
 member_id = st.session_state.get("member_id")
 
@@ -184,6 +181,7 @@ if st.button("🎧 英会話トレーナー", use_container_width=True):
 # === ログアウト ===
 st.markdown("---")
 if st.button("🚪 ログアウト"):
-    for key in ["login", "member_id", "role"]:
-        st.session_state[key] = None
-    st.rerun()
+    st.session_state["login"] = False
+    st.session_state["member_id"] = None
+    st.session_state["role"] = None
+    st.switch_page("main.py")
