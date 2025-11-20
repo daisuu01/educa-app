@@ -13,7 +13,8 @@ st.set_page_config(page_title="エデュカアプリログイン", layout="cente
 
 # --- CSS（サイドバー完全非表示＋フェード殺し） ---
 st.markdown("""
-/* === これが今回の犯人。完全に非表示にする === */
+<style>
+/* ==== サイドバー完全非表示 ==== */
 [data-testid="stSidebarCollapsedControl"] {
     display: none !important;
     visibility: hidden !important;
