@@ -17,7 +17,11 @@ from unread_guardian_list import show_unread_guardian_list
 
 
 # --- ページ設定 ---
-st.set_page_config(page_title="管理者メニュー", layout="wide")
+st.set_page_config(
+    page_title="管理者メニュー",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # --- ログインチェック ---
 if not st.session_state.get("login"):
