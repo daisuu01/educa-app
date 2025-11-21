@@ -1,5 +1,5 @@
 # =============================================
-# pages/1000_admin_menu.py（HTMLが表示されない完全版）
+# pages/1000_admin_menu.py（管理者メニュー：完全版）
 # =============================================
 
 import streamlit as st
@@ -16,11 +16,14 @@ st.set_page_config(page_title="管理者メニュー", layout="wide")
 # -------- 標準サイドバー削除 --------
 st.markdown("""
 <style>
-[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] {
+[data-testid="stSidebar"], 
+[data-testid="stSidebarCollapsedControl"] {
     display: none !important;
 }
+
+/* メイン画面がサイドバーに重ならないように余白確保 */
 div[data-testid="stAppViewContainer"] > section:first-child {
-    margin-left: 0 !important;
+    margin-left: 260px !important;   /* ⭐ ここが最重要 ⭐ */
     padding-left: 0 !important;
 }
 </style>
@@ -56,11 +59,11 @@ MENU = [
     ("unread_guardians", "👀 保護者未読一覧"),
 ]
 
-# -------- カスタムサイドバー（1行ずつ描画：確実に表示される） --------
+# -------- カスタムサイドバー（1行ずつ確実に描画） --------
 
-# 開始タグ
+# 開始
 st.markdown(
-    "<div style='position:fixed; top:0; left:0; width:260px; height:100vh; "
+    "<div style='position:fixed; top:0; left:0; width:260px; height:100vh;"
     "background:#1e1e1e; padding:20px; color:white; z-index:9999;'>",
     unsafe_allow_html=True
 )
@@ -68,14 +71,14 @@ st.markdown(
 # タイトル
 st.markdown(f"<h3>📋 管理者メニュー（{member_id}）</h3>", unsafe_allow_html=True)
 
-# メニュー関数
+# 項目描画
 def menu_item(key, label, active):
     bg = "#333" if active else "none"
     st.markdown(
         f"""
         <div style='padding:10px; margin:8px 0; background:{bg}; border-radius:6px;'>
-            <a href='?admin_page={key}' 
-               style='color:white; text-decoration:none; font-size:16px;'>
+            <a href='?admin_page={key}'
+               style='color:white;text-decoration:none;font-size:16px;'>
                 {label}
             </a>
         </div>
@@ -83,7 +86,6 @@ def menu_item(key, label, active):
         unsafe_allow_html=True
     )
 
-# 項目を1個ずつ描画
 for key, label in MENU:
     menu_item(key, label, page == key)
 
@@ -94,11 +96,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 閉じタグ
+# 閉じ
 st.markdown("</div>", unsafe_allow_html=True)
 
-
-# -------- URL パラメータ処理 --------
+# -------- URL param --------
 qs = st.query_params
 
 if "admin_page" in qs:
@@ -110,12 +111,13 @@ if "logout" in qs:
     st.session_state.clear()
     st.switch_page("main.py")
 
-# ---- メインエリア wrapper 開始 ----
-st.markdown("<div style='margin-left:280px;'>", unsafe_allow_html=True)
-
-# ---- ページ切り替え ----
+# -------------------------------------------------------------
+# メインコンテンツ表示エリア
+# -------------------------------------------------------------
+st.write("")  # レイアウト安定用
 page = st.session_state["admin_page"]
 
+# ========== ページ切り替え ==========
 if page == "register":
     st.title("👥 生徒登録")
     st.markdown("Excel と CSV をアップロードしてください。")
@@ -151,6 +153,3 @@ elif page == "schedule":
 elif page == "unread_guardians":
     st.title("👀 保護者未読一覧")
     show_unread_guardian_list()
-
-# ---- メインエリア wrapper 終了 ----
-st.markdown("</div>", unsafe_allow_html=True)
