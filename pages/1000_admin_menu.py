@@ -16,17 +16,45 @@ st.set_page_config(page_title="管理者メニュー", layout="wide")
 # --- 🔧 CSS：main.py が消した sidebar を復活させつつ、
 #             「Pages 一覧」だけを非表示にする ---
 # --- サイドバー完全非表示 ---
+# --- サイドバー（Streamlit標準）を透明化 ---
 st.markdown("""
 <style>
-[data-testid="stSidebar"] { display: none !important; }
-[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+[data-testid="stSidebar"] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+}
+[data-testid="stSidebarCollapsedControl"] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 div[data-testid="stAppViewContainer"] > section:first-child {
-    width: 100% !important;
-    max-width: 100% !important;
     margin-left: 0 !important;
+    padding-left: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
+# --- 🔥 カスタムサイドバー表示（ここ） ---
+st.markdown("""
+<div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: #1e1e1e;
+    padding: 20px;
+    color: white;
+    z-index: 9999;
+">
+    <h3>管理者メニュー</h3>
+    <a style='color:white;'>生徒登録</a><br><br>
+    <a style='color:white;'>チャット管理</a><br><br>
+    <a style='color:white;'>受信BOX</a><br><br>
+</div>
+""", unsafe_allow_html=True)
+
 
 
 
