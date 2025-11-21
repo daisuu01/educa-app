@@ -14,17 +14,62 @@ from unread_guardian_list import show_unread_guardian_list
 # ---- ページ設定 ----
 st.set_page_config(page_title="管理者メニュー", layout="wide")
 
-# ---- サイドバー完全非表示 ----
+# ---- サイドバー完全非表示＋Running無効化＋フェード無効化 ----
 st.markdown("""
 <style>
-[data-testid="stSidebar"] { display: none !important; }
-[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+/* ==== サイドバー完全削除 ==== */
+[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"] {
+    display: none !important;
+    visibility: hidden !important;
+}
 div[data-testid="stAppViewContainer"] > section:first-child {
     width: 100% !important;
     max-width: 100% !important;
     margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+/* ==== Running スピナー非表示 ==== */
+.stSpinner, div[data-testid="stSpinner"] {
+    display: none !important;
+}
+
+/* ==== Running時の白フェード無効化 ==== */
+[data-testid="stStatusWidget"] {
+    display: none !important;
+}
+
+/* ==== ページの透明フェード完全禁止 ==== */
+.stApp, .block-container {
+    opacity: 1 !important;
+    transition: none !important;
 }
 </style>
+
+<script>
+// =============================
+// 透明フェード（opacity 0.33）強制無効化
+// =============================
+function forceFullOpacity() {
+    document.querySelectorAll('div, section, main, header').forEach(el => {
+        if (el.style.opacity && el.style.opacity < 1) {
+            el.style.opacity = "1"; // ← 強制上書き
+        }
+    });
+}
+
+// DOM変化を監視してフェード発動を即キャンセル
+const observer = new MutationObserver(() => {
+    forceFullOpacity();
+});
+
+// body全体を監視
+observer.observe(document.body, { childList: true, subtree: true });
+
+// 保険として 0.2 秒に 1 回上書き
+setInterval(forceFullOpacity, 200);
+</script>
 """, unsafe_allow_html=True)
 
 # ---- ログインチェック ----
