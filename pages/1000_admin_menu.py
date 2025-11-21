@@ -1,81 +1,50 @@
 # =============================================
-# pages/1000_admin_menu.py（管理者メニュー：サイドバー常設版）
+# pages/1000_admin_menu.py（管理者メニュー：サイドバー版）
 # =============================================
 
 import streamlit as st
 from firebase_admin import firestore
-
-from firebase_utils import (
-    import_students_from_excel_and_csv,
-    fetch_all_users,
-    USERS,
-)
 from admin_chat import show_admin_chat
 from admin_inbox import show_admin_inbox, count_unread_messages
+from firebase_utils import fetch_all_users, import_students_from_excel_and_csv
 from admin_schedule import show_schedule_main
 from unread_guardian_list import show_unread_guardian_list
 
-
 # --- ページ設定 ---
-st.set_page_config(
-    page_title="管理者メニュー",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="管理者メニュー", layout="wide")
 
+# --- 🔧 CSS：main.py が消した sidebar を復活させつつ、
+#             「Pages 一覧」だけを非表示にする ---
 st.markdown("""
 <style>
 
-/**************************************************
- ① Streamlit 標準の「Pages ナビ」だけを消す
-**************************************************/
-
-/* 左側に出る Pages メニュー */
-section[data-testid="stSidebarNav"] {
-    display: none !important;
-}
-
-/* サイドバー本体を消す */
+/* ① main.py で消された Sidebar 本体を復活させる */
 [data-testid="stSidebar"] {
-    display: none !important;
+    display: block !important;
 }
+
+/* 折りたたみボタン（三本線）は要らないので消す */
 [data-testid="stSidebarCollapsedControl"] {
     display: none !important;
 }
 
-/* ハンバーガーボタン消す */
-button[aria-label="Menu"] {
+/* ② 「main / user home / ... / View 3 more」など
+      Pages のリンク一覧だけを非表示にする */
+
+/* Pages リスト本体（ul）を消す */
+nav[data-testid="stSidebarNav"] ul {
     display: none !important;
 }
-svg[data-testid="icon-hamburger"],
-svg[data-testid="icon-chevron-left"],
-svg[data-testid="icon-chevron-right"] {
+
+/* 「View X more」ボタンも消す */
+nav[data-testid="stSidebarNav"] button {
     display: none !important;
 }
 
-
-/**************************************************
- ② ★重要★ あなたの自作メニュー（ページ本体）
-    は絶対消さない → main ブロックだけ調整
-**************************************************/
-
-/* ページ本体の section は絶対に触らない！！ */
-/* ここを壊すとすべての UI が消える */
-
-/* メインコンテンツの余白調整（安全） */
-main[data-testid="stAppViewContainer"] {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    width: 100% !important;
-}
-
-/**************************************************
- ③ Spinner やフェードなどの邪魔要素だけ消す
-**************************************************/
+/* ③ Spinner や Running 表示は邪魔なので非表示（任意） */
 .stSpinner, div[data-testid="stSpinner"] {
     display: none !important;
 }
-
 [data-testid="stStatusWidget"] {
     display: none !important;
 }
@@ -84,49 +53,87 @@ main[data-testid="stAppViewContainer"] {
 """, unsafe_allow_html=True)
 
 
-
 # --- ログインチェック ---
 if not st.session_state.get("login"):
     st.switch_page("main.py")
 
+# 🔸 念のため role を文字列化＋ダブルクォート除去
+role = st.session_state.get("role")
+if isinstance(role, str):
+    role = role.strip('"').strip("'")
+    st.session_state["role"] = role
+
 if st.session_state.get("role") != "admin":
-    st.error("⚠ 管理者のみアクセスできます。")
+    st.error("⚠️ 管理者のみアクセス可能です。")
     st.stop()
+
+member_id = st.session_state.get("member_id", "")
 
 db = firestore.client()
 
-# ==========================================================
-# 🧭 サイドバー（管理者専用）
-# ==========================================================
+# ============================
+# 📌 サブページ状態
+# ============================
+if "admin_page" not in st.session_state:
+    st.session_state["admin_page"] = "menu"
 
-st.sidebar.title(f"📋 管理者メニュー（{st.session_state.get('member_id')}）")
+page = st.session_state["admin_page"]
 
-# 未読数を動的に表示
-unread = count_unread_messages()
-inbox_label = f"📥 受信ボックス（{unread}）" if unread > 0 else "📥 受信ボックス"
+# ============================
+# 📋 左サイドバーに管理者メニューを表示
+# ============================
+with st.sidebar:
+    st.title(f"📋 管理者メニュー（{member_id}）")
+    st.caption("機能を選択")
 
-menu = st.sidebar.radio(
-    "機能を選択",
-    [
-        "👥 生徒登録",
-        "📋 登録済みユーザー一覧",
-        "💬 チャット管理",
-        inbox_label,
-        "⏰ 送信予約",
-        "👀 保護者未読一覧",
-        "🚪 ログアウト",
-    ],
-)
+    unread = count_unread_messages()
+    inbox_label = f"📥 受信ボックス（{unread}）" if unread > 0 else "📥 受信ボックス"
 
-# ==========================================================
-# 📌 ページ描画
-# ==========================================================
+    # メニューの選択（ラジオボタン）
+    choice = st.radio(
+        "メニュー",
+        [
+            "👥 生徒登録",
+            "📋 登録済みユーザー一覧",
+            "💬 チャット管理",
+            inbox_label,
+            "⏰ 送信予約",
+            "👀 保護者未読一覧",
+        ],
+        label_visibility="collapsed",
+    )
 
-# ---------------------------
-# 👥 生徒登録
-# ---------------------------
-if menu == "👥 生徒登録":
+    # 選択結果を内部キーにマッピング
+    if choice.startswith("👥"):
+        st.session_state["admin_page"] = "register"
+    elif choice.startswith("📋 登録済み"):
+        st.session_state["admin_page"] = "list_users"
+    elif choice.startswith("💬"):
+        st.session_state["admin_page"] = "chat"
+    elif choice.startswith("📥"):
+        st.session_state["admin_page"] = "inbox"
+    elif choice.startswith("⏰"):
+        st.session_state["admin_page"] = "schedule"
+    elif choice.startswith("👀"):
+        st.session_state["admin_page"] = "unread_guardians"
+
+    st.markdown("---")
+    if st.button("🚪 ログアウト", use_container_width=True):
+        st.session_state["login"] = False
+        st.session_state["member_id"] = None
+        st.session_state["role"] = None
+        st.switch_page("main.py")
+
+# 最新の page を再取得
+page = st.session_state["admin_page"]
+
+# ============================
+# 右側メインエリアの中身を切り替え
+# ============================
+
+if page == "register":
     st.title("👥 生徒登録")
+    st.markdown("Excel と CSV をアップロードしてください。")
 
     excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
     csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
@@ -135,58 +142,33 @@ if menu == "👥 生徒登録":
         st.info("処理中…")
         df = import_students_from_excel_and_csv(excel_file, csv_file)
         if len(df) > 0:
-            st.success("Firestoreへの登録が完了しました！")
+            st.success("Firestoreへ登録が完了しました！")
             st.dataframe(df, use_container_width=True)
         else:
-            st.warning("登録対象がありません。")
+            st.warning("登録対象が見つかりませんでした。")
 
-
-# ---------------------------
-# 📋 登録済みユーザー一覧
-# ---------------------------
-elif menu == "📋 登録済みユーザー一覧":
+elif page == "list_users":
     st.title("📋 登録済みユーザー一覧")
     df = fetch_all_users()
     st.dataframe(df, use_container_width=True)
 
-
-# ---------------------------
-# 💬 チャット管理
-# ---------------------------
-elif menu == "💬 チャット管理":
+elif page == "chat":
     st.title("💬 チャット管理")
     show_admin_chat()
 
-
-# ---------------------------
-# 📥 受信ボックス
-# ---------------------------
-elif menu.startswith("📥 受信ボックス"):
+elif page == "inbox":
     st.title("📥 受信ボックス")
     show_admin_inbox()
 
-
-# ---------------------------
-# ⏰ 送信予約
-# ---------------------------
-elif menu == "⏰ 送信予約":
+elif page == "schedule":
     st.title("⏰ 送信予約")
     show_schedule_main()
 
-
-# ---------------------------
-# 👀 保護者未読一覧
-# ---------------------------
-elif menu == "👀 保護者未読一覧":
+elif page == "unread_guardians":
     st.title("👀 保護者未読一覧")
     show_unread_guardian_list()
 
-
-# ---------------------------
-# 🚪 ログアウト
-# ---------------------------
-elif menu == "🚪 ログアウト":
-    st.session_state["login"] = False
-    st.session_state["role"] = None
-    st.session_state["member_id"] = None
-    st.switch_page("main.py")
+else:
+    # 初回など：とりあえず生徒登録をデフォルトに
+    st.session_state["admin_page"] = "register"
+    st.experimental_rerun()
