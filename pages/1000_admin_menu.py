@@ -23,6 +23,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+st.markdown("""
+<style>
+/* Pages のナビゲーション全体を消す */
+section[data-testid="stSidebarNav"] { display: none !important; }
+
+/* 折りたたみボタンも消す */
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # --- ログインチェック ---
 if not st.session_state.get("login"):
     st.switch_page("main.py")
