@@ -56,47 +56,47 @@ MENU = [
     ("unread_guardians", "👀 保護者未読一覧"),
 ]
 
-# -------- Custom Sidebar (これを一番最初に描画しないとダメ) --------
-sidebar_html = f"""
-<div style="
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 260px;
-    height: 100vh;
-    background: #1e1e1e;
-    padding: 20px;
-    color: white;
-    z-index: 9999;
-">
-    <h3>📋 管理者メニュー（{member_id}）</h3>
-"""
+# -------- カスタムサイドバー（1行ずつ描画：確実に表示される） --------
 
+# 開始タグ
+st.markdown(
+    "<div style='position:fixed; top:0; left:0; width:260px; height:100vh; "
+    "background:#1e1e1e; padding:20px; color:white; z-index:9999;'>",
+    unsafe_allow_html=True
+)
+
+# タイトル
+st.markdown(f"<h3>📋 管理者メニュー（{member_id}）</h3>", unsafe_allow_html=True)
+
+# メニュー関数
+def menu_item(key, label, active):
+    bg = "#333" if active else "none"
+    st.markdown(
+        f"""
+        <div style='padding:10px; margin:8px 0; background:{bg}; border-radius:6px;'>
+            <a href='?admin_page={key}' 
+               style='color:white; text-decoration:none; font-size:16px;'>
+                {label}
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# 項目を1個ずつ描画
 for key, label in MENU:
-    active = (page == key)
-    sidebar_html += f"""
-    <div style="
-        padding: 10px;
-        margin: 8px 0;
-        background: {'#333' if active else 'none'};
-        border-radius: 6px;
-    ">
-        <a href="?admin_page={key}" style="color:white;text-decoration:none;font-size:16px;">
-            {label}
-        </a>
-    </div>
-    """
+    menu_item(key, label, page == key)
 
-sidebar_html += """
-<hr style="border-color:#555;">
-<a href="?logout=1" style="color:white;text-decoration:none;font-size:16px;">
-    🚪 ログアウト
-</a>
-</div>
-"""
+# ログアウト
+st.markdown("<hr style='border-color:#555;'>", unsafe_allow_html=True)
+st.markdown(
+    "<a href='?logout=1' style='color:white;text-decoration:none;font-size:16px;'>🚪 ログアウト</a>",
+    unsafe_allow_html=True
+)
 
-# 🚨 HTML は最初に描画しないと壊れる
-st.markdown(sidebar_html, unsafe_allow_html=True)
+# 閉じタグ
+st.markdown("</div>", unsafe_allow_html=True)
+
 
 # -------- URL パラメータ処理 --------
 qs = st.query_params
