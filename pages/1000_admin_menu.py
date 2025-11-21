@@ -1,5 +1,5 @@
 # =============================================
-# pages/1000_admin_menu.py（管理者メニュー：完全版）
+# pages/1000_admin_menu.py（白上塗り＋カスタムサイドバー完全版）
 # =============================================
 
 import streamlit as st
@@ -11,25 +11,44 @@ from firebase_utils import fetch_all_users, import_students_from_excel_and_csv
 from admin_schedule import show_schedule_main
 from unread_guardian_list import show_unread_guardian_list
 
+# -------------------------------------------------------------
+# ページ設定
+# -------------------------------------------------------------
 st.set_page_config(page_title="管理者メニュー", layout="wide")
 
-# -------- 標準サイドバー削除 --------
+# -------------------------------------------------------------
+# 1) pages サイドバーを「白ペンキ」で完全上書きし消す
+# -------------------------------------------------------------
 st.markdown("""
 <style>
-[data-testid="stSidebar"], 
+/* サイドバー本体を白で上書き（真っ黒問題を確実に防ぐ） */
+[data-testid="stSidebar"] {
+    background-color: white !important;
+    width: 260px !important;
+    opacity: 1 !important;
+}
+
+/* pages の ナビゲーションを非表示（ユーザー画面のリンクが出ないように） */
+nav[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+
+/* ハンバーガーメニューも消す */
 [data-testid="stSidebarCollapsedControl"] {
     display: none !important;
 }
 
-/* メイン画面がサイドバーに重ならないように余白確保 */
+/* メインエリアを全幅に広げる */
 div[data-testid="stAppViewContainer"] > section:first-child {
-    margin-left: 260px !important;   /* ⭐ ここが最重要 ⭐ */
+    margin-left: 0 !important;
     padding-left: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# -------- login check --------
+# -------------------------------------------------------------
+# 2) ログインチェック
+# -------------------------------------------------------------
 if not st.session_state.get("login"):
     st.switch_page("main.py")
 
@@ -40,13 +59,15 @@ if role != "admin":
 
 member_id = st.session_state.get("member_id", "")
 
-# -------- page state --------
+# -------------------------------------------------------------
+# 3) 管理者ページの内部状態
+# -------------------------------------------------------------
 if "admin_page" not in st.session_state:
     st.session_state["admin_page"] = "register"
 
 page = st.session_state["admin_page"]
 
-# -------- unread count --------
+# 未読件数
 unread = count_unread_messages()
 inbox_label = f"📥 受信ボックス（{unread}）" if unread > 0 else "📥 受信ボックス"
 
@@ -59,47 +80,55 @@ MENU = [
     ("unread_guardians", "👀 保護者未読一覧"),
 ]
 
-# -------- カスタムサイドバー（1行ずつ確実に描画） --------
+# -------------------------------------------------------------
+# 4) 白く上塗りした上に「自作サイドバー」を重ねる
+# -------------------------------------------------------------
+sidebar_html = f"""
+<div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: #1e1e1e;  /* ← あなたの好きな黒サイドバー */
+    padding: 20px;
+    color: white;
+    z-index: 9999;
+">
+    <h3 style="margin-top:0;">📋 管理者メニュー（{member_id}）</h3>
+"""
 
-# 開始
-st.markdown(
-    "<div style='position:fixed; top:0; left:0; width:260px; height:100vh;"
-    "background:#1e1e1e; padding:20px; color:white; z-index:9999;'>",
-    unsafe_allow_html=True
-)
-
-# タイトル
-st.markdown(f"<h3>📋 管理者メニュー（{member_id}）</h3>", unsafe_allow_html=True)
-
-# 項目描画
-def menu_item(key, label, active):
+for key, label in MENU:
+    active = (page == key)
     bg = "#333" if active else "none"
-    st.markdown(
-        f"""
-        <div style='padding:10px; margin:8px 0; background:{bg}; border-radius:6px;'>
+    sidebar_html += f"""
+        <div style="
+            padding: 10px;
+            margin: 8px 0;
+            background: {bg};
+            border-radius: 6px;
+        ">
             <a href='?admin_page={key}'
-               style='color:white;text-decoration:none;font-size:16px;'>
+               style="color:white; text-decoration:none; font-size:16px;">
                 {label}
             </a>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+    """
 
-for key, label in MENU:
-    menu_item(key, label, page == key)
+sidebar_html += """
+<hr style="border-color:#555;">
+<a href="?logout=1" style="color:white;text-decoration:none;font-size:16px;">
+    🚪 ログアウト
+</a>
+</div>
+"""
 
-# ログアウト
-st.markdown("<hr style='border-color:#555;'>", unsafe_allow_html=True)
-st.markdown(
-    "<a href='?logout=1' style='color:white;text-decoration:none;font-size:16px;'>🚪 ログアウト</a>",
-    unsafe_allow_html=True
-)
+# 自作サイドバー描画
+st.markdown(sidebar_html, unsafe_allow_html=True)
 
-# 閉じ
-st.markdown("</div>", unsafe_allow_html=True)
-
-# -------- URL param --------
+# -------------------------------------------------------------
+# 5) URLパラメータ処理
+# -------------------------------------------------------------
 qs = st.query_params
 
 if "admin_page" in qs:
@@ -112,12 +141,12 @@ if "logout" in qs:
     st.switch_page("main.py")
 
 # -------------------------------------------------------------
-# メインコンテンツ表示エリア
+# 6) メインエリア（自作サイドバーの横に表示）
 # -------------------------------------------------------------
-st.write("")  # レイアウト安定用
+st.markdown("<div style='margin-left:280px;'>", unsafe_allow_html=True)
+
 page = st.session_state["admin_page"]
 
-# ========== ページ切り替え ==========
 if page == "register":
     st.title("👥 生徒登録")
     st.markdown("Excel と CSV をアップロードしてください。")
@@ -153,3 +182,5 @@ elif page == "schedule":
 elif page == "unread_guardians":
     st.title("👀 保護者未読一覧")
     show_unread_guardian_list()
+
+st.markdown("</div>", unsafe_allow_html=True)
