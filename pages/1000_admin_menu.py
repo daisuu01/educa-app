@@ -1,49 +1,91 @@
 # =============================================
-# pages/1000_admin_menu.py（管理者メニュー：カスタム左サイドバー版）
+# pages/1000_admin_menu.py（管理者メニュー：カスタムサイドバー版 完全動作版）
 # =============================================
 
 import streamlit as st
 from firebase_admin import firestore
-
 from admin_chat import show_admin_chat
 from admin_inbox import show_admin_inbox, count_unread_messages
 from firebase_utils import fetch_all_users, import_students_from_excel_and_csv
 from admin_schedule import show_schedule_main
 from unread_guardian_list import show_unread_guardian_list
 
-# --- ページ設定 ---
+
+# ------------------------------
+# 🔧 ページ設定
+# ------------------------------
 st.set_page_config(page_title="管理者メニュー", layout="wide")
 
-# --- Streamlit標準のサイドバーを透明化（クリックも無効化） ---
+
+# ------------------------------
+# 🔐 ログインチェック
+# ------------------------------
+if not st.session_state.get("login"):
+    st.switch_page("main.py")
+
+role = st.session_state.get("role", "")
+if isinstance(role, str):
+    role = role.replace('"', "")
+    st.session_state["role"] = role
+
+if role != "admin":
+    st.error("⚠ 管理者のみアクセス可能です")
+    st.stop()
+
+member_id = st.session_state.get("member_id", "")
+
+
+# ------------------------------
+# 🔧 Streamlit 標準サイドバーは完全封印
+# ------------------------------
 st.markdown("""
 <style>
+/* サイドバー本体 */
 [data-testid="stSidebar"] {
-    opacity: 0 !important;
-    pointer-events: none !important;
+    display: none !important;
+    visibility: hidden !important;
     width: 0 !important;
-}
-[data-testid="stSidebarCollapsedControl"] {
     opacity: 0 !important;
     pointer-events: none !important;
 }
+
+/* サイドバー開閉ボタン */
+[data-testid="stSidebarCollapsedControl"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* メイン画面を全幅に */
 div[data-testid="stAppViewContainer"] > section:first-child {
     margin-left: 0 !important;
     padding-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- 🔥 カスタムサイドバー（あなたの正式メニュー） ---
-# メニュー状態を取得 or 初期化
+# ------------------------------
+# 📌 現在のサブページ
+# ------------------------------
 if "admin_page" not in st.session_state:
     st.session_state["admin_page"] = "register"
 
-member_id = st.session_state.get("member_id", "")
+page = st.session_state["admin_page"]
+
+
+# ------------------------------
+# 📥 未読数
+# ------------------------------
 unread = count_unread_messages()
 inbox_label = f"📥 受信ボックス（{unread}）" if unread > 0 else "📥 受信ボックス"
 
-# メニュー項目
+# ------------------------------
+# 📌 メニュー定義
+# ------------------------------
 MENU = [
     ("register", "👥 生徒登録"),
     ("list_users", "📋 登録済みユーザー一覧"),
@@ -53,7 +95,10 @@ MENU = [
     ("unread_guardians", "👀 保護者未読一覧"),
 ]
 
-# カスタムHTML生成
+
+# ------------------------------
+# 🔥 カスタム左サイドバー（HTML固定）
+# ------------------------------
 menu_html = f"""
 <div style="
     position: fixed;
@@ -65,55 +110,61 @@ menu_html = f"""
     padding: 20px;
     color: white;
     z-index: 9999;
+    overflow-y: auto;
 ">
     <h3 style="margin-top: 0;">📋 管理者メニュー（{member_id}）</h3>
 """
 
 for key, label in MENU:
-    active = (st.session_state["admin_page"] == key)
+    active = (page == key)
     menu_html += f"""
-        <div style="
-            padding: 10px 5px;
-            margin: 8px 0;
-            background: {'#333333' if active else 'none'};
-            border-radius: 6px;
-        ">
-            <a href="?admin_page={key}" 
-               style="color: white; text-decoration:none; font-size:16px;">
-               {label}
-            </a>
-        </div>
+    <div style="
+        padding: 10px 5px;
+        margin: 8px 0;
+        border-radius: 6px;
+        background: {'#333' if active else 'none'};
+    ">
+        <a href="?admin_page={key}"
+           style="color:white;text-decoration:none;font-size:16px;">
+            {label}
+        </a>
+    </div>
     """
 
-# ログアウトボタン
 menu_html += """
-    <hr style="border-color:#555;">
-    <a href="?logout=1" style="color:white;text-decoration:none;font-size:16px;">
-        🚪 ログアウト
-    </a>
+<hr style="border-color:#555;">
+<a href="?logout=1"
+   style="color:white;text-decoration:none;font-size:16px;">
+    🚪 ログアウト
+</a>
 </div>
 """
 
 st.markdown(menu_html, unsafe_allow_html=True)
 
 
-# --- URLパラメータ処理（カスタムサイドバーのクリック用） ---
-query_params = st.query_params
+# ------------------------------
+# 🔄 URL パラメータ処理
+# ------------------------------
+qs = st.query_params
 
-if "admin_page" in query_params:
-    st.session_state["admin_page"] = query_params["admin_page"]
+if "admin_page" in qs:
+    st.session_state["admin_page"] = qs["admin_page"]
     st.query_params.clear()
+    st.rerun()
 
-if "logout" in query_params:
+if "logout" in qs:
     st.session_state.clear()
     st.switch_page("main.py")
 
 
-# =====================================================
-# 右側メインエリア（コンテンツ切り替え）
-# =====================================================
-
+# ------------------------------
+# ▶ 右側メイン画面（メニューで切り替え）
+# ------------------------------
 page = st.session_state["admin_page"]
+
+# 右側レイアウトの左側余白（サイドバー分）
+st.markdown("<div style='margin-left:280px;'>", unsafe_allow_html=True)
 
 if page == "register":
     st.title("👥 生徒登録")
@@ -150,3 +201,5 @@ elif page == "schedule":
 elif page == "unread_guardians":
     st.title("👀 保護者未読一覧")
     show_unread_guardian_list()
+
+st.markdown("</div>", unsafe_allow_html=True)
