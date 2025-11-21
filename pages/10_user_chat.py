@@ -9,6 +9,19 @@ from user_chat import show_chat_page, get_user_meta
 # --- ページ設定 ---
 st.set_page_config(page_title="チャット", layout="centered")
 
+# --- サイドバー完全非表示 ---
+st.markdown("""
+<style>
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+div[data-testid="stAppViewContainer"] > section:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # --- ログインチェック ---
 if not st.session_state.get("login"):
     st.switch_page("main.py")

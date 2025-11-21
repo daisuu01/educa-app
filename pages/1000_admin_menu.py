@@ -15,35 +15,16 @@ st.set_page_config(page_title="管理者メニュー", layout="wide")
 
 # --- 🔧 CSS：main.py が消した sidebar を復活させつつ、
 #             「Pages 一覧」だけを非表示にする ---
+# --- サイドバー完全非表示 ---
 st.markdown("""
 <style>
-
-/* 🔥 Streamlit Pages UI を完全に削除する */
-
-/* 1) サイドバーのナビゲーション（Pages の一覧）を非表示 */
-nav[data-testid="stSidebarNav"] {
-    display: none !important;
+[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+div[data-testid="stAppViewContainer"] > section:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
 }
-
-
-/* 2) 「View X more」ボタンも非表示 */
-nav[data-testid="stSidebarNav"] button {
-    display: none !important;
-}
-
-
-/* 3) 折りたたみボタン（三本線）も非表示 */
-[data-testid="stSidebarCollapsedControl"] {
-    display: none !important;
-}
-
-/* 4) 「サイドバー内の自分のメニュー」は表示したいので残す */
-
-/* 5) main.py の CSS でサイドバー自体を非表示にされた場合の復活 */
-[data-testid="stSidebar"] {
-    display: block !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
