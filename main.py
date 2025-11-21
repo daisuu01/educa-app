@@ -143,7 +143,7 @@ if not st.session_state["login"]:
                 st.success("ログイン成功")
 
                 if role == "admin":
-                    st.switch_page("pages/1000_admin_home.py")
+                    st.switch_page("pages/1000_admin_menu.py")
                 else:
                     st.switch_page("pages/1_user_home.py")
 
