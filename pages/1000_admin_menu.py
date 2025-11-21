@@ -26,12 +26,14 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* === Streamlit Pages の自動メニューを完全抹殺 === */
+/* ======================================
+   標準の Pages ナビ（左のメニュー）だけ消す
+   ====================================== */
 section[data-testid="stSidebarNav"] {
     display: none !important;
 }
 
-/* === サイドバーそのものを隠す === */
+/* サイドバー本体も非表示 */
 [data-testid="stSidebar"] {
     display: none !important;
 }
@@ -39,26 +41,27 @@ section[data-testid="stSidebarNav"] {
     display: none !important;
 }
 
-/* ハンバーガーメニューも殺す */
-button[aria-label="Menu"] {
-    display: none !important;
-}
+/* ハンバーガーメニュー削除 */
+button[aria-label="Menu"],
 svg[data-testid="icon-hamburger"],
 svg[data-testid="icon-chevron-left"],
 svg[data-testid="icon-chevron-right"] {
     display: none !important;
 }
 
-/* メイン領域を全幅化 */
-div[data-testid="stAppViewContainer"] > section:first-child {
-    margin-left: 0 !important;
+/* ======================================
+   ★★ メイン領域を壊さずに全幅にする ★★
+   （section:first-child は絶対に使わない）
+   ====================================== */
+main[data-testid="stAppViewContainer"] {
     padding-left: 0 !important;
+    margin-left: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- ログインチェック ---
 if not st.session_state.get("login"):
