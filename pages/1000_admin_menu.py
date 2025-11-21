@@ -26,14 +26,16 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* ======================================
-   標準の Pages ナビ（左のメニュー）だけ消す
-   ====================================== */
+/**************************************************
+ ① Streamlit 標準の「Pages ナビ」だけを消す
+**************************************************/
+
+/* 左側に出る Pages メニュー */
 section[data-testid="stSidebarNav"] {
     display: none !important;
 }
 
-/* サイドバー本体も非表示 */
+/* サイドバー本体を消す */
 [data-testid="stSidebar"] {
     display: none !important;
 }
@@ -41,26 +43,46 @@ section[data-testid="stSidebarNav"] {
     display: none !important;
 }
 
-/* ハンバーガーメニュー削除 */
-button[aria-label="Menu"],
+/* ハンバーガーボタン消す */
+button[aria-label="Menu"] {
+    display: none !important;
+}
 svg[data-testid="icon-hamburger"],
 svg[data-testid="icon-chevron-left"],
 svg[data-testid="icon-chevron-right"] {
     display: none !important;
 }
 
-/* ======================================
-   ★★ メイン領域を壊さずに全幅にする ★★
-   （section:first-child は絶対に使わない）
-   ====================================== */
+
+/**************************************************
+ ② ★重要★ あなたの自作メニュー（ページ本体）
+    は絶対消さない → main ブロックだけ調整
+**************************************************/
+
+/* ページ本体の section は絶対に触らない！！ */
+/* ここを壊すとすべての UI が消える */
+
+/* メインコンテンツの余白調整（安全） */
 main[data-testid="stAppViewContainer"] {
-    padding-left: 0 !important;
     margin-left: 0 !important;
+    padding-left: 0 !important;
     width: 100% !important;
+}
+
+/**************************************************
+ ③ Spinner やフェードなどの邪魔要素だけ消す
+**************************************************/
+.stSpinner, div[data-testid="stSpinner"] {
+    display: none !important;
+}
+
+[data-testid="stStatusWidget"] {
+    display: none !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # --- ログインチェック ---
