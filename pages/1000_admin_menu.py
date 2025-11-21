@@ -18,39 +18,35 @@ st.set_page_config(page_title="管理者メニュー", layout="wide")
 st.markdown("""
 <style>
 
-/* ① main.py で消された Sidebar 本体を復活させる */
-[data-testid="stSidebar"] {
-    display: block !important;
-}
+/* 🔥 Streamlit Pages UI を完全に削除する */
 
-/* 折りたたみボタン（三本線）は要らないので消す */
-[data-testid="stSidebarCollapsedControl"] {
+/* 1) サイドバーのナビゲーション（Pages の一覧）を非表示 */
+nav[data-testid="stSidebarNav"] {
     display: none !important;
 }
 
-/* ② 「main / user home / ... / View 3 more」など
-      Pages のリンク一覧だけを非表示にする */
 
-/* Pages リスト本体（ul）を消す */
-nav[data-testid="stSidebarNav"] ul {
-    display: none !important;
-}
-
-/* 「View X more」ボタンも消す */
+/* 2) 「View X more」ボタンも非表示 */
 nav[data-testid="stSidebarNav"] button {
     display: none !important;
 }
 
-/* ③ Spinner や Running 表示は邪魔なので非表示（任意） */
-.stSpinner, div[data-testid="stSpinner"] {
+
+/* 3) 折りたたみボタン（三本線）も非表示 */
+[data-testid="stSidebarCollapsedControl"] {
     display: none !important;
 }
-[data-testid="stStatusWidget"] {
-    display: none !important;
+
+/* 4) 「サイドバー内の自分のメニュー」は表示したいので残す */
+
+/* 5) main.py の CSS でサイドバー自体を非表示にされた場合の復活 */
+[data-testid="stSidebar"] {
+    display: block !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # --- ログインチェック ---
