@@ -25,11 +25,38 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* Pages のナビゲーション全体を消す */
-section[data-testid="stSidebarNav"] { display: none !important; }
 
-/* 折りたたみボタンも消す */
-[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+/* === Streamlit Pages の自動メニューを完全抹殺 === */
+section[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+
+/* === サイドバーそのものを隠す === */
+[data-testid="stSidebar"] {
+    display: none !important;
+}
+[data-testid="stSidebarCollapsedControl"] {
+    display: none !important;
+}
+
+/* ハンバーガーメニューも殺す */
+button[aria-label="Menu"] {
+    display: none !important;
+}
+svg[data-testid="icon-hamburger"],
+svg[data-testid="icon-chevron-left"],
+svg[data-testid="icon-chevron-right"] {
+    display: none !important;
+}
+
+/* メイン領域を全幅化 */
+div[data-testid="stAppViewContainer"] > section:first-child {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
