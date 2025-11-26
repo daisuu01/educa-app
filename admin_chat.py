@@ -420,6 +420,42 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 def show_admin_chat(initial_student_id=None):
     st.title("💬 チャット管理")
 
+    st.markdown("""
+    <style>
+    /* =========================================
+    🔹 タブの横幅を広げて中央寄せにする
+    ========================================= */
+
+    /* タブ全体のラッパー */
+    .stTabs [role="tablist"] {
+        justify-content: center !important;   /* 中央寄せ */
+        gap: 40px !important;                 /* タブ間の余白 */
+    }
+
+    /* 各タブ */
+    .stTabs [role="tab"] {
+        padding: 10px 30px !important;        /* タブを横に広げる */
+        font-size: 1.05rem !important;        /* 少し大きく */
+    }
+
+    /* アクティブタブの文字色を強調 */
+    .stTabs [data-baseweb="tab"] [aria-selected="true"] {
+        color: #e53935 !important;            /* 赤 */
+        font-weight: 600 !important;          /* 太字 */
+    }
+
+    /* 赤い下線（アクティブタブ） */
+    .stTabs [aria-selected="true"]::after {
+        content: "";
+        display: block;
+        height: 3px;
+        background: #e53935;
+        border-radius: 2px;
+        margin-top: 6px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # 初期化
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
