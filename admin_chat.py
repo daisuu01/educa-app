@@ -1005,7 +1005,12 @@ def show_admin_chat(initial_student_id=None):
     # --- 送信欄 ---
     st.markdown("---")
     st.subheader("📨 メッセージ送信")
-    text = st.text_area("メッセージを入力", height=80, key="admin_chat_input")
-    if st.button("送信", use_container_width=True):
+
+    # ✅ フォーム形式に変更（反応率100%・ラグ消滅）
+    with st.form("send_form", clear_on_submit=True):
+        text = st.text_area("メッセージを入力", height=80)
+        send_clicked = st.form_submit_button("送信", use_container_width=True)
+
+    if send_clicked:
         send_message(target_type, selected_id, grade, class_name, text)
-        st.rerun()
+        st.success("送信しました！")
