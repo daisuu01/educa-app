@@ -600,55 +600,59 @@ def show_admin_chat(initial_student_id=None):
                                     background:#d2e3fc;
                                     padding:10px 14px;
                                     border-radius:12px;
-                                    max-width:80%;
-                                    color:#111;
                                     display:inline-block;
+                                    max-width:70%;
 
                                     /* 🔥 長文折り返しの3点セット */
                                     word-break:break-word;
                                     overflow-wrap:break-word;
                                     white-space:pre-wrap;
+
+                                    color:#111;
                                 ">
                                     {text}
                                 </div>
-
                             </div>
                             <div style="font-size:0.8em;color:#666;margin-left:4px;">
-                              {ts_str}
-                              <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
+                            {ts_str}
+                            <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
+
 
                     # --- 生徒または保護者メッセージ（右側）
                     elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
                         label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                         st.markdown(
                             f"""
-                            <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                              <div style="text-align:right;">
-                                <div style="font-size:0.8em;color:#666;">{label}</div>
+                            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
                                 <div style="
-                                  display:inline-block;
-                                  background-color:#f1f3f4;
-                                  padding:8px 12px;
-                                  border-radius:12px;
-                                  width:auto;              /* ← 内容に合わせて縮む */
-                                  max-width:70%;           /* ← 長文だけ折り返し */
-                                  word-wrap:break-word;
-                                  white-space:pre-wrap;
-                                  color:#111;
-                                  text-align:left;         /* ← 吹き出し内は左揃え */
+                                    background:#d2e3fc;
+                                    padding:10px 14px;
+                                    border-radius:12px;
+                                    display:inline-block;
+                                    max-width:70%;
+
+                                    /* 🔥 長文折り返しの3点セット */
+                                    word-break:break-word;
+                                    overflow-wrap:break-word;
+                                    white-space:pre-wrap;
+
+                                    color:#111;
                                 ">
-                                  {text}
+                                    {text}
                                 </div>
-                                <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                              </div>
+                            </div>
+                            <div style="font-size:0.8em;color:#666;margin-left:4px;">
+                            {ts_str}
+                            <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
+
 
 
         # ✅ ② 直近3件（新しいほど下に）
