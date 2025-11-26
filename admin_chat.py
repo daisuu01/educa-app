@@ -465,25 +465,26 @@ def show_admin_chat(initial_student_id=None):
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
     tabs = st.tabs(["個人", "学年", "クラス", "全員"])
-    selected = st.session_state.get("admin_chat_tab", "個人")
+
+    # --- 初期タブ ---
+    if "admin_chat_tab" not in st.session_state:
+        st.session_state["admin_chat_tab"] = "個人"
 
     with tabs[0]:
-        if st.session_state.get("admin_chat_tab") != "個人":
-            st.session_state["admin_chat_tab"] = "個人"
+        st.session_state["admin_chat_tab"] = "個人"
+
     with tabs[1]:
-        if st.session_state.get("admin_chat_tab") != "学年":
-            st.session_state["admin_chat_tab"] = "学年"
+        st.session_state["admin_chat_tab"] = "学年"
+
     with tabs[2]:
-        if st.session_state.get("admin_chat_tab") != "クラス":
-            st.session_state["admin_chat_tab"] = "クラス"
+        st.session_state["admin_chat_tab"] = "クラス"
+
     with tabs[3]:
-        if st.session_state.get("admin_chat_tab") != "全員":
-            st.session_state["admin_chat_tab"] = "全員"
+        st.session_state["admin_chat_tab"] = "全員"
+
+    target_type = st.session_state["admin_chat_tab"]
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-    # 🔥 これが最新のタブ種別
-    target_type = st.session_state["admin_chat_tab"]
 
     # ----------------------------------------------------
 
