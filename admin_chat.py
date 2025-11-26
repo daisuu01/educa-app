@@ -596,9 +596,22 @@ def show_admin_chat(initial_student_id=None):
                         st.markdown(
                             f"""
                             <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                                <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                                <div style="
+                                    background:#d2e3fc;
+                                    padding:10px 14px;
+                                    border-radius:12px;
+                                    max-width:80%;
+                                    color:#111;
+                                    display:inline-block;
+
+                                    /* 🔥 長文折り返しの3点セット */
+                                    word-break:break-word;
+                                    overflow-wrap:break-word;
+                                    white-space:pre-wrap;
+                                ">
                                     {text}
                                 </div>
+
                             </div>
                             <div style="font-size:0.8em;color:#666;margin-left:4px;">
                               {ts_str}
@@ -655,9 +668,22 @@ def show_admin_chat(initial_student_id=None):
                 st.markdown(
                     f"""
                     <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                        <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                        <div style="
+                            background:#d2e3fc;
+                            padding:10px 14px;
+                            border-radius:12px;
+                            max-width:80%;
+                            color:#111;
+                            display:inline-block;
+
+                            /* 🔥 長文折り返しの3点セット */
+                            word-break:break-word;
+                            overflow-wrap:break-word;
+                            white-space:pre-wrap;
+                        ">
                             {text}
                         </div>
+
                     </div>
                     <div style="font-size:0.8em;color:#666;margin-left:4px;">
                       {ts_str}
