@@ -422,22 +422,29 @@ def show_admin_chat(initial_student_id=None):
 
     st.markdown("""
     <style>
-    /* admin-chat-tabs の中だけ CSS を適用 */
+    /* タブ全体の横幅を最大にする */
     .admin-chat-tabs [role="tablist"] {
-        justify-content: center !important;
-        gap: 40px !important;
+        display: flex !important;
+        justify-content: space-around !important; /* 👈 均等配置 */
+        width: 100% !important;
+        margin-bottom: 0px !important;
     }
 
+    /* タブ1つ1つを広く */
     .admin-chat-tabs [role="tab"] {
-        padding: 10px 30px !important;
+        flex: 1;                        /* 👈 同じ幅にする */
+        text-align: center !important;
+        padding: 12px 0 !important;
         font-size: 1.05rem !important;
     }
 
+    /* 選択中タブ */
     .admin-chat-tabs [aria-selected="true"] {
         color: #e53935 !important;
         font-weight: 600 !important;
     }
 
+    /* 選択中タブの下線 */
     .admin-chat-tabs [aria-selected="true"]::after {
         content: "";
         display: block;
