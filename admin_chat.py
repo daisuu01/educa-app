@@ -596,7 +596,7 @@ def show_admin_chat(initial_student_id=None):
                         st.markdown(
                             f"""
                             <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                                <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                                <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
                                     {text}
                                 </div>
                             </div>
@@ -655,7 +655,7 @@ def show_admin_chat(initial_student_id=None):
                 st.markdown(
                     f"""
                     <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                        <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;color:#111;">
+                        <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
                             {text}
                         </div>
                     </div>
