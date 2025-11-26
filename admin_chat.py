@@ -607,7 +607,6 @@ def show_admin_chat(initial_student_id=None):
                                     white-space:pre-wrap;
                                 ">{text}</div>
                             </div>
-
                             <div style="
                                 margin-left:8px;
                                 font-size:0.8em;
@@ -682,7 +681,6 @@ def show_admin_chat(initial_student_id=None):
                             white-space:pre-wrap;
                         ">{text}</div>
                     </div>
-
                     <div style="
                         margin-left:8px;
                         font-size:0.8em;
