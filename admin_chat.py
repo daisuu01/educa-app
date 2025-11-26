@@ -422,32 +422,33 @@ def show_admin_chat(initial_student_id=None):
 
     st.markdown("""
     <style>
+    /* Streamlit の tabs を強制的に横に広くする */
 
-    /* ==== Streamlit のタブ幅を強制的に広げる ==== */
-
-    /* タブ全体を均等配置 */
-    div[data-testid="stHorizontalBlock"] div[role="tablist"] {
+    /* タブリストを中央寄せ＋均等配置 */
+    div[role="tablist"] {
         display: flex !important;
         justify-content: space-around !important;
+        align-items: center !important;
         width: 100% !important;
     }
 
-    /* タブ1つ1つを広くする */
-    div[data-testid="stHorizontalBlock"] button[role="tab"] {
-        flex: 1 !important;
+    /* タブボタンを広げる */
+    div[role="tab"] {
+        flex: 1 !important;          /* 均等幅 */
         text-align: center !important;
         padding: 14px 0 !important;
-        font-size: 1.1rem !important;
+        font-size: 1.05rem !important;
+        min-width: 120px !important; /* これで横に広がる */
     }
 
-    /* 選択中タブ */
-    div[data-testid="stHorizontalBlock"] button[role="tab"][aria-selected="true"] {
+    /* 選択中のタブ */
+    div[role="tab"][aria-selected="true"] {
         color: #e53935 !important;
         font-weight: 600 !important;
     }
 
     /* 下線 */
-    div[data-testid="stHorizontalBlock"] button[role="tab"][aria-selected="true"]::after {
+    div[role="tab"][aria-selected="true"]::after {
         content: "";
         display: block;
         height: 3px;
@@ -457,6 +458,7 @@ def show_admin_chat(initial_student_id=None):
     }
     </style>
     """, unsafe_allow_html=True)
+
 
 
     # ---------- admin-chat タブ専用の wrapper ----------
