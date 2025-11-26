@@ -111,24 +111,24 @@ if not st.session_state["login"]:
 
     st.title("エデュカアプリログイン")
 
-    # 🔥 フォームを使うと Enter キーでログインできる！
     with st.form("login_form", clear_on_submit=False):
         member_id = st.text_input("会員番号")
         password = st.text_input("パスワード", type="password")
-
-        # ← フォームの submit ボタン（Enter でも発火）
         submitted = st.form_submit_button("ログイン")
 
-    if submitted:   # ← Enter または ボタンでここに来る
+    if submitted:
         doc = USERS.document(member_id).get()
 
         if not doc.exists:
             st.error("⚠ ユーザーが見つかりません。")
+
         else:
             user = doc.to_dict()
-            role = user.get("role", "student")
 
-            from firebase_utils import verify_password
+            # 🔥 role の値正規化（重要）
+            role = user.get("role", "student")
+            role = str(role).replace('"', '').strip()   # ←←←★ この1行が重要！！
+
             if verify_password(password, user):
 
                 st.session_state["login"] = True
@@ -136,19 +136,15 @@ if not st.session_state["login"]:
                 st.session_state["member_id"] = member_id
 
                 st.success("ログイン成功")
-                st.rerun()
+
+                if role == "admin":
+                    st.switch_page("pages/1000_admin_home.py")
+                else:
+                    st.switch_page("pages/1_user_home.py")
 
             else:
                 st.error("❌ パスワードが違います。")
 
-else:
-    # ============================
-    # 🎯 ログイン成功 → pages へ移動
-    # ============================
-    if st.session_state["role"] == "admin":
-        st.switch_page("pages/1000_admin_menu.py")
-    else:
-        st.switch_page("pages/1_user_home.py")
 
 
 
