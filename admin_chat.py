@@ -462,29 +462,44 @@ def show_admin_chat(initial_student_id=None):
 
 
     # ---------- admin-chat タブ専用の wrapper ----------
+# ---------- admin-chat タブ専用の wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
-    tabs = st.tabs(["個人", "学年", "クラス", "全員"])
+    tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
     # --- 初期タブ ---
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-    with tabs[0]:
-        st.session_state["admin_chat_tab"] = "個人"
+    # --- 正しくタブを検出 ---
+    with tab1:
+        is_active = st.session_state["admin_chat_tab"] == "個人"
+        if st.button("個人タブを開く", key="btn_personal", type="primary" if is_active else "secondary"):
+            st.session_state["admin_chat_tab"] = "個人"
+            st.rerun()
 
-    with tabs[1]:
-        st.session_state["admin_chat_tab"] = "学年"
+    with tab2:
+        is_active = st.session_state["admin_chat_tab"] == "学年"
+        if st.button("学年タブを開く", key="btn_grade", type="primary" if is_active else "secondary"):
+            st.session_state["admin_chat_tab"] = "学年"
+            st.rerun()
 
-    with tabs[2]:
-        st.session_state["admin_chat_tab"] = "クラス"
+    with tab3:
+        is_active = st.session_state["admin_chat_tab"] == "クラス"
+        if st.button("クラスタブを開く", key="btn_class", type="primary" if is_active else "secondary"):
+            st.session_state["admin_chat_tab"] = "クラス"
+            st.rerun()
 
-    with tabs[3]:
-        st.session_state["admin_chat_tab"] = "全員"
+    with tab4:
+        is_active = st.session_state["admin_chat_tab"] == "全員"
+        if st.button("全員タブを開く", key="btn_all", type="primary" if is_active else "secondary"):
+            st.session_state["admin_chat_tab"] = "全員"
+            st.rerun()
 
     target_type = st.session_state["admin_chat_tab"]
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
     # ----------------------------------------------------
 
