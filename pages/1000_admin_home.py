@@ -102,58 +102,47 @@ tabs = st.tabs([
     "👀 保護者未読一覧"
 ])
 
-# ------------------------
-# 👥 生徒登録
-# ------------------------
+# ----------------------------------------------------------------
+# ① 生徒登録タブ　→ pages/1010_admin_user_register.py へ遷移
+# ----------------------------------------------------------------
 with tabs[0]:
-    st.header("👥 生徒登録")
-    excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
-    csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
+    if st.button("➡️ 生徒登録ページを開く", use_container_width=True):
+        st.switch_page("pages/1010_admin_register_students.py")
 
-    if excel_file and csv_file:
-        st.info("処理中…")
-        df = import_students_from_excel_and_csv(excel_file, csv_file)
-        if len(df) > 0:
-            st.success("Firestoreへ登録が完了しました！")
-        else:
-            st.warning("登録対象が見つかりませんでした。")
-        st.dataframe(df, use_container_width=True)
-
-# ------------------------
-# 📋 登録済みユーザー一覧
-# ------------------------
+# ----------------------------------------------------------------
+# ② 登録済みユーザー一覧 → pages/1020_admin_user_list.py
+# ----------------------------------------------------------------
 with tabs[1]:
-    st.header("📋 登録済みユーザー一覧")
-    st.dataframe(fetch_all_users(), use_container_width=True)
+    if st.button("➡️ 登録済みユーザー一覧を開く", use_container_width=True):
+        st.switch_page("pages/1020_admin_registered_users.py")
 
-# ------------------------
-# 💬 チャット管理
-# ------------------------
+# ----------------------------------------------------------------
+# ③ チャット管理 → pages/1030_admin_chat.py
+# ----------------------------------------------------------------
 with tabs[2]:
-    st.header("💬 チャット管理")
-    show_admin_chat()
+    if st.button("➡️ チャット管理ページを開く", use_container_width=True):
+        st.switch_page("pages/1030_admin_chat.py")
 
-# ------------------------
-# 📥 受信BOX
-# ------------------------
+# ----------------------------------------------------------------
+# ④ 受信BOX → pages/1040_admin_inbox.py
+# ----------------------------------------------------------------
 with tabs[3]:
-    st.header("📥 受信ボックス")
-    show_admin_inbox()
+    if st.button("➡️ 受信ボックスを開く", use_container_width=True):
+        st.switch_page("pages/1040_admin_inbox.py")
 
-# ------------------------
-# ⏰ 送信予約
-# ------------------------
+# ----------------------------------------------------------------
+# ⑤ 送信予約 → pages/1050_admin_schedule.py
+# ----------------------------------------------------------------
 with tabs[4]:
-    st.header("⏰ 送信予約")
-    show_schedule_main()
+    if st.button("➡️ 送信予約ページを開く", use_container_width=True):
+        st.switch_page("pages/1050_admin_schedule.py")
 
-# ------------------------
-# 👀 保護者未読一覧
-# ------------------------
+# ----------------------------------------------------------------
+# ⑥ 保護者未読一覧 → pages/1060_admin_unread_guardian.py
+# ----------------------------------------------------------------
 with tabs[5]:
-    st.header("👀 保護者未読一覧")
-    show_unread_guardian_list()
-
+    if st.button("➡️ 保護者未読一覧を開く", use_container_width=True):
+        st.switch_page("pages/1060_admin_unread_guardian.py")
 
 
 
