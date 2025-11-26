@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore
+from firebase_utils import verify_password
 
 # --- ページ設定 ---
 st.set_page_config(page_title="エデュカアプリログイン", layout="centered")
