@@ -146,9 +146,9 @@ else:
     # 🎯 ログイン成功 → pages へ移動
     # ============================
     if st.session_state["role"] == "admin":
-        st.switch_page("pages/1000_管理者_ホーム.py")
+        st.switch_page("pages/1000_admin_menu.py")
     else:
-        st.switch_page("pages/1_ユーザー_ホーム.py")
+        st.switch_page("pages/1_user_home.py")
 
 
 
