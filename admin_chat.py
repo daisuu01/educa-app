@@ -464,32 +464,21 @@ def show_admin_chat(initial_student_id=None):
     # ---------- admin-chat タブ専用の wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
+    tabs = st.tabs(["個人", "学年", "クラス", "全員"])
+    selected = st.session_state.get("admin_chat_tab", "個人")
 
-    # デフォルト
-    if "admin_chat_tab" not in st.session_state:
-        st.session_state["admin_chat_tab"] = "個人"
-
-    # 🔥 タブ遷移を正しく検出する仕組み
-    with tab1:
-        if st.session_state["admin_chat_tab"] != "個人":
+    with tabs[0]:
+        if st.session_state.get("admin_chat_tab") != "個人":
             st.session_state["admin_chat_tab"] = "個人"
-            st.rerun()
-
-    with tab2:
-        if st.session_state["admin_chat_tab"] != "学年":
+    with tabs[1]:
+        if st.session_state.get("admin_chat_tab") != "学年":
             st.session_state["admin_chat_tab"] = "学年"
-            st.rerun()
-
-    with tab3:
-        if st.session_state["admin_chat_tab"] != "クラス":
+    with tabs[2]:
+        if st.session_state.get("admin_chat_tab") != "クラス":
             st.session_state["admin_chat_tab"] = "クラス"
-            st.rerun()
-
-    with tab4:
-        if st.session_state["admin_chat_tab"] != "全員":
+    with tabs[3]:
+        if st.session_state.get("admin_chat_tab") != "全員":
             st.session_state["admin_chat_tab"] = "全員"
-            st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
