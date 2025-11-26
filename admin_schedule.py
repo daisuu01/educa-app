@@ -91,13 +91,21 @@ def show_admin_schedule():
 
     text = st.text_area("メッセージ内容", height=80)
 
-    # 📆 日付・時刻選択（1分刻み）
+    # 📆 日付
     date = st.date_input("送信日")
-    send_time = st.time_input("送信時刻", value=time(9, 0), step=60)
+
+    # 🕒 時・分（10分刻み）
+    col1, col2 = st.columns(2)
+    with col1:
+        hour = st.selectbox("送信時刻（時）", list(range(0, 24)), index=9)
+    with col2:
+        minute = st.selectbox("送信時刻（分 / 10分刻み）", [0, 10, 20, 30, 40, 50])
 
     # JST → UTC 変換
     jst = pytz.timezone("Asia/Tokyo")
-    send_at_jst = datetime.combine(date, send_time)
+    send_at_jst = datetime.combine(date, datetime.min.time()).replace(
+        hour=hour, minute=minute
+    )
     send_at = jst.localize(send_at_jst).astimezone(timezone.utc)
 
     if st.button("📩 予約する", use_container_width=True):

@@ -1005,54 +1005,7 @@ def show_admin_chat(initial_student_id=None):
     # --- 送信欄 ---
     st.markdown("---")
     st.subheader("📨 メッセージ送信")
-
     text = st.text_area("メッセージを入力", height=80, key="admin_chat_input")
-
-    # --- 送信時刻（何時＋何分） ---
-    col1, col2 = st.columns(2)
-    with col1:
-        hour = st.selectbox("送信時刻（時）", list(range(0, 24)), index=12)
-    with col2:
-        minute = st.selectbox("送信時刻（分）", [0, 10, 20, 30, 40, 50], index=0)
-
-    # 予約送信か、今すぐ送信か
-    send_now = st.checkbox("今すぐ送信する（チェックを外すと予約送信）", value=True)
-
-    # --- ボタン ---
     if st.button("送信", use_container_width=True):
-
-        if send_now:
-            # ① 今すぐ送信
-            send_message(target_type, selected_id, grade, class_name, text)
-        else:
-            # ② 予約送信 → Firestore に保存
-            import pytz
-            from datetime import datetime, timedelta
-
-            jst = pytz.timezone("Asia/Tokyo")
-            now_jst = datetime.now(jst)
-
-            # 今日の予約時刻を作成
-            scheduled_jst = now_jst.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-            # もしすでに過ぎている時刻なら翌日に回す
-            if scheduled_jst < now_jst:
-                scheduled_jst += timedelta(days=1)
-
-            # UTC に変換
-            scheduled_utc = scheduled_jst.astimezone(pytz.utc)
-
-            # Firestore に保存
-            db.collection("scheduled_messages").add({
-                "message": text,
-                "target_type": target_type,
-                "target_id": selected_id,
-                "grade": grade,
-                "class_name": class_name,
-                "scheduled_at": scheduled_utc,
-                "sent": False,
-            })
-
-        st.success("✔ 送信処理が完了しました")
+        send_message(target_type, selected_id, grade, class_name, text)
         st.rerun()
-
