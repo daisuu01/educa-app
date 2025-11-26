@@ -605,9 +605,7 @@ def show_admin_chat(initial_student_id=None):
                                     display:inline-block;
                                     word-break:break-word;
                                     white-space:pre-wrap;
-                                ">
-                                    {text}
-                                </div>
+                                ">{text}</div>
                             </div>
 
                             <div style="
@@ -682,9 +680,7 @@ def show_admin_chat(initial_student_id=None):
                             display:inline-block;
                             word-break:break-word;
                             white-space:pre-wrap;
-                        ">
-                            {text}
-                        </div>
+                        ">{text}</div>
                     </div>
 
                     <div style="
