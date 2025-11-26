@@ -645,7 +645,8 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         all_msgs = []
-        for d in ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
+        for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
+
             m = d.to_dict()
             if m:
                 all_msgs.append(m)
@@ -730,7 +731,7 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         all_msgs = []
-        for d in all_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
+        for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
             m = d.to_dict()
             if m:
                 all_msgs.append(m)
@@ -821,7 +822,7 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         grade_msgs = []
-        for d in ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
+        for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
             m = d.to_dict()
             if m:
                 grade_msgs.append(m)
