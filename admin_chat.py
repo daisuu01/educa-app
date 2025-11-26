@@ -422,30 +422,32 @@ def show_admin_chat(initial_student_id=None):
 
     st.markdown("""
     <style>
-    /* タブ全体の横幅を最大にする */
-    .admin-chat-tabs [role="tablist"] {
+
+    /* ==== Streamlit のタブ幅を強制的に広げる ==== */
+
+    /* タブ全体を均等配置 */
+    div[data-testid="stHorizontalBlock"] div[role="tablist"] {
         display: flex !important;
-        justify-content: space-around !important; /* 👈 均等配置 */
+        justify-content: space-around !important;
         width: 100% !important;
-        margin-bottom: 0px !important;
     }
 
-    /* タブ1つ1つを広く */
-    .admin-chat-tabs [role="tab"] {
-        flex: 1;                        /* 👈 同じ幅にする */
+    /* タブ1つ1つを広くする */
+    div[data-testid="stHorizontalBlock"] button[role="tab"] {
+        flex: 1 !important;
         text-align: center !important;
-        padding: 12px 0 !important;
-        font-size: 1.05rem !important;
+        padding: 14px 0 !important;
+        font-size: 1.1rem !important;
     }
 
     /* 選択中タブ */
-    .admin-chat-tabs [aria-selected="true"] {
+    div[data-testid="stHorizontalBlock"] button[role="tab"][aria-selected="true"] {
         color: #e53935 !important;
         font-weight: 600 !important;
     }
 
-    /* 選択中タブの下線 */
-    .admin-chat-tabs [aria-selected="true"]::after {
+    /* 下線 */
+    div[data-testid="stHorizontalBlock"] button[role="tab"][aria-selected="true"]::after {
         content: "";
         display: block;
         height: 3px;
@@ -455,6 +457,7 @@ def show_admin_chat(initial_student_id=None):
     }
     </style>
     """, unsafe_allow_html=True)
+
 
     # ---------- admin-chat タブ専用の wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
