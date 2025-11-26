@@ -53,8 +53,8 @@ div[data-testid="stAppViewContainer"] > section:first-child {
 // =============================
 function forceFullOpacity() {
     document.querySelectorAll('div, section, main, header').forEach(el => {
-        if (el.style.opacity && el.style.opacity < 1) {
-            el.style.opacity = "1"; // ← 強制上書き
+        if (el.style.opacity && parseFloat(el.style.opacity) < 1) {
+            el.style.opacity = "1"; // ← バグ解消：数値比較
         }
     });
 }

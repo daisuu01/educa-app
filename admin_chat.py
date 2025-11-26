@@ -14,6 +14,32 @@ from firebase_admin import firestore
 from firebase_utils import db
 
 
+# --- 読み込み中の白いオーバーレイを完全無効化 ---
+st.markdown("""
+<style>
+/* Streamlit のリロード Overlay（薄白い膜）を無効化 */
+.stApp::before {
+    content: none !important;
+}
+
+/* 画面を覆う白半透明の overlay を削除 */
+div[data-testid="stMain"] > div:first-child {
+    opacity: 1 !important;
+}
+
+/* 全ての spinner を非表示 */
+.css-1y4p8pa, .stSpinner, .css-0 {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ボタン押した後の “一瞬白くなる” 変化も無効化 */
+div[data-testid="stAppViewBlockContainer"] {
+    transition: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ==================================================
 # 🔹 メッセージ削除関数（個人・学年・クラス・全員対応）
 # ==================================================
