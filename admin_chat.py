@@ -422,30 +422,23 @@ def show_admin_chat(initial_student_id=None):
 
     st.markdown("""
     <style>
-    /* =========================================
-    🔹 タブの横幅を広げて中央寄せにする
-    ========================================= */
-
-    /* タブ全体のラッパー */
-    .stTabs [role="tablist"] {
-        justify-content: center !important;   /* 中央寄せ */
-        gap: 40px !important;                 /* タブ間の余白 */
+    /* admin-chat-tabs の中だけ CSS を適用 */
+    .admin-chat-tabs [role="tablist"] {
+        justify-content: center !important;
+        gap: 40px !important;
     }
 
-    /* 各タブ */
-    .stTabs [role="tab"] {
-        padding: 10px 30px !important;        /* タブを横に広げる */
-        font-size: 1.05rem !important;        /* 少し大きく */
+    .admin-chat-tabs [role="tab"] {
+        padding: 10px 30px !important;
+        font-size: 1.05rem !important;
     }
 
-    /* アクティブタブの文字色を強調 */
-    .stTabs [data-baseweb="tab"] [aria-selected="true"] {
-        color: #e53935 !important;            /* 赤 */
-        font-weight: 600 !important;          /* 太字 */
+    .admin-chat-tabs [aria-selected="true"] {
+        color: #e53935 !important;
+        font-weight: 600 !important;
     }
 
-    /* 赤い下線（アクティブタブ） */
-    .stTabs [aria-selected="true"]::after {
+    .admin-chat-tabs [aria-selected="true"]::after {
         content: "";
         display: block;
         height: 3px;
@@ -460,22 +453,22 @@ def show_admin_chat(initial_student_id=None):
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-    # -------------------------
-    # 🔸 ネイティブタブ UI（高速 & 安定）
-    # -------------------------
+    # ---------- admin-chat タブ専用の wrapper ----------
+    st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
+
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    if tab1:
-        target_type = "個人"
-    elif tab2:
-        target_type = "学年"
-    elif tab3:
-        target_type = "クラス"
-    elif tab4:
-        target_type = "全員"
+    with tab1:
+        st.session_state["admin_chat_tab"] = "個人"
+    with tab2:
+        st.session_state["admin_chat_tab"] = "学年"
+    with tab3:
+        st.session_state["admin_chat_tab"] = "クラス"
+    with tab4:
+        st.session_state["admin_chat_tab"] = "全員"
 
-    # セッションにも反映（戻ってきた時に選択状態保持）
-    st.session_state["admin_chat_tab"] = target_type
+    st.markdown('</div>', unsafe_allow_html=True)
+    # ----------------------------------------------------
 
     # -------------------------
     # 🔸 自動更新（Inbox遷移時は除外）
