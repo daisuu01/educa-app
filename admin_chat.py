@@ -17,88 +17,74 @@ from firebase_utils import db
 # --- 読み込み中の白いオーバーレイを完全無効化 ---
 st.markdown("""
 <style>
+/* ===========================================
+   ① Streamlit の白フェード overlay を完全 OFF
+   =========================================== */
 
-/* =========================================================
-   🟥 サイドバー完全削除（折りたたみボタンも含む）
-   ========================================================= */
+/* ページ覆う白い膜 */
+.stApp::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+}
+
+/* status widget も白膜を作るので削除 */
+[data-testid="stStatusWidget"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ===========================================
+   ② rerun 中にかかる 0.33 opacity を強制OFF
+   =========================================== */
+
+.stApp, .stApp > div, .block-container, div, section, main, header {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* container への fade-in 防止 */
+[data-testid="stAppViewContainer"] {
+    transition: none !important;
+}
+
+/* スピナーを完全非表示 */
+.stSpinner, div[data-testid="stSpinner"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* サイドバー完全削除（必要なら） */
 [data-testid="stSidebar"],
 [data-testid="stSidebarCollapsedControl"] {
     display: none !important;
     visibility: hidden !important;
 }
-
-/* 左側の余白を完全撤廃して全幅に */
-div[data-testid="stAppViewContainer"] > section:first-child {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-}
-
-/* =========================================================
-   🟥 Streamlit の白フェード本体を完全破壊
-   ========================================================= */
-
-/* ★最重要：Streamlit が白っぽくする本体（opacity:0.33） */
-[data-testid="stAppRoot"] > div:first-child {
-    opacity: 1 !important;
-    transition: none !important;
-}
-
-/* メインビューも白くならないよう強制上書き */
-[data-testid="stAppViewContainer"] {
-    opacity: 1 !important;
-    transition: none !important;
-}
-
-/* block-container（チャット欄など本体） */
-.block-container {
-    opacity: 1 !important;
-    transition: none !important;
-}
-
-/* =========================================================
-   🟥 Spinner / StatusWidget など読み込み表示の全破壊
-   ========================================================= */
-.stSpinner, div[data-testid="stSpinner"],
-[data-testid="stStatusWidget"], .stStatusWidget,
-.css-1y4p8pa, .css-0 {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-/* ボタン押した後の “一瞬白くなる” トランジションを殺す */
-div[data-testid="stAppViewBlockContainer"] {
-    transition: none !important;
-}
-
 </style>
 
 <script>
-// =========================================================
-// 🟦 JavaScript: Streamlitの opacity = 0.33 を強制で1に戻す
-// =========================================================
+// ===========================================
+// ③ Streamlit の opacity を JS で強制上書き
+// ===========================================
 
 function killOpacity() {
-    const root = document.querySelector('[data-testid="stAppRoot"] > div:first-child');
-    if (root && root.style.opacity && parseFloat(root.style.opacity) < 1) {
-        root.style.opacity = "1";
-    }
-
-    const vc = document.querySelector('[data-testid="stAppViewContainer"]');
-    if (vc && vc.style.opacity && parseFloat(vc.style.opacity) < 1) {
-        vc.style.opacity = "1";
-    }
+    document.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        if (style.opacity && parseFloat(style.opacity) < 1) {
+            el.style.opacity = "1";
+        }
+    });
 }
 
-// DOM変更を監視して毎回 opacity を上書き
-const observer = new MutationObserver(killOpacity);
-observer.observe(document.body, { childList: true, subtree: true });
+// DOM 更新が起きた瞬間に即上書き
+new MutationObserver(() => killOpacity())
+    .observe(document.body, { childList: true, subtree: true });
 
-// 保険：0.15秒ごとに監視
-setInterval(killOpacity, 150);
+// 念のため 0.2 秒ごとにも実行
+setInterval(killOpacity, 200);
 </script>
 """, unsafe_allow_html=True)
+
 
 
 # ==================================================
