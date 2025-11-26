@@ -730,7 +730,7 @@ def show_admin_chat(initial_student_id=None):
 
         # メッセージ取得（最新→古い）
         all_msgs = []
-        for d in ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
+        for d in all_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
             m = d.to_dict()
             if m:
                 all_msgs.append(m)
@@ -739,10 +739,10 @@ def show_admin_chat(initial_student_id=None):
         latest = all_msgs[:3]
         older = all_msgs[3:]
 
-        # ✅ ① 過去履歴（expanderを上）
+        # 過去履歴
         if older:
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for m in older[::-1]:  # 古い順
+                for m in older[::-1]:
                     ts = m.get("timestamp")
                     jst = pytz.timezone("Asia/Tokyo")
                     ts_jst = ts.astimezone(jst) if ts else None
@@ -765,16 +765,15 @@ def show_admin_chat(initial_student_id=None):
                             </div>
                         </div>
                         <div style="font-size:0.8em; color:#666; margin-left:4px;">
-                          {ts_str}
+                        {ts_str}
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
 
-        # ✅ ② 直近3件（新しいほど下）
+        # 直近3件
         st.write("### 📌 直近3件")
-
-        for m in latest[::-1]:  # ← reverse
+        for m in latest[::-1]:
             ts = m.get("timestamp")
             jst = pytz.timezone("Asia/Tokyo")
             ts_jst = ts.astimezone(jst) if ts else None
@@ -797,13 +796,14 @@ def show_admin_chat(initial_student_id=None):
                     </div>
                 </div>
                 <div style="font-size:0.8em; color:#666; margin-left:4px;">
-                  {ts_str}
+                {ts_str}
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
         st.divider()
+
 
 
 
