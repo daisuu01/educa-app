@@ -462,21 +462,26 @@ def show_admin_chat(initial_student_id=None):
 
 
     # ---------- admin-chat タブ専用の wrapper ----------
-    tabs = st.tabs(["個人", "学年", "クラス", "全員"])
+    st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
-    # 現在選ばれたタブの index を取得
-    selected_index = tabs.index(tabs[[t.selectable for t in tabs].index(True)])
+    tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    # タブ名で target_type を決定
-    tab_labels = ["個人", "学年", "クラス", "全員"]
-    target_type = tab_labels[selected_index]
+    # 🔥 選択されたタブを正しく検出
+    if tab1:
+        target_type = "個人"
+    elif tab2:
+        target_type = "学年"
+    elif tab3:
+        target_type = "クラス"
+    elif tab4:
+        target_type = "全員"
+    else:
+        target_type = "個人"
 
     # セッションにも保存
     st.session_state["admin_chat_tab"] = target_type
 
-
-    # st.markdown('</div>', unsafe_allow_html=True)
-
+    st.markdown('</div>', unsafe_allow_html=True)
     # ----------------------------------------------------
 
     # -------------------------
