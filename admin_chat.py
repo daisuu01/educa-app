@@ -595,35 +595,36 @@ def show_admin_chat(initial_student_id=None):
                         guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                         st.markdown(
                             f"""
-                            <div style="display:flex;align-items:flex-start;justify-content:flex-start;margin:10px 0;">
+                            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
                                 <div style="
                                     background:#d2e3fc;
                                     padding:10px 14px;
                                     border-radius:12px;
                                     max-width:80%;
+                                    color:#111;
+                                    display:inline-block;
                                     word-break:break-word;
                                     white-space:pre-wrap;
-                                    color:#111;
                                 ">
                                     {text}
                                 </div>
+                            </div>
 
-                                <div style="
-                                    margin-left:8px;
-                                    font-size:0.8em;
-                                    color:#666;
-                                    white-space:nowrap;
-                                    display:flex;
-                                    flex-direction:column;
-                                    justify-content:flex-end;
-                                ">
-                                    <span>{ts_str}</span>
-                                    <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
-                                </div>
+                            <div style="
+                                margin-left:8px;
+                                font-size:0.8em;
+                                color:#666;
+                                display:flex;
+                                flex-direction:column;
+                                align-items:flex-start;
+                            ">
+                                <span>{ts_str}</span>
+                                <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
+
 
                     # --- 生徒または保護者メッセージ（右側）
                     elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
@@ -671,35 +672,36 @@ def show_admin_chat(initial_student_id=None):
                 guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                 st.markdown(
                     f"""
-                    <div style="display:flex;align-items:flex-start;justify-content:flex-start;margin:10px 0;">
+                    <div style="display:flex; justify-content:flex-start; margin:10px 0;">
                         <div style="
                             background:#d2e3fc;
                             padding:10px 14px;
                             border-radius:12px;
                             max-width:80%;
+                            color:#111;
+                            display:inline-block;
                             word-break:break-word;
                             white-space:pre-wrap;
-                            color:#111;
                         ">
                             {text}
                         </div>
+                    </div>
 
-                        <div style="
-                            margin-left:8px;
-                            font-size:0.8em;
-                            color:#666;
-                            white-space:nowrap;
-                            display:flex;
-                            flex-direction:column;
-                            justify-content:flex-end;
-                        ">
-                            <span>{ts_str}</span>
-                            <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
-                        </div>
+                    <div style="
+                        margin-left:8px;
+                        font-size:0.8em;
+                        color:#666;
+                        display:flex;
+                        flex-direction:column;
+                        align-items:flex-start;
+                    ">
+                        <span>{ts_str}</span>
+                        <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
+
 
             elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
                 label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
