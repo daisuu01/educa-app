@@ -466,26 +466,36 @@ def show_admin_chat(initial_student_id=None):
 
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    # デフォルト初期化
+    # デフォルト
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
+    # 🔥 タブ遷移を正しく検出する仕組み
     with tab1:
-        st.session_state["admin_chat_tab"] = "個人"
+        if st.session_state["admin_chat_tab"] != "個人":
+            st.session_state["admin_chat_tab"] = "個人"
+            st.rerun()
 
     with tab2:
-        st.session_state["admin_chat_tab"] = "学年"
+        if st.session_state["admin_chat_tab"] != "学年":
+            st.session_state["admin_chat_tab"] = "学年"
+            st.rerun()
 
     with tab3:
-        st.session_state["admin_chat_tab"] = "クラス"
+        if st.session_state["admin_chat_tab"] != "クラス":
+            st.session_state["admin_chat_tab"] = "クラス"
+            st.rerun()
 
     with tab4:
-        st.session_state["admin_chat_tab"] = "全員"
+        if st.session_state["admin_chat_tab"] != "全員":
+            st.session_state["admin_chat_tab"] = "全員"
+            st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # 🔥 これが現在のタブ
+    # 🔥 これが最新のタブ種別
     target_type = st.session_state["admin_chat_tab"]
+
     # ----------------------------------------------------
 
     # -------------------------
