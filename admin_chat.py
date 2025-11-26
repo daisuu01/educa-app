@@ -458,6 +458,9 @@ def show_admin_chat(initial_student_id=None):
 
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
+    if "admin_chat_tab" not in st.session_state:
+        st.session_state["admin_chat_tab"] = "個人"
+
     with tab1:
         st.session_state["admin_chat_tab"] = "個人"
     with tab2:
