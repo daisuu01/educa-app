@@ -595,14 +595,31 @@ def show_admin_chat(initial_student_id=None):
                         guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                         st.markdown(
                             f"""
-                            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                                <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
+                            <div style="display:flex;align-items:flex-start;justify-content:flex-start;margin:10px 0;">
+                                <div style="
+                                    background:#d2e3fc;
+                                    padding:10px 14px;
+                                    border-radius:12px;
+                                    max-width:80%;
+                                    word-break:break-word;
+                                    white-space:pre-wrap;
+                                    color:#111;
+                                ">
                                     {text}
                                 </div>
-                            </div>
-                            <div style="font-size:0.8em;color:#666;margin-left:4px;">
-                              {ts_str}
-                              <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
+
+                                <div style="
+                                    margin-left:8px;
+                                    font-size:0.8em;
+                                    color:#666;
+                                    white-space:nowrap;
+                                    display:flex;
+                                    flex-direction:column;
+                                    justify-content:flex-end;
+                                ">
+                                    <span>{ts_str}</span>
+                                    <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+                                </div>
                             </div>
                             """,
                             unsafe_allow_html=True
@@ -654,14 +671,31 @@ def show_admin_chat(initial_student_id=None):
                 guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
                 st.markdown(
                     f"""
-                    <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                        <div style="background:#d2e3fc;padding:10px 14px;border-radius:12px;max-width:80%;word-wrap:break-word;white-space:pre-wrap;color:#111;">
+                    <div style="display:flex;align-items:flex-start;justify-content:flex-start;margin:10px 0;">
+                        <div style="
+                            background:#d2e3fc;
+                            padding:10px 14px;
+                            border-radius:12px;
+                            max-width:80%;
+                            word-break:break-word;
+                            white-space:pre-wrap;
+                            color:#111;
+                        ">
                             {text}
                         </div>
-                    </div>
-                    <div style="font-size:0.8em;color:#666;margin-left:4px;">
-                      {ts_str}
-                      <span style="color:{guardian_color};margin-left:6px;">{guardian_read}</span>
+
+                        <div style="
+                            margin-left:8px;
+                            font-size:0.8em;
+                            color:#666;
+                            white-space:nowrap;
+                            display:flex;
+                            flex-direction:column;
+                            justify-content:flex-end;
+                        ">
+                            <span>{ts_str}</span>
+                            <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True
