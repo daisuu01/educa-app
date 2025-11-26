@@ -345,7 +345,25 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 # 🖥️ 管理者用チャットUI
 # ==================================================
 def show_admin_chat(initial_student_id=None):
-    st.title("💬 管理者チャット管理")
+    st.title("💬 チャット管理")
+
+    # 初期化
+    if "admin_chat_tab" not in st.session_state:
+        st.session_state["admin_chat_tab"] = "個人"
+
+    # タブの代わりにボタン風UI（見た目はタブと同じ）
+    cols = st.columns(4)
+    if cols[0].button("個人", use_container_width=True):
+        st.session_state["admin_chat_tab"] = "個人"
+    if cols[1].button("学年", use_container_width=True):
+        st.session_state["admin_chat_tab"] = "学年"
+    if cols[2].button("クラス", use_container_width=True):
+        st.session_state["admin_chat_tab"] = "クラス"
+    if cols[3].button("全員", use_container_width=True):
+        st.session_state["admin_chat_tab"] = "全員"
+
+    # ここで確定した target_type
+    target_type = st.session_state["admin_chat_tab"]
 
     if not st.session_state.get("just_opened_from_inbox"):
         st_autorefresh(interval=5000, key="admin_chat_refresh")
@@ -363,14 +381,14 @@ def show_admin_chat(initial_student_id=None):
 
     pre_selected_id = initial_student_id if initial_student_id else None
 
-    st.sidebar.markdown("### 📤 送信先設定")
-    target_type = st.sidebar.radio("送信先タイプを選択", ["個人", "全員", "学年", "クラス"], horizontal=False)
-
     selected_id = None
     grade = None
     class_name = None
 
     if target_type == "個人":
+        grade = None     
+        class_name = None      
+
         default_value = pre_selected_id if pre_selected_id else ""
         search_id = st.sidebar.text_input("🔎 チャット相手を検索（会員番号）", value=default_value, key="search_member_id").strip()
 
@@ -418,6 +436,7 @@ def show_admin_chat(initial_student_id=None):
                 if s.get("class_code") == class_code or s.get("class") == class_code:
                     grade = s.get("grade")
                     break
+
 
     #################個人宛####################
 
