@@ -17,12 +17,17 @@ st.set_page_config(page_title="管理者メニュー", layout="wide")
 # ---- サイドバー完全非表示＋Running無効化＋フェード無効化 ----
 st.markdown("""
 <style>
-/* ==== サイドバー完全削除 ==== */
+
+/* =========================================================
+   🟥 サイドバー完全削除（折りたたみボタンも含む）
+   ========================================================= */
 [data-testid="stSidebar"],
 [data-testid="stSidebarCollapsedControl"] {
     display: none !important;
     visibility: hidden !important;
 }
+
+/* 左側の余白を完全撤廃して全幅に */
 div[data-testid="stAppViewContainer"] > section:first-child {
     width: 100% !important;
     max-width: 100% !important;
@@ -30,45 +35,68 @@ div[data-testid="stAppViewContainer"] > section:first-child {
     padding-left: 0 !important;
 }
 
-/* ==== Running スピナー非表示 ==== */
-.stSpinner, div[data-testid="stSpinner"] {
-    display: none !important;
-}
+/* =========================================================
+   🟥 Streamlit の白フェード本体を完全破壊
+   ========================================================= */
 
-/* ==== Running時の白フェード無効化 ==== */
-[data-testid="stStatusWidget"] {
-    display: none !important;
-}
-
-/* ==== ページの透明フェード完全禁止 ==== */
-.stApp, .block-container {
+/* ★最重要：Streamlit が白っぽくする本体（opacity:0.33） */
+[data-testid="stAppRoot"] > div:first-child {
     opacity: 1 !important;
     transition: none !important;
 }
+
+/* メインビューも白くならないよう強制上書き */
+[data-testid="stAppViewContainer"] {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* block-container（チャット欄など本体） */
+.block-container {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* =========================================================
+   🟥 Spinner / StatusWidget など読み込み表示の全破壊
+   ========================================================= */
+.stSpinner, div[data-testid="stSpinner"],
+[data-testid="stStatusWidget"], .stStatusWidget,
+.css-1y4p8pa, .css-0 {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ボタン押した後の “一瞬白くなる” トランジションを殺す */
+div[data-testid="stAppViewBlockContainer"] {
+    transition: none !important;
+}
+
 </style>
 
 <script>
-// =============================
-// 透明フェード（opacity 0.33）強制無効化
-// =============================
-function forceFullOpacity() {
-    document.querySelectorAll('div, section, main, header').forEach(el => {
-        if (el.style.opacity && parseFloat(el.style.opacity) < 1) {
-            el.style.opacity = "1"; // ← バグ解消：数値比較
-        }
-    });
+// =========================================================
+// 🟦 JavaScript: Streamlitの opacity = 0.33 を強制で1に戻す
+// =========================================================
+
+function killOpacity() {
+    const root = document.querySelector('[data-testid="stAppRoot"] > div:first-child');
+    if (root && root.style.opacity && parseFloat(root.style.opacity) < 1) {
+        root.style.opacity = "1";
+    }
+
+    const vc = document.querySelector('[data-testid="stAppViewContainer"]');
+    if (vc && vc.style.opacity && parseFloat(vc.style.opacity) < 1) {
+        vc.style.opacity = "1";
+    }
 }
 
-// DOM変化を監視してフェード発動を即キャンセル
-const observer = new MutationObserver(() => {
-    forceFullOpacity();
-});
-
-// body全体を監視
+// DOM変更を監視して毎回 opacity を上書き
+const observer = new MutationObserver(killOpacity);
 observer.observe(document.body, { childList: true, subtree: true });
 
-// 保険として 0.2 秒に 1 回上書き
-setInterval(forceFullOpacity, 200);
+// 保険：0.15秒ごとに監視
+setInterval(killOpacity, 150);
 </script>
 """, unsafe_allow_html=True)
 

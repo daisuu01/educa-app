@@ -17,28 +17,89 @@ from firebase_utils import db
 # --- 読み込み中の白いオーバーレイを完全無効化 ---
 st.markdown("""
 <style>
-/* Streamlit のリロード Overlay（薄白い膜）を無効化 */
-.stApp::before {
-    content: none !important;
-}
 
-/* 画面を覆う白半透明の overlay を削除 */
-div[data-testid="stMain"] > div:first-child {
-    opacity: 1 !important;
-}
-
-/* 全ての spinner を非表示 */
-.css-1y4p8pa, .stSpinner, .css-0 {
+/* =========================================================
+   🟥 サイドバー完全削除（折りたたみボタンも含む）
+   ========================================================= */
+[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"] {
     display: none !important;
     visibility: hidden !important;
 }
 
-/* ボタン押した後の “一瞬白くなる” 変化も無効化 */
+/* 左側の余白を完全撤廃して全幅に */
+div[data-testid="stAppViewContainer"] > section:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+/* =========================================================
+   🟥 Streamlit の白フェード本体を完全破壊
+   ========================================================= */
+
+/* ★最重要：Streamlit が白っぽくする本体（opacity:0.33） */
+[data-testid="stAppRoot"] > div:first-child {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* メインビューも白くならないよう強制上書き */
+[data-testid="stAppViewContainer"] {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* block-container（チャット欄など本体） */
+.block-container {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* =========================================================
+   🟥 Spinner / StatusWidget など読み込み表示の全破壊
+   ========================================================= */
+.stSpinner, div[data-testid="stSpinner"],
+[data-testid="stStatusWidget"], .stStatusWidget,
+.css-1y4p8pa, .css-0 {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ボタン押した後の “一瞬白くなる” トランジションを殺す */
 div[data-testid="stAppViewBlockContainer"] {
     transition: none !important;
 }
+
 </style>
+
+<script>
+// =========================================================
+// 🟦 JavaScript: Streamlitの opacity = 0.33 を強制で1に戻す
+// =========================================================
+
+function killOpacity() {
+    const root = document.querySelector('[data-testid="stAppRoot"] > div:first-child');
+    if (root && root.style.opacity && parseFloat(root.style.opacity) < 1) {
+        root.style.opacity = "1";
+    }
+
+    const vc = document.querySelector('[data-testid="stAppViewContainer"]');
+    if (vc && vc.style.opacity && parseFloat(vc.style.opacity) < 1) {
+        vc.style.opacity = "1";
+    }
+}
+
+// DOM変更を監視して毎回 opacity を上書き
+const observer = new MutationObserver(killOpacity);
+observer.observe(document.body, { childList: true, subtree: true });
+
+// 保険：0.15秒ごとに監視
+setInterval(killOpacity, 150);
+</script>
 """, unsafe_allow_html=True)
+
 
 # ==================================================
 # 🔹 メッセージ削除関数（個人・学年・クラス・全員対応）
