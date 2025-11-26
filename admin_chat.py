@@ -351,7 +351,9 @@ def show_admin_chat(initial_student_id=None):
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-    # タブの代わりにボタン風UI（見た目はタブと同じ）
+    # -------------------------
+    # 🔸 タブ風ボタンUI
+    # -------------------------
     cols = st.columns(4)
     if cols[0].button("個人", use_container_width=True):
         st.session_state["admin_chat_tab"] = "個人"
@@ -362,38 +364,57 @@ def show_admin_chat(initial_student_id=None):
     if cols[3].button("全員", use_container_width=True):
         st.session_state["admin_chat_tab"] = "全員"
 
-    # ここで確定した target_type
+    # 現在のタブ
     target_type = st.session_state["admin_chat_tab"]
 
+    # -------------------------
+    # 🔸 自動更新（Inbox遷移時は除外）
+    # -------------------------
     if not st.session_state.get("just_opened_from_inbox"):
         st_autorefresh(interval=5000, key="admin_chat_refresh")
     else:
         st.session_state["just_opened_from_inbox"] = False
-    
-        # ===== 受信ボックスからの遷移処理 =====
-    if "selected_student_id" in st.session_state and st.session_state["selected_student_id"]:
-        initial_student_id = st.session_state["selected_student_id"]
 
+    # -------------------------
+    # 🔸 Inbox から引き継いだ ID
+    # -------------------------
+    if "selected_student_id" in st.session_state:
+        if st.session_state["selected_student_id"]:
+            initial_student_id = st.session_state["selected_student_id"]
+
+    # -------------------------
+    # 🔸 生徒一覧ロード
+    # -------------------------
     students = get_all_students()
     if not students:
         st.warning("生徒データが見つかりません。")
         return
 
-    pre_selected_id = initial_student_id if initial_student_id else None
+    pre_selected_id = initial_student_id or None
 
     selected_id = None
     grade = None
     class_name = None
 
+    # ============================================================
+    # ① 個人タブ
+    # ============================================================
     if target_type == "個人":
-        grade = None     
-        class_name = None      
+        # 個人タブは学年/class の状態クリア
+        grade = None
+        class_name = None
 
-        default_value = pre_selected_id if pre_selected_id else ""
-        search_id = st.sidebar.text_input("🔎 チャット相手を検索（会員番号）", value=default_value, key="search_member_id").strip()
+        default_value = pre_selected_id or ""
+
+        search_id = st.sidebar.text_input(
+            "🔎 チャット相手を検索（会員番号）",
+            value=default_value,
+            key="search_member_id"
+        ).strip()
 
         matched = []
         if search_id:
+            # 完全一致を優先
             exact = [s for s in students if s["id"] == search_id]
             matched = exact if exact else [s for s in students if s["id"].startswith(search_id)]
 
@@ -405,26 +426,37 @@ def show_admin_chat(initial_student_id=None):
                 selected_id = st.sidebar.selectbox(
                     "候補から選択",
                     [s["id"] for s in matched],
-                    format_func=lambda x: f"{x}：{next((s['name'] for s in matched if s['id']==x), x)}"
+                    format_func=lambda x: f"{x}：{next((s['name'] for s in matched if s['id'] == x), x)}"
                 )
         else:
             if search_id:
                 st.sidebar.warning("該当する会員番号が見つかりません。")
 
+        # 選択した生徒のクラス/学年をセット
         if selected_id:
             u = next((s for s in students if s["id"] == selected_id), None)
-            grade = u["grade"] if u else None
-            class_name = (u.get("class_code") or u.get("class")) if u else None
+            if u:
+                grade = u.get("grade")
+                class_name = u.get("class_code") or u.get("class")
 
+    # ============================================================
+    # ② 学年タブ
+    # ============================================================
     elif target_type == "学年":
         grade = st.sidebar.selectbox("学年を選択", ["中1", "中2", "中3", "高1", "高2", "高3"])
+        class_name = None
+        selected_id = None
 
+    # ============================================================
+    # ③ クラスタブ
+    # ============================================================
     elif target_type == "クラス":
         class_options = {
             (s.get("class_code") or s.get("class")): s.get("class") or s.get("class_code")
             for s in students
             if s.get("class_code") or s.get("class")
         }
+
         if class_options:
             class_code = st.sidebar.selectbox(
                 "クラスを選択（コード＋名称）",
@@ -432,10 +464,25 @@ def show_admin_chat(initial_student_id=None):
                 format_func=lambda x: f"{x}：{class_options[x]}"
             )
             class_name = class_code
+
+            # 同クラスの生徒から学年推定
             for s in students:
                 if s.get("class_code") == class_code or s.get("class") == class_code:
                     grade = s.get("grade")
                     break
+        else:
+            st.sidebar.warning("クラスデータがありません。")
+            class_name = None
+            grade = None
+
+    # ============================================================
+    # ④ 全員タブ
+    # ============================================================
+    elif target_type == "全員":
+        selected_id = None
+        grade = None
+        class_name = None
+
 
 
     #################個人宛####################
