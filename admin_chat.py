@@ -425,19 +425,21 @@ def show_admin_chat(initial_student_id=None):
         st.session_state["admin_chat_tab"] = "個人"
 
     # -------------------------
-    # 🔸 タブ風ボタンUI
+    # 🔸 ネイティブタブ UI（高速 & 安定）
     # -------------------------
-    cols = st.columns(4)
-    if cols[0].button("個人", use_container_width=True):
-        st.session_state["admin_chat_tab"] = "個人"
-    if cols[1].button("学年", use_container_width=True):
-        st.session_state["admin_chat_tab"] = "学年"
-    if cols[2].button("クラス", use_container_width=True):
-        st.session_state["admin_chat_tab"] = "クラス"
-    if cols[3].button("全員", use_container_width=True):
-        st.session_state["admin_chat_tab"] = "全員"
+    tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    target_type = st.session_state["admin_chat_tab"]
+    if tab1:
+        target_type = "個人"
+    elif tab2:
+        target_type = "学年"
+    elif tab3:
+        target_type = "クラス"
+    elif tab4:
+        target_type = "全員"
+
+    # セッションにも反映（戻ってきた時に選択状態保持）
+    st.session_state["admin_chat_tab"] = target_type
 
     # -------------------------
     # 🔸 自動更新（Inbox遷移時は除外）
@@ -1013,4 +1015,4 @@ def show_admin_chat(initial_student_id=None):
 
     if send_clicked:
         send_message(target_type, selected_id, grade, class_name, text)
-        st.success("送信しました！")
+        st.success("送信しました")
