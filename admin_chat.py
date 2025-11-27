@@ -616,9 +616,7 @@ def show_admin_chat(initial_student_id=None):
                                       white-space:pre-wrap;
                                       color:#111;
                                       text-align:left;
-                                    ">
-                                      {text}
-                                    </div>
+                                    ">{text}</div>
                                     <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
                                   </div>
                                 </div>
@@ -685,9 +683,7 @@ def show_admin_chat(initial_student_id=None):
                               white-space:pre-wrap;
                               color:#111;
                               text-align:left;
-                            ">
-                              {text}
-                            </div>
+                            ">{text}</div>
                             <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
                           </div>
                         </div>
