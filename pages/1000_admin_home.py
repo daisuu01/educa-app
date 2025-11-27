@@ -1,5 +1,5 @@
 # =============================================
-# 管理者メニュー（A方式：タブ風ボタン方式 完全版）
+# pages/1000_admin_menu.py（タブ方式：最安定バージョン）
 # =============================================
 
 import streamlit as st
@@ -11,289 +11,180 @@ from firebase_utils import fetch_all_users, import_students_from_excel_and_csv
 from admin_schedule import show_schedule_main
 from unread_guardian_list import show_unread_guardian_list
 
-
 # ---- ページ設定 ----
 st.set_page_config(page_title="管理者メニュー", layout="wide")
 
-# ---- 初期チェック ----
+# ---- サイドバー完全非表示＋Running無効化＋フェード無効化 ----
+st.markdown("""
+<style>
+/* ===========================================
+   ① Streamlit の白フェード overlay を完全 OFF
+   =========================================== */
+
+/* ページ覆う白い膜 */
+.stApp::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+}
+
+/* status widget も白膜を作るので削除 */
+[data-testid="stStatusWidget"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ===========================================
+   ② rerun 中にかかる 0.33 opacity を強制OFF
+   =========================================== */
+
+.stApp, .stApp > div, .block-container, div, section, main, header {
+    opacity: 1 !important;
+    transition: none !important;
+}
+
+/* container への fade-in 防止 */
+[data-testid="stAppViewContainer"] {
+    transition: none !important;
+}
+
+/* スピナーを完全非表示 */
+.stSpinner, div[data-testid="stSpinner"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* サイドバー完全削除 */
+[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+</style>
+
+<script>
+// ===========================================
+// ③ Streamlit の opacity を JS で強制上書き
+// ===========================================
+
+function killOpacity() {
+    document.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        if (style.opacity && parseFloat(style.opacity) < 1) {
+            el.style.opacity = "1";
+        }
+    });
+}
+
+new MutationObserver(() => killOpacity())
+    .observe(document.body, { childList: true, subtree: true });
+
+setInterval(killOpacity, 200);
+</script>
+""", unsafe_allow_html=True)
+
+
+# ---- ログインチェック ----
 if not st.session_state.get("login"):
     st.switch_page("main.py")
+
 if st.session_state.get("role") != "admin":
     st.error("⚠ 管理者のみアクセスできます")
     st.stop()
 
 member_id = st.session_state.get("member_id")
 
-# ---- A方式: admin_mode 初期化 ----
-if "admin_mode" not in st.session_state:
-    st.session_state["admin_mode"] = "生徒登録"
+# 🔥 ★追加：タブ切替のための内部状態
+if "_active_tab" not in st.session_state:
+    st.session_state["_active_tab"] = "👥 生徒登録"
 
-unread = count_unread_messages()
 
-# ============================================
-# 🎨 タブ風ボタン（A方式のコア）
-# ============================================
+# --------------------------------------------
+# 🎉 管理者メニュー（タブ表示）
+# --------------------------------------------
 
-tabs = [
-    ("生徒登録", "👥 生徒登録"),
-    ("ユーザー一覧", "📋 登録済みユーザー一覧"),
-    ("チャット管理", "💬 チャット管理"),
-    ("受信ボックス", f"📥 受信ボックス（{unread}）"),
-    ("送信予約", "⏰ 送信予約"),
-    ("保護者未読", "👀 保護者未読一覧"),
-]
-
-cols = st.columns(len(tabs))
-
-for idx, (mode_key, label) in enumerate(tabs):
-    if cols[idx].button(label, key=f"tab_{idx}"):
-        st.session_state["admin_mode"] = mode_key
-        st.session_state["redirect_to_admin_chat"] = False
-        st.rerun()
-
-# ---- タイトル ----
 st.title(f"📋 管理者メニュー（{member_id}）")
 st.markdown("---")
 
-# ============================================
-# 🎯 受信BOX → 「開く▶」からの遷移
-# ============================================
-if st.session_state.get("redirect_to_admin_chat", False):
-    st.session_state["admin_mode"] = "チャット管理"
-    st.session_state["redirect_to_admin_chat"] = False
-    st.session_state["force_chat_open"] = True
-else:
-    st.session_state["force_chat_open"] = False
+# 🔥 未読数（リアルタイム）
+unread = count_unread_messages()
 
-mode = st.session_state["admin_mode"]
 
-# ============================================
-# 🎯 コンテンツ切替（A方式の本体）
-# ============================================
+# 🔥 タブ定義
+tab_labels = [
+    "👥 生徒登録",
+    "📋 登録済みユーザー一覧",
+    "💬 チャット管理",
+    f"📥 受信ボックス（{unread}）",
+    "⏰ 送信予約",
+    "👀 保護者未読一覧"
+]
 
-if mode == "生徒登録":
-    excel = st.file_uploader("Excel", type=["xlsx"])
-    csv = st.file_uploader("CSV", type=["csv"])
-    if excel and csv:
+# 🔥 ★ここだけ追加：key を状態に紐付ける
+tabs = st.tabs(tab_labels)
+
+
+
+# ------------------------
+# 👥 生徒登録
+# ------------------------
+with tabs[0]:
+    st.header("👥 生徒登録")
+    excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
+    csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
+
+    if excel_file and csv_file:
         st.info("処理中…")
-        df = import_students_from_excel_and_csv(excel, csv)
+        df = import_students_from_excel_and_csv(excel_file, csv_file)
+        if len(df) > 0:
+            st.success("Firestoreへ登録が完了しました！")
+        else:
+            st.warning("登録対象が見つかりませんでした。")
         st.dataframe(df, use_container_width=True)
 
-elif mode == "ユーザー一覧":
+
+# ------------------------
+# 📋 登録済みユーザー一覧
+# ------------------------
+with tabs[1]:
+    st.header("📋 登録済みユーザー一覧")
     st.dataframe(fetch_all_users(), use_container_width=True)
 
-elif mode == "チャット管理":
-    show_admin_chat(
-        initial_student_id=(
-            st.session_state["selected_student_id"]
-            if st.session_state.get("force_chat_open")
-            else None
-        )
-    )
 
-elif mode == "受信ボックス":
+# ------------------------
+# 💬 チャット管理
+# ------------------------
+with tabs[2]:
+    st.header("💬 チャット管理")
+
+    if st.session_state.get("force_open_student", False):
+        show_admin_chat(initial_student_id=st.session_state["selected_student_id"])
+        st.session_state["force_open_student"] = False
+    else:
+        show_admin_chat()
+
+# ------------------------
+# 📥 受信BOX
+# ------------------------
+with tabs[3]:
+    st.header("📥 受信ボックス")
     show_admin_inbox()
 
-elif mode == "送信予約":
+
+# ------------------------
+# ⏰ 送信予約
+# ------------------------
+with tabs[4]:
+    st.header("⏰ 送信予約")
     show_schedule_main()
 
-elif mode == "保護者未読":
+
+# ------------------------
+# 👀 保護者未読一覧
+# ------------------------
+with tabs[5]:
+    st.header("👀 保護者未読一覧")
     show_unread_guardian_list()
-
-
-
-
-
-# # =============================================
-# # pages/1000_admin_menu.py（タブ方式：最安定バージョン）
-# # =============================================
-
-# import streamlit as st
-# from firebase_admin import firestore
-
-# from admin_chat import show_admin_chat
-# from admin_inbox import show_admin_inbox, count_unread_messages
-# from firebase_utils import fetch_all_users, import_students_from_excel_and_csv
-# from admin_schedule import show_schedule_main
-# from unread_guardian_list import show_unread_guardian_list
-
-# # ---- ページ設定 ----
-# st.set_page_config(page_title="管理者メニュー", layout="wide")
-
-# # ---- サイドバー完全非表示＋Running無効化＋フェード無効化 ----
-# st.markdown("""
-# <style>
-# /* ===========================================
-#    ① Streamlit の白フェード overlay を完全 OFF
-#    =========================================== */
-
-# /* ページ覆う白い膜 */
-# .stApp::before {
-#     content: none !important;
-#     display: none !important;
-#     background: none !important;
-# }
-
-# /* status widget も白膜を作るので削除 */
-# [data-testid="stStatusWidget"] {
-#     display: none !important;
-#     visibility: hidden !important;
-# }
-
-# /* ===========================================
-#    ② rerun 中にかかる 0.33 opacity を強制OFF
-#    =========================================== */
-
-# .stApp, .stApp > div, .block-container, div, section, main, header {
-#     opacity: 1 !important;
-#     transition: none !important;
-# }
-
-# /* container への fade-in 防止 */
-# [data-testid="stAppViewContainer"] {
-#     transition: none !important;
-# }
-
-# /* スピナーを完全非表示 */
-# .stSpinner, div[data-testid="stSpinner"] {
-#     display: none !important;
-#     visibility: hidden !important;
-# }
-
-# /* サイドバー完全削除 */
-# [data-testid="stSidebar"],
-# [data-testid="stSidebarCollapsedControl"] {
-#     display: none !important;
-#     visibility: hidden !important;
-# }
-# </style>
-
-# <script>
-# // ===========================================
-# // ③ Streamlit の opacity を JS で強制上書き
-# // ===========================================
-
-# function killOpacity() {
-#     document.querySelectorAll('*').forEach(el => {
-#         const style = window.getComputedStyle(el);
-#         if (style.opacity && parseFloat(style.opacity) < 1) {
-#             el.style.opacity = "1";
-#         }
-#     });
-# }
-
-# new MutationObserver(() => killOpacity())
-#     .observe(document.body, { childList: true, subtree: true });
-
-# setInterval(killOpacity, 200);
-# </script>
-# """, unsafe_allow_html=True)
-
-
-# # ---- ログインチェック ----
-# if not st.session_state.get("login"):
-#     st.switch_page("main.py")
-
-# if st.session_state.get("role") != "admin":
-#     st.error("⚠ 管理者のみアクセスできます")
-#     st.stop()
-
-# member_id = st.session_state.get("member_id")
-
-# # 🔥 ★追加：タブ切替のための内部状態
-# if "_active_tab" not in st.session_state:
-#     st.session_state["_active_tab"] = "👥 生徒登録"
-
-
-# # --------------------------------------------
-# # 🎉 管理者メニュー（タブ表示）
-# # --------------------------------------------
-
-# st.title(f"📋 管理者メニュー（{member_id}）")
-# st.markdown("---")
-
-# # 🔥 未読数（リアルタイム）
-# unread = count_unread_messages()
-
-
-# # 🔥 タブ定義
-# tab_labels = [
-#     "👥 生徒登録",
-#     "📋 登録済みユーザー一覧",
-#     "💬 チャット管理",
-#     f"📥 受信ボックス（{unread}）",
-#     "⏰ 送信予約",
-#     "👀 保護者未読一覧"
-# ]
-
-# # 🔥 ★ここだけ追加：key を状態に紐付ける
-# tabs = st.tabs(tab_labels)
-
-
-
-# # ------------------------
-# # 👥 生徒登録
-# # ------------------------
-# with tabs[0]:
-#     st.header("👥 生徒登録")
-#     excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
-#     csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
-
-#     if excel_file and csv_file:
-#         st.info("処理中…")
-#         df = import_students_from_excel_and_csv(excel_file, csv_file)
-#         if len(df) > 0:
-#             st.success("Firestoreへ登録が完了しました！")
-#         else:
-#             st.warning("登録対象が見つかりませんでした。")
-#         st.dataframe(df, use_container_width=True)
-
-
-# # ------------------------
-# # 📋 登録済みユーザー一覧
-# # ------------------------
-# with tabs[1]:
-#     st.header("📋 登録済みユーザー一覧")
-#     st.dataframe(fetch_all_users(), use_container_width=True)
-
-
-# # ------------------------
-# # 💬 チャット管理
-# # ------------------------
-# with tabs[2]:
-
-#     # 🔥 受信ボックスから来たときだけ自動遷移
-#     if st.session_state.get("redirect_to_admin_chat", False):
-#         show_admin_chat(initial_student_id=st.session_state.get("selected_student_id"))
-#         st.session_state["redirect_to_admin_chat"] = False
-#         st.stop()
-
-#     st.header("💬 チャット管理")
-#     show_admin_chat()
-
-
-# # ------------------------
-# # 📥 受信BOX
-# # ------------------------
-# with tabs[3]:
-#     st.header("📥 受信ボックス")
-#     show_admin_inbox()
-
-
-# # ------------------------
-# # ⏰ 送信予約
-# # ------------------------
-# with tabs[4]:
-#     st.header("⏰ 送信予約")
-#     show_schedule_main()
-
-
-# # ------------------------
-# # 👀 保護者未読一覧
-# # ------------------------
-# with tabs[5]:
-#     st.header("👀 保護者未読一覧")
-#     show_unread_guardian_list()
 
 
 

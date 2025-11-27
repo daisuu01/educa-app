@@ -178,14 +178,11 @@ def show_admin_inbox():
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button("開く ▶", key=f"open_{m['id']}"):
-                # チャットで開きたい生徒ID
+                # 選択された生徒を保存
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
 
-                # 💬 チャット管理へ強制遷移
-                st.session_state["admin_mode"] = "チャット管理"
-
-                # show_admin_chat に「最初にこの生徒を開け」と伝えるフラグ
-                st.session_state["redirect_to_admin_chat"] = True
+                # チャット管理タブで自動オープンするフラグ
+                st.session_state["force_open_chat"] = True
 
                 st.rerun()
