@@ -189,13 +189,13 @@ def show_admin_inbox():
                 if st.button("❌ 閉じる", key=f"close_{m['id']}"):
                     st.session_state["inbox_selected_student_id"] = None
                     st.session_state["inbox_selected_student_name"] = None
-                    st.rerun()
+                    # ✅ rerunを削除（session_stateの変更だけで次の描画で反映される）
             else:
                 # 開くボタン
                 if st.button("開く ▶", key=f"open_{m['id']}"):
                     st.session_state["inbox_selected_student_id"] = m["id"]
                     st.session_state["inbox_selected_student_name"] = m["name"]
-                    st.rerun()
+                    # ✅ rerunを削除
 
         # ✅ この生徒のチャットが開かれている場合、ここに表示
         if st.session_state.get("inbox_selected_student_id") == m["id"]:
