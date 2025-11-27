@@ -603,24 +603,22 @@ def show_admin_chat(initial_student_id=None):
                             st.markdown(
                                 f"""
                                 <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                                <div style="text-align:right;">
+                                  <div style="text-align:right;">
                                     <div style="font-size:0.8em;color:#666;">{label}</div>
-
                                     <div style="
-                                    display:block;
-                                    background-color:#f1f3f4;
-                                    padding:8px 12px;
-                                    border-radius:12px;
-                                    max-width:70%;
-                                    word-break:break-word;
-                                    white-space:pre-wrap;
-                                    color:#111;
-                                    text-align:left;
+                                      display:inline-block;
+                                      background-color:#f1f3f4;
+                                      padding:8px 12px;
+                                      border-radius:12px;
+                                      width:auto;
+                                      max-width:70%;
+                                      word-wrap:break-word;
+                                      white-space:pre-wrap;
+                                      color:#111;
+                                      text-align:left;
                                     ">{text}</div>
-                                    <div style="font-size:0.8em;color:#666;text-align:right;">
-                                    {ts_str}
-                                    </div>
-                                </div>
+                                    <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+                                  </div>
                                 </div>
                                 """,
                                 unsafe_allow_html=True
@@ -672,24 +670,22 @@ def show_admin_chat(initial_student_id=None):
                     st.markdown(
                         f"""
                         <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                        <div style="text-align:right;">
+                          <div style="text-align:right;">
                             <div style="font-size:0.8em;color:#666;">{label}</div>
-
                             <div style="
-                            display:block;
-                            background-color:#f1f3f4;
-                            padding:8px 12px;
-                            border-radius:12px;
-                            max-width:70%;
-                            word-break:break-word;
-                            white-space:pre-wrap;
-                            color:#111;
-                            text-align:left;
+                              display:inline-block;
+                              background-color:#f1f3f4;
+                              padding:8px 12px;
+                              border-radius:12px;
+                              width:auto;
+                              max-width:70%;
+                              word-wrap:break-word;
+                              white-space:pre-wrap;
+                              color:#111;
+                              text-align:left;
                             ">{text}</div>
-                            <div style="font-size:0.8em;color:#666;text-align:right;">
-                            {ts_str}
-                            </div>
-                        </div>
+                            <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+                          </div>
                         </div>
                         """,
                         unsafe_allow_html=True
