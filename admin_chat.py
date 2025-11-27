@@ -606,7 +606,7 @@ def show_admin_chat(initial_student_id=None):
                                   <div style="text-align:right;">
                                     <div style="font-size:0.8em;color:#666;">{label}</div>
                                     <div style="
-                                      display:inline-block;
+                                      display:inline-flex;
                                       background-color:#f1f3f4;
                                       padding:8px 12px;
                                       border-radius:12px;
@@ -673,7 +673,7 @@ def show_admin_chat(initial_student_id=None):
                           <div style="text-align:right;">
                             <div style="font-size:0.8em;color:#666;">{label}</div>
                             <div style="
-                              display:inline-block;
+                              display:inline-flex;
                               background-color:#f1f3f4;
                               padding:8px 12px;
                               border-radius:12px;
