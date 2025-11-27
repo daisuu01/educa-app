@@ -1,13 +1,17 @@
 # =============================================
-# admin_inbox.py（改良版：既読も一覧に残るメール型受信ボックス）
+# admin_inbox.py（改良版：既読も一覧に残るメール型受信ボックス＋チャット機能）
 # =============================================
 
 import streamlit as st
 from datetime import datetime, timezone
 import pytz
+from firebase_admin import firestore
 
 # ✅ Firebase は共通モジュールから利用
 from firebase_utils import db
+
+# ✅ admin_chat から関数をインポート
+from admin_chat import get_messages_and_mark_read, send_message
 
 
 # ==================================================
@@ -178,9 +182,131 @@ def show_admin_inbox():
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button("開く ▶", key=f"open_{m['id']}"):
-                # ✅ チャット管理タブへ遷移するフラグを立てる
-                st.session_state["selected_student_id"] = m["id"]
-                st.session_state["selected_student_name"] = m["name"]
-                st.session_state["just_opened_from_inbox"] = True
-                st.session_state["redirect_to_admin_chat"] = True
+                # ✅ この生徒のチャットを開く
+                st.session_state["inbox_selected_student_id"] = m["id"]
+                st.session_state["inbox_selected_student_name"] = m["name"]
                 st.rerun()
+
+    # ==================================================
+    # ✅ チャット画面表示（生徒が選択されている場合）
+    # ==================================================
+    if "inbox_selected_student_id" in st.session_state and st.session_state["inbox_selected_student_id"]:
+        show_chat_in_inbox()
+
+
+# ==================================================
+# 🖥️ 受信ボックス内でチャット表示＋返信機能
+# ==================================================
+def show_chat_in_inbox():
+    student_id = st.session_state.get("inbox_selected_student_id")
+    student_name = st.session_state.get("inbox_selected_student_name", student_id)
+
+    st.markdown("---")
+    st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
+
+    # 閉じるボタン
+    if st.button("❌ チャットを閉じる", key="close_chat"):
+        st.session_state["inbox_selected_student_id"] = None
+        st.session_state["inbox_selected_student_name"] = None
+        st.rerun()
+
+    # ✅ admin_chatの関数を使ってメッセージ取得
+    messages = get_messages_and_mark_read(student_id, None, None)
+    messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
+
+    jst = pytz.timezone("Asia/Tokyo")
+
+    latest = messages[:3]
+    older = messages[3:]
+
+    # 過去履歴
+    if older:
+        with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+            for msg in older[::-1]:
+                render_message(msg, student_id, jst)
+
+    # 直近3件
+    st.write("### 📌 直近3件")
+    for msg in latest[::-1]:
+        render_message(msg, student_id, jst)
+
+    # 送信欄
+    st.markdown("---")
+    st.subheader("📨 返信する")
+    with st.form("inbox_send_form", clear_on_submit=True):
+        text = st.text_area("メッセージを入力", height=80)
+        send_clicked = st.form_submit_button("送信", use_container_width=True)
+    
+    if send_clicked and text.strip():
+        send_message("個人", student_id, None, None, text)
+        st.success("✅ 送信しました")
+        st.rerun()
+
+
+# ==================================================
+# 🔹 メッセージ1件をレンダリング
+# ==================================================
+def render_message(msg, student_id, jst):
+    sender = msg.get("sender", "")
+    text = msg.get("message", msg.get("text", ""))
+    ts = msg.get("timestamp")
+    ts_jst = ts.astimezone(jst) if ts else None
+    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+    read_by = msg.get("read_by", [])
+
+    if sender in ["admin", "先生", "講師"]:
+        # 管理者メッセージ（左側）
+        guardian_read = "✅ 保護者既読" if student_id in read_by else "❌ 保護者未読"
+        guardian_color = "#1a73e8" if student_id in read_by else "#d93025"
+        st.markdown(
+            f"""
+            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                <div style="
+                    background:#d2e3fc;
+                    padding:10px 14px;
+                    border-radius:12px;
+                    max-width:80%;
+                    color:#111;
+                    display:inline-block;
+                    word-break:break-word;
+                    white-space:pre-wrap;
+                ">{text}</div>
+            </div>
+            <div style="
+                margin-left:8px;
+                font-size:0.8em;
+                color:#666;
+                display:flex;
+                flex-direction:column;
+                align-items:flex-start;
+            ">
+                <span>{ts_str}</span>
+                <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+        # 生徒・保護者メッセージ（右側）
+        label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
+        st.markdown(
+            f"""
+            <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+              <div style="max-width:80%; text-align:right;">
+                <div style="font-size:0.8em;color:#666;">{label}</div>
+                <div style="
+                  display:inline-block;
+                  background-color:#f1f3f4;
+                  padding:8px 12px;
+                  border-radius:12px;
+                  word-wrap:break-word;
+                  white-space:pre-wrap;
+                  color:#111;
+                  text-align:left;
+                ">{text}</div>
+                <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
