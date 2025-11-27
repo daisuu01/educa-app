@@ -81,7 +81,7 @@ def get_latest_received_messages():
 
     for s in students:
         user_id = s["id"]
-        # ✅ 最新1件のみ取得（高速化）
+        # ✅ 最新10件取得して、生徒・保護者のメッセージを探す
         ref = (
             db.collection("rooms")
             .document("personal")
@@ -89,7 +89,7 @@ def get_latest_received_messages():
             .document("messages")
             .collection("items")
             .order_by("timestamp", direction="DESCENDING")
-            .limit(1)
+            .limit(10)  # ← 10件取得して生徒・保護者メッセージを探す
         )
 
         for d in ref.stream():
@@ -98,7 +98,8 @@ def get_latest_received_messages():
                 continue
 
             sender = msg.get("sender", "")
-            if sender in ["student", "生徒", "guardian", "保護者"]:
+            # ✅ 生徒・保護者のメッセージだけを抽出
+            if sender in ["student", "生徒", "guardian", "保護者", "student_生徒", "student_保護者"]:
                 read_by = msg.get("read_by", [])
                 is_unread = current_admin_id not in read_by if current_admin_id else False
                 results.append({
@@ -111,6 +112,7 @@ def get_latest_received_messages():
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
                 })
+                # ✅ 生徒・保護者の最新メッセージが見つかったらループ終了
                 break
 
     # ✅ 最新順でソート
