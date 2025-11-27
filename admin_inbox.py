@@ -81,7 +81,7 @@ def get_latest_received_messages():
 
     for s in students:
         user_id = s["id"]
-        # 最新50件くらい取る（未読＋既読含む）
+        # ✅ 最新1件だけ取得（高速化）
         ref = (
             db.collection("rooms")
             .document("personal")
@@ -89,7 +89,7 @@ def get_latest_received_messages():
             .document("messages")
             .collection("items")
             .order_by("timestamp", direction="DESCENDING")
-            .limit(50)
+            .limit(1)  # ← 50件から1件に変更
         )
 
         for d in ref.stream():
@@ -112,12 +112,13 @@ def get_latest_received_messages():
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
                 })
-                # ✅ 最新1件だけ採用（生徒・保護者別けずに最後のメッセージ）
-                break
+                break  # 最初の1件で終了
 
     # ✅ 最新順でソート
     results.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
-    return results
+    
+    # ✅ 最大20件まで表示（さらに高速化）
+    return results[:20]
 
 
 # ==================================================
@@ -189,13 +190,13 @@ def show_admin_inbox():
                 if st.button("❌ 閉じる", key=f"close_{m['id']}"):
                     st.session_state["inbox_selected_student_id"] = None
                     st.session_state["inbox_selected_student_name"] = None
-                    # ✅ rerunを削除（session_stateの変更だけで次の描画で反映される）
+                    st.rerun()
             else:
                 # 開くボタン
                 if st.button("開く ▶", key=f"open_{m['id']}"):
                     st.session_state["inbox_selected_student_id"] = m["id"]
                     st.session_state["inbox_selected_student_name"] = m["name"]
-                    # ✅ rerunを削除
+                    st.rerun()
 
         # ✅ この生徒のチャットが開かれている場合、ここに表示
         if st.session_state.get("inbox_selected_student_id") == m["id"]:
