@@ -603,8 +603,8 @@ def show_admin_chat(initial_student_id=None):
                             st.markdown(
                                 f"""
                                 <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                                  <div style="max-width:80%;">
-                                    <div style="text-align:right; font-size:0.8em;color:#666;">{label}</div>
+                                  <div style="max-width:80%; text-align:right;">
+                                    <div style="font-size:0.8em;color:#666;">{label}</div>
                                     <div style="
                                       display:inline-block;
                                       background-color:#f1f3f4;
@@ -615,7 +615,7 @@ def show_admin_chat(initial_student_id=None):
                                       color:#111;
                                       text-align:left;
                                     ">{text}</div>
-                                    <div style="text-align:right; font-size:0.8em;color:#666;">{ts_str}</div>
+                                    <div style="font-size:0.8em;color:#666;">{ts_str}</div>
                                   </div>
                                 </div>
                                 """,
@@ -668,8 +668,8 @@ def show_admin_chat(initial_student_id=None):
                     st.markdown(
                         f"""
                         <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                          <div style="max-width:80%;">
-                            <div style="text-align:right; font-size:0.8em;color:#666;">{label}</div>
+                          <div style="max-width:80%; text-align:right;">
+                            <div style="font-size:0.8em;color:#666;">{label}</div>
                             <div style="
                               display:inline-block;
                               background-color:#f1f3f4;
@@ -680,7 +680,7 @@ def show_admin_chat(initial_student_id=None):
                               color:#111;
                               text-align:left;
                             ">{text}</div>
-                            <div style="text-align:right; font-size:0.8em;color:#666;">{ts_str}</div>
+                            <div style="font-size:0.8em;color:#666;">{ts_str}</div>
                           </div>
                         </div>
                         """,
