@@ -1,5 +1,5 @@
 # =============================================
-# admin_inbox.py（改良版：既読も一覧に残るメール型受信ボックス＋チャット機能）
+# admin_inbox.py（改良版：ページネーション＋チャット機能）
 # =============================================
 
 import streamlit as st
@@ -81,7 +81,7 @@ def get_latest_received_messages():
 
     for s in students:
         user_id = s["id"]
-        # ✅ 最新1件だけ取得（高速化）
+        # ✅ 最新1件のみ取得（高速化）
         ref = (
             db.collection("rooms")
             .document("personal")
@@ -89,7 +89,7 @@ def get_latest_received_messages():
             .document("messages")
             .collection("items")
             .order_by("timestamp", direction="DESCENDING")
-            .limit(1)  # ← 50件から1件に変更
+            .limit(1)
         )
 
         for d in ref.stream():
@@ -100,7 +100,6 @@ def get_latest_received_messages():
             sender = msg.get("sender", "")
             if sender in ["student", "生徒", "guardian", "保護者"]:
                 read_by = msg.get("read_by", [])
-                current_admin_id = st.session_state.get("member_id")
                 is_unread = current_admin_id not in read_by if current_admin_id else False
                 results.append({
                     "id": user_id,
@@ -112,21 +111,23 @@ def get_latest_received_messages():
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
                 })
-                break  # 最初の1件で終了
+                break
 
     # ✅ 最新順でソート
     results.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
-    
-    # ✅ 最大20件まで表示（さらに高速化）
-    return results[:20]
+    return results
 
 
 # ==================================================
-# 🖥️ 管理者用 受信ボックスUI（既読も残る）
+# 🖥️ 管理者用 受信ボックスUI（ページネーション対応）
 # ==================================================
 def show_admin_inbox():
     st.title("📥 受信ボックス（生徒・保護者からのメッセージ）")
     st.caption("未読は赤色、既読はグレーで表示されます。")
+
+    # ✅ ページネーション用のステート初期化
+    if "inbox_page" not in st.session_state:
+        st.session_state["inbox_page"] = 0
 
     messages = get_latest_received_messages()
 
@@ -134,7 +135,39 @@ def show_admin_inbox():
         st.info("📭 現在、受信メッセージはありません。")
         return
 
-    for m in messages:
+    # ✅ ページネーション設定
+    per_page = 10
+    total_pages = (len(messages) + per_page - 1) // per_page
+    current_page = st.session_state["inbox_page"]
+
+    # ページ範囲の調整
+    if current_page >= total_pages:
+        current_page = max(0, total_pages - 1)
+        st.session_state["inbox_page"] = current_page
+
+    start_idx = current_page * per_page
+    end_idx = start_idx + per_page
+    page_messages = messages[start_idx:end_idx]
+
+    # ✅ ページネーションボタン
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        if current_page > 0:
+            if st.button("◀ 前へ", key="prev_page"):
+                st.session_state["inbox_page"] = current_page - 1
+                st.rerun()
+    with col2:
+        st.markdown(f"<div style='text-align:center;'>ページ {current_page + 1} / {total_pages} （全{len(messages)}件）</div>", unsafe_allow_html=True)
+    with col3:
+        if current_page < total_pages - 1:
+            if st.button("次へ ▶", key="next_page"):
+                st.session_state["inbox_page"] = current_page + 1
+                st.rerun()
+
+    st.markdown("---")
+
+    # ✅ 現在のページのメッセージを表示
+    for m in page_messages:
         name = m["name"]
         grade = m["grade"] or "未設定"
         class_name = m["class"] or "-"
@@ -204,11 +237,11 @@ def show_admin_inbox():
 
 
 # ==================================================
-# 🖥️ 受信ボックス内でチャット表示＋返信機能
+# �️ 受信ボックス内でチャット表示＋返信機能（直近3件のみ）
 # ==================================================
 def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
-    st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
+    st.subheader(f"�💬 {student_name} ({student_id}) とのチャット")
 
     # ✅ admin_chatの関数を使ってメッセージ取得
     messages = get_messages_and_mark_read(student_id, None, None)
@@ -216,16 +249,9 @@ def show_chat_in_inbox(student_id, student_name):
 
     jst = pytz.timezone("Asia/Tokyo")
 
+    # ✅ 直近3件のみ表示（過去履歴expanderは削除）
     latest = messages[:3]
-    older = messages[3:]
 
-    # 過去履歴
-    if older:
-        with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-            for msg in older[::-1]:
-                render_message(msg, student_id, jst)
-
-    # 直近3件
     st.write("### 📌 直近3件")
     for msg in latest[::-1]:
         render_message(msg, student_id, jst)
