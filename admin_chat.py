@@ -600,29 +600,35 @@ def show_admin_chat(initial_student_id=None):
                             )
                         elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
                             label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
-                            st.markdown(
-                                f"""
-                                <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                                  <div style="display:flex; flex-direction:column; align-items:flex-end; width:fit-content; max-width:70%;">
-                                    <div style="font-size:0.8em;color:#666;">{label}</div>
-                                    <div style="
-                                      display:inline-flex;
-                                      background-color:#f1f3f4;
-                                      padding:8px 12px;
-                                      border-radius:12px;
-                                      width:auto;
-                                      max-width:70%;
-                                      word-wrap:break-word;
-                                      white-space:pre-wrap;
-                                      color:#111;
-                                      text-align:left;
-                                    ">{text}</div>
-                                    <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                                  </div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+
+                            col1, col2 = st.columns([9, 1])
+                            with col1:
+                                st.markdown(
+                                    f"""
+                                    <div style="text-align:right; margin:8px 0;">
+                                        <div style="font-size:0.8em; color:#666;">{label}</div>
+
+                                        <div style="
+                                            display:inline-block;
+                                            background-color:#f1f3f4;
+                                            padding:10px 14px;
+                                            border-radius:12px;
+                                            max-width:80%;
+                                            word-wrap:break-word;
+                                            white-space:pre-wrap;
+                                            color:#111;
+                                        ">
+                                            {text}
+                                        </div>
+
+                                        <div style="font-size:0.8em; color:#666;">{ts_str}</div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+
+                            with col2:
+                                pass
 
             # 直近3件
             st.write("### 📌 直近3件")
@@ -667,29 +673,35 @@ def show_admin_chat(initial_student_id=None):
                     )
                 elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
                     label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
-                    st.markdown(
-                        f"""
-                        <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                          <div style="display:flex; flex-direction:column; align-items:flex-end; width:fit-content; max-width:70%;">
-                            <div style="font-size:0.8em;color:#666;">{label}</div>
-                            <div style="
-                              display:inline-flex;
-                              background-color:#f1f3f4;
-                              padding:8px 12px;
-                              border-radius:12px;
-                              width:auto;
-                              max-width:70%;
-                              word-wrap:break-word;
-                              white-space:pre-wrap;
-                              color:#111;
-                              text-align:left;
-                            ">{text}</div>
-                            <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                          </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+
+                    col1, col2 = st.columns([9, 1])
+                    with col1:
+                        st.markdown(
+                            f"""
+                            <div style="text-align:right; margin:8px 0;">
+                                <div style="font-size:0.8em; color:#666;">{label}</div>
+
+                                <div style="
+                                    display:inline-block;
+                                    background-color:#f1f3f4;
+                                    padding:10px 14px;
+                                    border-radius:12px;
+                                    max-width:80%;
+                                    word-wrap:break-word;
+                                    white-space:pre-wrap;
+                                    color:#111;
+                                ">
+                                    {text}
+                                </div>
+
+                                <div style="font-size:0.8em; color:#666;">{ts_str}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    with col2:
+                        pass
 
             # 送信欄（個人）
             st.markdown("---")
