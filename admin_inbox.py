@@ -182,10 +182,10 @@ def show_admin_inbox():
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
 
-                # 👇 タブを「💬 チャット管理」に強制切替
-                st.session_state["_active_tab"] = "💬 チャット管理"
+                # 💬 チャット管理へ強制遷移
+                st.session_state["admin_mode"] = "チャット管理"
 
-                # 👇 このあとタブを描画するとき、この情報を見て自動で開く
+                # show_admin_chat に「最初にこの生徒を開け」と伝えるフラグ
                 st.session_state["redirect_to_admin_chat"] = True
 
                 st.rerun()
