@@ -154,6 +154,13 @@ with tabs[1]:
 # 💬 チャット管理
 # ------------------------
 with tabs[2]:
+
+    # 🔥 受信ボックスから来たときだけ自動遷移
+    if st.session_state.get("redirect_to_admin_chat", False):
+        show_admin_chat(initial_student_id=st.session_state.get("selected_student_id"))
+        st.session_state["redirect_to_admin_chat"] = False
+        st.stop()
+
     st.header("💬 チャット管理")
     show_admin_chat()
 
