@@ -1,3 +1,7 @@
+# =============================================
+# 管理者メニュー（A方式：タブ風ボタン方式 完全版）
+# =============================================
+
 import streamlit as st
 from firebase_admin import firestore
 
@@ -11,139 +15,90 @@ from unread_guardian_list import show_unread_guardian_list
 # ---- ページ設定 ----
 st.set_page_config(page_title="管理者メニュー", layout="wide")
 
-# ---- CSS & JS（フェード・サイドバー・スピナー完全OFF）----
-st.markdown("""<style>
-.stApp::before {content: none !important; display:none !important;}
-[data-testid="stStatusWidget"] {display:none !important;}
-.stApp, .stApp > div, .block-container, div, section, main, header {
-    opacity: 1 !important; transition: none !important;
-}
-[data-testid="stAppViewContainer"] {transition:none !important;}
-.stSpinner, div[data-testid="stSpinner"] {display:none !important;}
-[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] {
-    display:none !important;
-}
-</style>
-<script>
-function killOpacity(){
-    document.querySelectorAll('*').forEach(el=>{
-        const s=window.getComputedStyle(el);
-        if(s.opacity && parseFloat(s.opacity)<1){el.style.opacity="1";}
-    });
-}
-new MutationObserver(()=>killOpacity())
-    .observe(document.body,{childList:true,subtree:true});
-setInterval(killOpacity,200);
-</script>
-""", unsafe_allow_html=True)
-
-
-
-# ---- 権限チェック ----
+# ---- 初期チェック ----
 if not st.session_state.get("login"):
     st.switch_page("main.py")
-
 if st.session_state.get("role") != "admin":
     st.error("⚠ 管理者のみアクセスできます")
     st.stop()
 
 member_id = st.session_state.get("member_id")
 
-
-# ---- モード管理（A方式の心臓部）----
+# ---- A方式: admin_mode 初期化 ----
 if "admin_mode" not in st.session_state:
-    st.session_state["admin_mode"] = "生徒登録"   # ← 初期画面
+    st.session_state["admin_mode"] = "生徒登録"
 
-
-# ---- 未読数（リアルタイム）----
 unread = count_unread_messages()
 
+# ============================================
+# 🎨 タブ風ボタン（A方式のコア）
+# ============================================
 
-# ---- タブの見た目（押したら admin_mode を変えるだけ）----
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "👥 生徒登録",
-    "📋 登録済みユーザー一覧",
-    "💬 チャット管理",
-    f"📥 受信ボックス（{unread}）",
-    "⏰ 送信予約",
-    "👀 保護者未読一覧",
-])
+tabs = [
+    ("生徒登録", "👥 生徒登録"),
+    ("ユーザー一覧", "📋 登録済みユーザー一覧"),
+    ("チャット管理", "💬 チャット管理"),
+    ("受信ボックス", f"📥 受信ボックス（{unread}）"),
+    ("送信予約", "⏰ 送信予約"),
+    ("保護者未読", "👀 保護者未読一覧"),
+]
 
+cols = st.columns(len(tabs))
 
-# ---- タブ押されたときに admin_mode を切り替える ----
-with tab1: st.session_state["admin_mode"] = "生徒登録"
-with tab2: st.session_state["admin_mode"] = "ユーザー一覧"
-with tab3: st.session_state["admin_mode"] = "チャット管理"
-with tab4: st.session_state["admin_mode"] = "受信ボックス"
-with tab5: st.session_state["admin_mode"] = "送信予約"
-with tab6: st.session_state["admin_mode"] = "保護者未読"
+for idx, (mode_key, label) in enumerate(tabs):
+    if cols[idx].button(label, key=f"tab_{idx}"):
+        st.session_state["admin_mode"] = mode_key
+        st.session_state["redirect_to_admin_chat"] = False
+        st.rerun()
 
-
-
-# ---- 表示本体：admin_mode で中身を切り替える ----
-mode = st.session_state["admin_mode"]
-
+# ---- タイトル ----
 st.title(f"📋 管理者メニュー（{member_id}）")
 st.markdown("---")
 
-
-# =========================================
-# 🎯 A方式：ここが重要
-#     受信BOX → 開く ▶ を押した時の遷移
-# =========================================
+# ============================================
+# 🎯 受信BOX → 「開く▶」からの遷移
+# ============================================
 if st.session_state.get("redirect_to_admin_chat", False):
     st.session_state["admin_mode"] = "チャット管理"
     st.session_state["redirect_to_admin_chat"] = False
-    # ここで mode を更新
-    mode = "チャット管理"
+    st.session_state["force_chat_open"] = True
+else:
+    st.session_state["force_chat_open"] = False
 
+mode = st.session_state["admin_mode"]
 
+# ============================================
+# 🎯 コンテンツ切替（A方式の本体）
+# ============================================
 
-# =========================================
-# 🎯 admin_mode に応じて表示切り替え
-# =========================================
-
-# 👥 生徒登録
 if mode == "生徒登録":
-    excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
-    csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
-    if excel_file and csv_file:
+    excel = st.file_uploader("Excel", type=["xlsx"])
+    csv = st.file_uploader("CSV", type=["csv"])
+    if excel and csv:
         st.info("処理中…")
-        df = import_students_from_excel_and_csv(excel_file, csv_file)
-        if len(df) > 0:
-            st.success("Firestoreへ登録が完了しました！")
-        else:
-            st.warning("登録対象が見つかりませんでした。")
+        df = import_students_from_excel_and_csv(excel, csv)
         st.dataframe(df, use_container_width=True)
 
-
-# 📋 登録済みユーザー一覧
 elif mode == "ユーザー一覧":
     st.dataframe(fetch_all_users(), use_container_width=True)
 
-
-# 💬 チャット管理
 elif mode == "チャット管理":
     show_admin_chat(
-        initial_student_id=st.session_state.get("selected_student_id")
+        initial_student_id=(
+            st.session_state["selected_student_id"]
+            if st.session_state.get("force_chat_open")
+            else None
+        )
     )
 
-
-# 📥 受信ボックス
 elif mode == "受信ボックス":
     show_admin_inbox()
 
-
-# ⏰ 送信予約
 elif mode == "送信予約":
     show_schedule_main()
 
-
-# 👀 保護者未読一覧
 elif mode == "保護者未読":
     show_unread_guardian_list()
-
-
 
 
 
