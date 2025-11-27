@@ -467,17 +467,20 @@ def show_admin_chat(initial_student_id=None):
 
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
+    # --- 初期化 ---
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-    # 🔥 タブ押下を正しく判定する（with は使わない）
-    if tab1:
+    with tab1:
         st.session_state["admin_chat_tab"] = "個人"
-    elif tab2:
+
+    with tab2:
         st.session_state["admin_chat_tab"] = "学年"
-    elif tab3:
+
+    with tab3:
         st.session_state["admin_chat_tab"] = "クラス"
-    elif tab4:
+
+    with tab4:
         st.session_state["admin_chat_tab"] = "全員"
 
     target_type = st.session_state["admin_chat_tab"]
