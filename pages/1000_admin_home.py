@@ -155,14 +155,17 @@ with tabs[1]:
 # 💬 チャット管理
 # ------------------------
 with tabs[2]:
+
+    if st.session_state.get("redirect_to_admin_chat", False):
+        show_admin_chat(
+            initial_student_id=st.session_state.get("selected_student_id")
+        )
+        st.session_state["redirect_to_admin_chat"] = False
+        st.stop()
+
     st.header("💬 チャット管理")
-
-    if st.session_state.get("force_open_student", False):
-        show_admin_chat(initial_student_id=st.session_state["selected_student_id"])
-        st.session_state["force_open_student"] = False
-    else:
-        show_admin_chat()
-
+    show_admin_chat()
+    
 # ------------------------
 # 📥 受信BOX
 # ------------------------
