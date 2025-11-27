@@ -465,27 +465,21 @@ def show_admin_chat(initial_student_id=None):
 # ---------- admin-chat タブ専用 wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
-    # ★ タブ生成
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    # --- 初期タブ ---
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-    # --- 実際に押されたタブだけが実行される ---
-    with tab1:
+    # 🔥 タブ押下を正しく判定する（with は使わない）
+    if tab1:
         st.session_state["admin_chat_tab"] = "個人"
-
-    with tab2:
+    elif tab2:
         st.session_state["admin_chat_tab"] = "学年"
-
-    with tab3:
+    elif tab3:
         st.session_state["admin_chat_tab"] = "クラス"
-
-    with tab4:
+    elif tab4:
         st.session_state["admin_chat_tab"] = "全員"
 
-    # ★ 現在のタブ
     target_type = st.session_state["admin_chat_tab"]
 
     st.markdown('</div>', unsafe_allow_html=True)
