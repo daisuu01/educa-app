@@ -121,7 +121,8 @@ tab_labels = [
 ]
 
 # 🔥 ★ここだけ追加：key を状態に紐付ける
-tabs = st.tabs(tab_labels, key=st.session_state["_active_tab"])
+tabs = st.tabs(tab_labels)
+
 
 
 # ------------------------
