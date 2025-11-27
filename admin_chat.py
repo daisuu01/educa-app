@@ -462,6 +462,15 @@ def show_admin_chat(initial_student_id=None):
 
 
 
+    # ---- ダミー input を非表示にする CSS ----
+    st.markdown("""
+    <style>
+    input[id^="dummy_"] {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
     tabs = st.tabs(["個人", "学年", "クラス", "全員"])
@@ -470,35 +479,29 @@ def show_admin_chat(initial_student_id=None):
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-
     # ---- 個人 ----
     with tabs[0]:
-        tab_key = st.text_input("tab_key", "個人", key="dummy_personal", label_visibility="collapsed")
-        if tab_key != st.session_state["admin_chat_tab"]:
-            st.session_state["admin_chat_tab"] = "個人"
+        st.text_input("個人", "個人", key="dummy_personal", label_visibility="collapsed")
+        st.session_state["admin_chat_tab"] = "個人"
 
     # ---- 学年 ----
     with tabs[1]:
-        tab_key = st.text_input("tab_key2", "学年", key="dummy_grade", label_visibility="collapsed")
-        if tab_key != st.session_state["admin_chat_tab"]:
-            st.session_state["admin_chat_tab"] = "学年"
+        st.text_input("学年", "学年", key="dummy_grade", label_visibility="collapsed")
+        st.session_state["admin_chat_tab"] = "学年"
 
     # ---- クラス ----
     with tabs[2]:
-        tab_key = st.text_input("tab_key3", "クラス", key="dummy_class", label_visibility="collapsed")
-        if tab_key != st.session_state["admin_chat_tab"]:
-            st.session_state["admin_chat_tab"] = "クラス"
+        st.text_input("クラス", "クラス", key="dummy_class", label_visibility="collapsed")
+        st.session_state["admin_chat_tab"] = "クラス"
 
     # ---- 全員 ----
     with tabs[3]:
-        tab_key = st.text_input("tab_key4", "全員", key="dummy_all", label_visibility="collapsed")
-        if tab_key != st.session_state["admin_chat_tab"]:
-            st.session_state["admin_chat_tab"] = "全員"
+        st.text_input("全員", "全員", key="dummy_all", label_visibility="collapsed")
+        st.session_state["admin_chat_tab"] = "全員"
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-
-    # ここで現在のタブが確定
+    # 現在のタブ
     target_type = st.session_state["admin_chat_tab"]
 
 
