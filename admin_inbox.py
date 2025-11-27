@@ -238,9 +238,13 @@ def show_admin_inbox():
                     st.session_state["inbox_selected_student_name"] = m["name"]
                     st.rerun()
 
-        # ✅ この生徒のチャットが開かれている場合、ここに表示
-        if st.session_state.get("inbox_selected_student_id") == m["id"]:
-            show_chat_in_inbox(m["id"], m["name"])
+    # ✅ すべてのメッセージ表示後、選択された生徒のチャットを表示
+    selected_id = st.session_state.get("inbox_selected_student_id")
+    selected_name = st.session_state.get("inbox_selected_student_name")
+    
+    if selected_id and selected_name:
+        st.divider()
+        show_chat_in_inbox(selected_id, selected_name)
 
 
 # ==================================================
