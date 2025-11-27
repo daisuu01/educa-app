@@ -294,6 +294,7 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
             else:
                 # ✅ Firestore へ user_id と actor を渡す
                 send_message(user_id, actor, text)
+                st.success("✅ 送信しました")
                 st.session_state["__clear_chat_input__"] = True
                 st.rerun()
 
