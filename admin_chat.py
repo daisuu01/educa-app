@@ -414,40 +414,42 @@ def send_message(target_type: str, user_id: str = None, grade: str = None, class
 
 
 
+
+
+
+
+
+
+
+
+
+
 # ==================================================
-# 🖥️ 管理者用チャットUI
+# 🖥️ 管理者用チャットUI（タブごとに完結）
 # ==================================================
 def show_admin_chat(initial_student_id=None):
     st.title("💬 チャット管理")
 
+    # --- タブの見た目調整CSS（今まで通り） ---
     st.markdown("""
     <style>
-    /* Streamlit の tabs を強制的に横に広くする */
-
-    /* タブリストを中央寄せ＋均等配置 */
     div[role="tablist"] {
         display: flex !important;
         justify-content: space-around !important;
         align-items: center !important;
         width: 100% !important;
     }
-
-    /* タブボタンを広げる */
     div[role="tab"] {
-        flex: 1 !important;          /* 均等幅 */
+        flex: 1 !important;
         text-align: center !important;
         padding: 14px 0 !important;
         font-size: 1.05rem !important;
-        min-width: 120px !important; /* これで横に広がる */
+        min-width: 120px !important;
     }
-
-    /* 選択中のタブ */
     div[role="tab"][aria-selected="true"] {
         color: #e53935 !important;
         font-weight: 600 !important;
     }
-
-    /* 下線 */
     div[role="tab"][aria-selected="true"]::after {
         content: "";
         display: block;
@@ -458,55 +460,6 @@ def show_admin_chat(initial_student_id=None):
     }
     </style>
     """, unsafe_allow_html=True)
-
-
-
-
-    # ---- ダミー input を非表示にする CSS ----
-    st.markdown("""
-    <style>
-    input[id^="dummy_"] {
-        display: none !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
-
-    tabs = st.tabs(["個人", "学年", "クラス", "全員"])
-
-    # 初期化
-    if "admin_chat_tab" not in st.session_state:
-        st.session_state["admin_chat_tab"] = "個人"
-
-    # ---- 個人 ----
-    with tabs[0]:
-        st.text_input("個人", "個人", key="dummy_personal", label_visibility="collapsed")
-        st.session_state["admin_chat_tab"] = "個人"
-
-    # ---- 学年 ----
-    with tabs[1]:
-        st.text_input("学年", "学年", key="dummy_grade", label_visibility="collapsed")
-        st.session_state["admin_chat_tab"] = "学年"
-
-    # ---- クラス ----
-    with tabs[2]:
-        st.text_input("クラス", "クラス", key="dummy_class", label_visibility="collapsed")
-        st.session_state["admin_chat_tab"] = "クラス"
-
-    # ---- 全員 ----
-    with tabs[3]:
-        st.text_input("全員", "全員", key="dummy_all", label_visibility="collapsed")
-        st.session_state["admin_chat_tab"] = "全員"
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # 現在のタブ
-    target_type = st.session_state["admin_chat_tab"]
-
-
-
-    # ----------------------------------------------------
 
     # -------------------------
     # 🔸 自動更新（Inbox遷移時は除外）
@@ -530,26 +483,30 @@ def show_admin_chat(initial_student_id=None):
         st.warning("生徒データが見つかりません。")
         return
 
-    pre_selected_id = initial_student_id or None
+    jst = pytz.timezone("Asia/Tokyo")
+    pre_selected_id = initial_student_id or ""
 
-    selected_id = None
-    grade = None
-    class_name = None
+    # ---------- タブ ----------
+    st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
+    tab_personal, tab_grade, tab_class, tab_all = st.tabs(["個人", "学年", "クラス", "全員"])
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ============================================================
-    # ① 個人タブ（中央に検索欄）
+    # ① 個人タブ
     # ============================================================
-    if target_type == "個人":
+    with tab_personal:
+        st.session_state["admin_chat_tab"] = "個人"
+
+        selected_id = None
         grade = None
         class_name = None
 
         st.write("### 🔎 チャット相手を検索（会員番号）")
 
-        default_value = pre_selected_id or ""
         search_id = st.text_input(
             "会員番号を入力してください",
-            value=default_value,
-            key="search_member_id"
+            value=pre_selected_id,
+            key="search_member_id_personal"
         ).strip()
 
         matched = []
@@ -565,7 +522,8 @@ def show_admin_chat(initial_student_id=None):
                 selected_id = st.selectbox(
                     "候補から選択",
                     [s["id"] for s in matched],
-                    format_func=lambda x: f"{x}：{next((s['name'] for s in matched if s['id']==x), x)}"
+                    key="personal_candidates",
+                    format_func=lambda x: f"{x}：{next((s['name'] for s in matched if s['id'] == x), x)}"
                 )
         else:
             if search_id:
@@ -577,266 +535,205 @@ def show_admin_chat(initial_student_id=None):
                 grade = u.get("grade")
                 class_name = u.get("class_code") or u.get("class")
 
-    # ============================================================
-    # ② 学年タブ（中央表示）
-    # ============================================================
-    elif target_type == "学年":
-        st.write("### 🏫 学年を選択")
-        grade = st.selectbox("学年", ["中1", "中2", "中3", "高1", "高2", "高3"])
-        class_name = None
-        selected_id = None
-
-    # ============================================================
-    # ③ クラスタブ（中央表示）
-    # ============================================================
-    elif target_type == "クラス":
-        st.write("### 👥 クラスを選択")
-
-        class_options = {
-            (s.get("class_code") or s.get("class")): s.get("class") or s.get("class_code")
-            for s in students
-            if s.get("class_code") or s.get("class")
-        }
-
-        if class_options:
-            class_code = st.selectbox(
-                "クラス（コード＋名称）",
-                sorted(class_options.keys()),
-                format_func=lambda x: f"{x}：{class_options[x]}"
-            )
-            class_name = class_code
-
-            for s in students:
-                if s.get("class_code") == class_code or s.get("class") == class_code:
-                    grade = s.get("grade")
-                    break
-        else:
-            st.warning("クラスデータがありません。")
-            class_name = None
-            grade = None
-
-    # ============================================================
-    # ④ 全員タブ
-    # ============================================================
-    elif target_type == "全員":
-        selected_id = None
-        grade = None
-        class_name = None
-
-
-
-    #################個人宛####################
-
-    if target_type == "個人" and selected_id:
-        u = next((s for s in students if s["id"] == selected_id), None)
-        if u:
-            # nameが空 or idと同じなら重複回避
-            if not u.get("name") or u["name"] == selected_id:
-                display_name = selected_id
-            else:
-                display_name = f"{selected_id} {u['name']}"
-        else:
+            # ---- 個人チャット表示 ----
             display_name = selected_id
+            if u and u.get("name") and u["name"] != selected_id:
+                display_name = f"{selected_id} {u['name']}"
 
-        st.subheader(f"🧑‍🎓 {display_name} さんとのチャット")
+            st.subheader(f"🧑‍🎓 {display_name} さんとのチャット")
 
-        messages = get_messages_and_mark_read(selected_id, grade, class_name)
-        messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
+            messages = get_messages_and_mark_read(selected_id, grade, class_name)
+            messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
 
-        latest = messages[:3]
-        older = messages[3:]
+            latest = messages[:3]
+            older = messages[3:]
 
-        # ✅ ① 過去履歴（expanderを上）
-        if older:
-            with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for msg in older[::-1]:
-                    sender = msg.get("sender", "")
-                    text = msg.get("message", msg.get("text", ""))
-                    ts = msg.get("timestamp")
-                    jst = pytz.timezone("Asia/Tokyo")
-                    ts_jst = ts.astimezone(jst) if ts else None
-                    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
-                    read_by = msg.get("read_by", [])
+            # 過去履歴
+            if older:
+                with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+                    for msg in older[::-1]:
+                        sender = msg.get("sender", "")
+                        text = msg.get("message", msg.get("text", ""))
+                        ts = msg.get("timestamp")
+                        ts_jst = ts.astimezone(jst) if ts else None
+                        ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+                        read_by = msg.get("read_by", [])
 
-                    # --- 管理者メッセージ（左側）
-                    if sender in ["admin", "先生", "講師"]:
-                        guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
-                        guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
-                        st.markdown(
-                            f"""
-                            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                                <div style="
-                                    background:#d2e3fc;
-                                    padding:10px 14px;
-                                    border-radius:12px;
-                                    max-width:80%;
-                                    color:#111;
-                                    display:inline-block;
-                                    word-break:break-word;
-                                    white-space:pre-wrap;
-                                ">{text}</div>
-                            </div>
-                            <div style="
-                                margin-left:8px;
-                                font-size:0.8em;
-                                color:#666;
-                                display:flex;
-                                flex-direction:column;
-                                align-items:flex-start;
-                            ">
-                                <span>{ts_str}</span>
-                                <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-
-
-                    # --- 生徒または保護者メッセージ（右側）
-                    elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
-                        label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
-                        st.markdown(
-                            f"""
-                            <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                              <div style="text-align:right;">
-                                <div style="font-size:0.8em;color:#666;">{label}</div>
-                                <div style="
-                                  display:inline-block;
-                                  background-color:#f1f3f4;
-                                  padding:8px 12px;
-                                  border-radius:12px;
-                                  width:auto;              /* ← 内容に合わせて縮む */
-                                  max-width:70%;           /* ← 長文だけ折り返し */
-                                  word-wrap:break-word;
-                                  white-space:pre-wrap;
-                                  color:#111;
-                                  text-align:left;         /* ← 吹き出し内は左揃え */
-                                ">
-                                  {text}
+                        if sender in ["admin", "先生", "講師"]:
+                            guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
+                            guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
+                            st.markdown(
+                                f"""
+                                <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                                    <div style="
+                                        background:#d2e3fc;
+                                        padding:10px 14px;
+                                        border-radius:12px;
+                                        max-width:80%;
+                                        color:#111;
+                                        display:inline-block;
+                                        word-break:break-word;
+                                        white-space:pre-wrap;
+                                    ">{text}</div>
                                 </div>
-                                <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                              </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                                <div style="
+                                    margin-left:8px;
+                                    font-size:0.8em;
+                                    color:#666;
+                                    display:flex;
+                                    flex-direction:column;
+                                    align-items:flex-start;
+                                ">
+                                    <span>{ts_str}</span>
+                                    <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                        elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+                            label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
+                            st.markdown(
+                                f"""
+                                <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+                                  <div style="text-align:right;">
+                                    <div style="font-size:0.8em;color:#666;">{label}</div>
+                                    <div style="
+                                      display:inline-block;
+                                      background-color:#f1f3f4;
+                                      padding:8px 12px;
+                                      border-radius:12px;
+                                      width:auto;
+                                      max-width:70%;
+                                      word-wrap:break-word;
+                                      white-space:pre-wrap;
+                                      color:#111;
+                                      text-align:left;
+                                    ">
+                                      {text}
+                                    </div>
+                                    <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+                                  </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
 
+            # 直近3件
+            st.write("### 📌 直近3件")
+            for msg in latest[::-1]:
+                sender = msg.get("sender", "")
+                text = msg.get("message", msg.get("text", ""))
+                ts = msg.get("timestamp")
+                ts_jst = ts.astimezone(jst) if ts else None
+                ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+                read_by = msg.get("read_by", [])
 
-        # ✅ ② 直近3件（新しいほど下に）
-        st.write("### 📌 直近3件")
-        for msg in latest[::-1]:
-            sender = msg.get("sender", "")
-            text = msg.get("message", msg.get("text", ""))
-            ts = msg.get("timestamp")
-            jst = pytz.timezone("Asia/Tokyo")
-            ts_jst = ts.astimezone(jst) if ts else None
-            ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
-            read_by = msg.get("read_by", [])
-
-            if sender in ["admin", "先生", "講師"]:
-                guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
-                guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
-                st.markdown(
-                    f"""
-                    <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                        <div style="
-                            background:#d2e3fc;
-                            padding:10px 14px;
-                            border-radius:12px;
-                            max-width:80%;
-                            color:#111;
-                            display:inline-block;
-                            word-break:break-word;
-                            white-space:pre-wrap;
-                        ">{text}</div>
-                    </div>
-                    <div style="
-                        margin-left:8px;
-                        font-size:0.8em;
-                        color:#666;
-                        display:flex;
-                        flex-direction:column;
-                        align-items:flex-start;
-                    ">
-                        <span>{ts_str}</span>
-                        <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-
-            elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
-                label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
-                st.markdown(
-                    f"""
-                    <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                      <div style="text-align:right;">
-                        <div style="font-size:0.8em;color:#666;">{label}</div>
-                        <div style="
-                          display:inline-block;
-                          background-color:#f1f3f4;
-                          padding:8px 12px;
-                          border-radius:12px;
-                          width:auto;              /* ← 内容に合わせて縮む */
-                          max-width:70%;           /* ← 長文だけ折り返し */
-                          word-wrap:break-word;
-                          white-space:pre-wrap;
-                          color:#111;
-                          text-align:left;         /* ← 吹き出し内は左揃え */
-                        ">
-                          {text}
+                if sender in ["admin", "先生", "講師"]:
+                    guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
+                    guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
+                    st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                            <div style="
+                                background:#d2e3fc;
+                                padding:10px 14px;
+                                border-radius:12px;
+                                max-width:80%;
+                                color:#111;
+                                display:inline-block;
+                                word-break:break-word;
+                                white-space:pre-wrap;
+                            ">{text}</div>
                         </div>
-                        <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                      </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                        <div style="
+                            margin-left:8px;
+                            font-size:0.8em;
+                            color:#666;
+                            display:flex;
+                            flex-direction:column;
+                            align-items:flex-start;
+                        ">
+                            <span>{ts_str}</span>
+                            <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+                    label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
+                    st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+                          <div style="text-align:right;">
+                            <div style="font-size:0.8em;color:#666;">{label}</div>
+                            <div style="
+                              display:inline-block;
+                              background-color:#f1f3f4;
+                              padding:8px 12px;
+                              border-radius:12px;
+                              width:auto;
+                              max-width:70%;
+                              word-wrap:break-word;
+                              white-space:pre-wrap;
+                              color:#111;
+                              text-align:left;
+                            ">
+                              {text}
+                            </div>
+                            <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+                          </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
+            # 送信欄（個人）
+            st.markdown("---")
+            st.subheader("📨 メッセージ送信（個人）")
+            with st.form("send_form_personal", clear_on_submit=True):
+                text = st.text_area("メッセージを入力", height=80)
+                send_clicked = st.form_submit_button("送信", use_container_width=True)
+            if send_clicked and selected_id:
+                send_message("個人", selected_id, grade, class_name, text)
+                st.success("送信しました")
 
+    # ============================================================
+    # ② 学年タブ
+    # ============================================================
+    with tab_grade:
+        st.session_state["admin_chat_tab"] = "学年"
 
-    # --- 以下（クラス宛、全員宛、学年宛、送信欄）は変更なし ---
-    # （元のコードのままでOK）
+        st.write("### 🏫 学年を選択")
+        grade = st.selectbox("学年", ["中1", "中2", "中3", "高1", "高2", "高3"], key="grade_select")
+        class_name = None
+        selected_id = None
 
+        st.subheader(f"🏫 {grade} 宛メッセージ履歴")
 
-
-
-    # --- クラス宛履歴 ---
-    elif target_type == "クラス" and class_name:
-        st.subheader(f"👥 {class_name} 宛メッセージ履歴")
-
-        # Firestore参照
         ref = (
             db.collection("rooms")
-            .document("class")
-            .collection(str(class_name))
+            .document("grade")
+            .collection(grade)
             .document("messages")
             .collection("items")
         )
 
-        # メッセージ取得（最新→古い）
-        all_msgs = []
+        grade_msgs = []
         for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
-
             m = d.to_dict()
             if m:
-                all_msgs.append(m)
+                grade_msgs.append(m)
 
-        # 直近3件 & 過去
-        latest = all_msgs[:3]
-        older = all_msgs[3:]
+        latest = grade_msgs[:3]
+        older = grade_msgs[3:]
 
-        # ✅ ① 過去履歴（expanderを上）
         if older:
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for m in older[::-1]:  # 古い順
+                for m in older[::-1]:
                     ts = m.get("timestamp")
-                    jst = pytz.timezone("Asia/Tokyo")
                     ts_jst = ts.astimezone(jst) if ts else None
                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
-
                     st.markdown(
                         f"""
                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -859,16 +756,12 @@ def show_admin_chat(initial_student_id=None):
                         unsafe_allow_html=True
                     )
 
-        # ✅ ② 直近3件（新しいほど下）
         st.write("### 📌 直近3件")
-
-        for m in latest[::-1]:  # ← reverse
+        for m in latest[::-1]:
             ts = m.get("timestamp")
-            jst = pytz.timezone("Asia/Tokyo")
             ts_jst = ts.astimezone(jst) if ts else None
             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
-
             st.markdown(
                 f"""
                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -891,37 +784,152 @@ def show_admin_chat(initial_student_id=None):
                 unsafe_allow_html=True
             )
 
-        st.divider()
+        st.markdown("---")
+        st.subheader("📨 メッセージ送信（学年）")
+        with st.form("send_form_grade", clear_on_submit=True):
+            text = st.text_area("メッセージを入力", height=80)
+            send_clicked = st.form_submit_button("送信", use_container_width=True)
+        if send_clicked:
+            send_message("学年", None, grade, None, text)
+            st.success("送信しました")
 
+    # ============================================================
+    # ③ クラスタブ
+    # ============================================================
+    with tab_class:
+        st.session_state["admin_chat_tab"] = "クラス"
 
+        st.write("### 👥 クラスを選択")
+        class_options = {
+            (s.get("class_code") or s.get("class")): s.get("class") or s.get("class_code")
+            for s in students
+            if s.get("class_code") or s.get("class")
+        }
 
-    # --- 全員宛履歴 ---
-    elif target_type == "全員":
+        class_name = None
+        if class_options:
+            class_code = st.selectbox(
+                "クラス（コード＋名称）",
+                sorted(class_options.keys()),
+                key="class_select",
+                format_func=lambda x: f"{x}：{class_options[x]}"
+            )
+            class_name = class_code
+        else:
+            st.warning("クラスデータがありません。")
+
+        if class_name:
+            st.subheader(f"👥 {class_name} 宛メッセージ履歴")
+
+            ref = (
+                db.collection("rooms")
+                .document("class")
+                .collection(str(class_name))
+                .document("messages")
+                .collection("items")
+            )
+
+            all_msgs = []
+            for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
+                m = d.to_dict()
+                if m:
+                    all_msgs.append(m)
+
+            latest = all_msgs[:3]
+            older = all_msgs[3:]
+
+            if older:
+                with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+                    for m in older[::-1]:
+                        ts = m.get("timestamp")
+                        ts_jst = ts.astimezone(jst) if ts else None
+                        ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+                        text = m.get("message", m.get("text", ""))
+                        st.markdown(
+                            f"""
+                            <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                                <div style="
+                                    background:#f1f3f4;
+                                    padding:10px 14px;
+                                    border-radius:12px;
+                                    max-width:80%;
+                                    display:inline-block;
+                                    color:#111;
+                                    word-break:break-word;
+                                ">
+                                    {text}
+                                </div>
+                            </div>
+                            <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                              {ts_str}
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+            st.write("### 📌 直近3件")
+            for m in latest[::-1]:
+                ts = m.get("timestamp")
+                ts_jst = ts.astimezone(jst) if ts else None
+                ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+                text = m.get("message", m.get("text", ""))
+                st.markdown(
+                    f"""
+                    <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+                        <div style="
+                            background:#f1f3f4;
+                            padding:10px 14px;
+                            border-radius:12px;
+                            max-width:80%;
+                            display:inline-block;
+                            color:#111;
+                            word-break:break-word;
+                        ">
+                            {text}
+                        </div>
+                    </div>
+                    <div style="font-size:0.8em; color:#666; margin-left:4px;">
+                      {ts_str}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            st.markdown("---")
+            st.subheader("📨 メッセージ送信（クラス）")
+            with st.form("send_form_class", clear_on_submit=True):
+                text = st.text_area("メッセージを入力", height=80)
+                send_clicked = st.form_submit_button("送信", use_container_width=True)
+            if send_clicked:
+                send_message("クラス", None, None, class_name, text)
+                st.success("送信しました")
+
+    # ============================================================
+    # ④ 全員タブ
+    # ============================================================
+    with tab_all:
+        st.session_state["admin_chat_tab"] = "全員"
+
         st.subheader("🌏 全員宛メッセージ履歴")
 
         all_ref = db.collection("rooms").document("all").collection("messages")
 
-        # メッセージ取得（最新→古い）
         all_msgs = []
         for d in all_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
             m = d.to_dict()
             if m:
                 all_msgs.append(m)
 
-        # 直近3件 & 過去
         latest = all_msgs[:3]
         older = all_msgs[3:]
 
-        # 過去履歴
         if older:
             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
                 for m in older[::-1]:
                     ts = m.get("timestamp")
-                    jst = pytz.timezone("Asia/Tokyo")
                     ts_jst = ts.astimezone(jst) if ts else None
                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
-
                     st.markdown(
                         f"""
                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -944,15 +952,12 @@ def show_admin_chat(initial_student_id=None):
                         unsafe_allow_html=True
                     )
 
-        # 直近3件
         st.write("### 📌 直近3件")
         for m in latest[::-1]:
             ts = m.get("timestamp")
-            jst = pytz.timezone("Asia/Tokyo")
             ts_jst = ts.astimezone(jst) if ts else None
             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
-
             st.markdown(
                 f"""
                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -975,111 +980,688 @@ def show_admin_chat(initial_student_id=None):
                 unsafe_allow_html=True
             )
 
-        st.divider()
+        st.markdown("---")
+        st.subheader("📨 メッセージ送信（全員）")
+        with st.form("send_form_all", clear_on_submit=True):
+            text = st.text_area("メッセージを入力", height=80)
+            send_clicked = st.form_submit_button("送信", use_container_width=True)
+        if send_clicked:
+            send_message("全員", None, None, None, text)
+            st.success("送信しました")
 
 
 
 
-    ######### 学年宛て ###########
-    elif target_type == "学年" and grade:
-        st.subheader(f"🏫 {grade} 宛メッセージ履歴")
-
-        ref = (
-            db.collection("rooms")
-            .document("grade")
-            .collection(grade)
-            .document("messages")
-            .collection("items")
-        )
-
-        # メッセージ取得（最新→古い）
-        grade_msgs = []
-        for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
-            m = d.to_dict()
-            if m:
-                grade_msgs.append(m)
-
-        # 直近3件 & 過去
-        latest = grade_msgs[:3]
-        older = grade_msgs[3:]
-
-        # ✅ ① 過去履歴（expander上）
-        if older:
-            with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
-                for m in older[::-1]:  # 古い順に表示
-                    ts = m.get("timestamp")
-                    jst = pytz.timezone("Asia/Tokyo")
-                    ts_jst = ts.astimezone(jst) if ts else None
-                    ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
-                    text = m.get("message", m.get("text", ""))
-
-                    st.markdown(
-                        f"""
-                        <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                            <div style="
-                                background:#f1f3f4;
-                                padding:10px 14px;
-                                border-radius:12px;
-                                max-width:80%;
-                                display:inline-block;
-                                color:#111;
-                                word-break:break-word;
-                            ">
-                                {text}
-                            </div>
-                        </div>
-                        <div style="font-size:0.8em; color:#666; margin-left:4px;">
-                          {ts_str}
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-        # ✅ ② 直近3件（新しいほど下）
-        st.write("### 📌 直近3件")
-
-        for m in latest[::-1]:  # 最新→古い を反転
-            ts = m.get("timestamp")
-            jst = pytz.timezone("Asia/Tokyo")
-            ts_jst = ts.astimezone(jst) if ts else None
-            ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
-            text = m.get("message", m.get("text", ""))
-
-            st.markdown(
-                f"""
-                <div style="display:flex; justify-content:flex-start; margin:10px 0;">
-                    <div style="
-                        background:#f1f3f4;
-                        padding:10px 14px;
-                        border-radius:12px;
-                        max-width:80%;
-                        display:inline-block;
-                        color:#111;
-                        word-break:break-word;
-                    ">
-                        {text}
-                    </div>
-                </div>
-                <div style="font-size:0.8em; color:#666; margin-left:4px;">
-                  {ts_str}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        st.divider()
 
 
 
-    # --- 送信欄 ---
-    st.markdown("---")
-    st.subheader("📨 メッセージ送信")
 
-    # ✅ フォーム形式に変更（反応率100%・ラグ消滅）
-    with st.form("send_form", clear_on_submit=True):
-        text = st.text_area("メッセージを入力", height=80)
-        send_clicked = st.form_submit_button("送信", use_container_width=True)
+# # ==================================================
+# # 🖥️ 管理者用チャットUI
+# # ==================================================
+# def show_admin_chat(initial_student_id=None):
+#     st.title("💬 チャット管理")
 
-    if send_clicked:
-        send_message(target_type, selected_id, grade, class_name, text)
-        st.success("送信しました")
+#     st.markdown("""
+#     <style>
+#     /* Streamlit の tabs を強制的に横に広くする */
+
+#     /* タブリストを中央寄せ＋均等配置 */
+#     div[role="tablist"] {
+#         display: flex !important;
+#         justify-content: space-around !important;
+#         align-items: center !important;
+#         width: 100% !important;
+#     }
+
+#     /* タブボタンを広げる */
+#     div[role="tab"] {
+#         flex: 1 !important;          /* 均等幅 */
+#         text-align: center !important;
+#         padding: 14px 0 !important;
+#         font-size: 1.05rem !important;
+#         min-width: 120px !important; /* これで横に広がる */
+#     }
+
+#     /* 選択中のタブ */
+#     div[role="tab"][aria-selected="true"] {
+#         color: #e53935 !important;
+#         font-weight: 600 !important;
+#     }
+
+#     /* 下線 */
+#     div[role="tab"][aria-selected="true"]::after {
+#         content: "";
+#         display: block;
+#         height: 3px;
+#         background: #e53935;
+#         border-radius: 2px;
+#         margin-top: 6px;
+#     }
+#     </style>
+#     """, unsafe_allow_html=True)
+
+
+
+
+#     # ---- ダミー input を非表示にする CSS ----
+#     st.markdown("""
+#     <style>
+#     input[id^="dummy_"] {
+#         display: none !important;
+#     }
+#     </style>
+#     """, unsafe_allow_html=True)
+
+#     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
+
+#     tabs = st.tabs(["個人", "学年", "クラス", "全員"])
+
+#     # 初期化
+#     if "admin_chat_tab" not in st.session_state:
+#         st.session_state["admin_chat_tab"] = "個人"
+
+#     # ---- 個人 ----
+#     with tabs[0]:
+#         st.text_input("個人", "個人", key="dummy_personal", label_visibility="collapsed")
+#         st.session_state["admin_chat_tab"] = "個人"
+
+#     # ---- 学年 ----
+#     with tabs[1]:
+#         st.text_input("学年", "学年", key="dummy_grade", label_visibility="collapsed")
+#         st.session_state["admin_chat_tab"] = "学年"
+
+#     # ---- クラス ----
+#     with tabs[2]:
+#         st.text_input("クラス", "クラス", key="dummy_class", label_visibility="collapsed")
+#         st.session_state["admin_chat_tab"] = "クラス"
+
+#     # ---- 全員 ----
+#     with tabs[3]:
+#         st.text_input("全員", "全員", key="dummy_all", label_visibility="collapsed")
+#         st.session_state["admin_chat_tab"] = "全員"
+
+#     st.markdown('</div>', unsafe_allow_html=True)
+
+#     # 現在のタブ
+#     target_type = st.session_state["admin_chat_tab"]
+
+
+
+#     # ----------------------------------------------------
+
+#     # -------------------------
+#     # 🔸 自動更新（Inbox遷移時は除外）
+#     # -------------------------
+#     if not st.session_state.get("just_opened_from_inbox"):
+#         st_autorefresh(interval=5000, key="admin_chat_refresh")
+#     else:
+#         st.session_state["just_opened_from_inbox"] = False
+
+#     # -------------------------
+#     # 🔸 Inbox から引き継いだ ID
+#     # -------------------------
+#     if "selected_student_id" in st.session_state and st.session_state["selected_student_id"]:
+#         initial_student_id = st.session_state["selected_student_id"]
+
+#     # -------------------------
+#     # 🔸 生徒一覧ロード
+#     # -------------------------
+#     students = get_all_students()
+#     if not students:
+#         st.warning("生徒データが見つかりません。")
+#         return
+
+#     pre_selected_id = initial_student_id or None
+
+#     selected_id = None
+#     grade = None
+#     class_name = None
+
+#     # ============================================================
+#     # ① 個人タブ（中央に検索欄）
+#     # ============================================================
+#     if target_type == "個人":
+#         grade = None
+#         class_name = None
+
+#         st.write("### 🔎 チャット相手を検索（会員番号）")
+
+#         default_value = pre_selected_id or ""
+#         search_id = st.text_input(
+#             "会員番号を入力してください",
+#             value=default_value,
+#             key="search_member_id"
+#         ).strip()
+
+#         matched = []
+#         if search_id:
+#             exact = [s for s in students if s["id"] == search_id]
+#             matched = exact if exact else [s for s in students if s["id"].startswith(search_id)]
+
+#         if matched:
+#             if len(matched) == 1:
+#                 selected_id = matched[0]["id"]
+#                 st.success(f"選択中：{selected_id}（{matched[0]['name']}）")
+#             else:
+#                 selected_id = st.selectbox(
+#                     "候補から選択",
+#                     [s["id"] for s in matched],
+#                     format_func=lambda x: f"{x}：{next((s['name'] for s in matched if s['id']==x), x)}"
+#                 )
+#         else:
+#             if search_id:
+#                 st.warning("該当する会員番号が見つかりません。")
+
+#         if selected_id:
+#             u = next((s for s in students if s["id"] == selected_id), None)
+#             if u:
+#                 grade = u.get("grade")
+#                 class_name = u.get("class_code") or u.get("class")
+
+#     # ============================================================
+#     # ② 学年タブ（中央表示）
+#     # ============================================================
+#     elif target_type == "学年":
+#         st.write("### 🏫 学年を選択")
+#         grade = st.selectbox("学年", ["中1", "中2", "中3", "高1", "高2", "高3"])
+#         class_name = None
+#         selected_id = None
+
+#     # ============================================================
+#     # ③ クラスタブ（中央表示）
+#     # ============================================================
+#     elif target_type == "クラス":
+#         st.write("### 👥 クラスを選択")
+
+#         class_options = {
+#             (s.get("class_code") or s.get("class")): s.get("class") or s.get("class_code")
+#             for s in students
+#             if s.get("class_code") or s.get("class")
+#         }
+
+#         if class_options:
+#             class_code = st.selectbox(
+#                 "クラス（コード＋名称）",
+#                 sorted(class_options.keys()),
+#                 format_func=lambda x: f"{x}：{class_options[x]}"
+#             )
+#             class_name = class_code
+
+#             for s in students:
+#                 if s.get("class_code") == class_code or s.get("class") == class_code:
+#                     grade = s.get("grade")
+#                     break
+#         else:
+#             st.warning("クラスデータがありません。")
+#             class_name = None
+#             grade = None
+
+#     # ============================================================
+#     # ④ 全員タブ
+#     # ============================================================
+#     elif target_type == "全員":
+#         selected_id = None
+#         grade = None
+#         class_name = None
+
+
+
+#     #################個人宛####################
+
+#     if target_type == "個人" and selected_id:
+#         u = next((s for s in students if s["id"] == selected_id), None)
+#         if u:
+#             # nameが空 or idと同じなら重複回避
+#             if not u.get("name") or u["name"] == selected_id:
+#                 display_name = selected_id
+#             else:
+#                 display_name = f"{selected_id} {u['name']}"
+#         else:
+#             display_name = selected_id
+
+#         st.subheader(f"🧑‍🎓 {display_name} さんとのチャット")
+
+#         messages = get_messages_and_mark_read(selected_id, grade, class_name)
+#         messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
+
+#         latest = messages[:3]
+#         older = messages[3:]
+
+#         # ✅ ① 過去履歴（expanderを上）
+#         if older:
+#             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+#                 for msg in older[::-1]:
+#                     sender = msg.get("sender", "")
+#                     text = msg.get("message", msg.get("text", ""))
+#                     ts = msg.get("timestamp")
+#                     jst = pytz.timezone("Asia/Tokyo")
+#                     ts_jst = ts.astimezone(jst) if ts else None
+#                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#                     read_by = msg.get("read_by", [])
+
+#                     # --- 管理者メッセージ（左側）
+#                     if sender in ["admin", "先生", "講師"]:
+#                         guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
+#                         guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
+#                         st.markdown(
+#                             f"""
+#                             <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                                 <div style="
+#                                     background:#d2e3fc;
+#                                     padding:10px 14px;
+#                                     border-radius:12px;
+#                                     max-width:80%;
+#                                     color:#111;
+#                                     display:inline-block;
+#                                     word-break:break-word;
+#                                     white-space:pre-wrap;
+#                                 ">{text}</div>
+#                             </div>
+#                             <div style="
+#                                 margin-left:8px;
+#                                 font-size:0.8em;
+#                                 color:#666;
+#                                 display:flex;
+#                                 flex-direction:column;
+#                                 align-items:flex-start;
+#                             ">
+#                                 <span>{ts_str}</span>
+#                                 <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+#                             </div>
+#                             """,
+#                             unsafe_allow_html=True
+#                         )
+
+
+#                     # --- 生徒または保護者メッセージ（右側）
+#                     elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+#                         label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
+#                         st.markdown(
+#                             f"""
+#                             <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+#                               <div style="text-align:right;">
+#                                 <div style="font-size:0.8em;color:#666;">{label}</div>
+#                                 <div style="
+#                                   display:inline-block;
+#                                   background-color:#f1f3f4;
+#                                   padding:8px 12px;
+#                                   border-radius:12px;
+#                                   width:auto;              /* ← 内容に合わせて縮む */
+#                                   max-width:70%;           /* ← 長文だけ折り返し */
+#                                   word-wrap:break-word;
+#                                   white-space:pre-wrap;
+#                                   color:#111;
+#                                   text-align:left;         /* ← 吹き出し内は左揃え */
+#                                 ">
+#                                   {text}
+#                                 </div>
+#                                 <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+#                               </div>
+#                             </div>
+#                             """,
+#                             unsafe_allow_html=True
+#                         )
+
+
+#         # ✅ ② 直近3件（新しいほど下に）
+#         st.write("### 📌 直近3件")
+#         for msg in latest[::-1]:
+#             sender = msg.get("sender", "")
+#             text = msg.get("message", msg.get("text", ""))
+#             ts = msg.get("timestamp")
+#             jst = pytz.timezone("Asia/Tokyo")
+#             ts_jst = ts.astimezone(jst) if ts else None
+#             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#             read_by = msg.get("read_by", [])
+
+#             if sender in ["admin", "先生", "講師"]:
+#                 guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
+#                 guardian_color = "#1a73e8" if selected_id in read_by else "#d93025"
+#                 st.markdown(
+#                     f"""
+#                     <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                         <div style="
+#                             background:#d2e3fc;
+#                             padding:10px 14px;
+#                             border-radius:12px;
+#                             max-width:80%;
+#                             color:#111;
+#                             display:inline-block;
+#                             word-break:break-word;
+#                             white-space:pre-wrap;
+#                         ">{text}</div>
+#                     </div>
+#                     <div style="
+#                         margin-left:8px;
+#                         font-size:0.8em;
+#                         color:#666;
+#                         display:flex;
+#                         flex-direction:column;
+#                         align-items:flex-start;
+#                     ">
+#                         <span>{ts_str}</span>
+#                         <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
+#                     </div>
+#                     """,
+#                     unsafe_allow_html=True
+#                 )
+
+
+#             elif sender in ["生徒", "保護者", "student", "guardian", "student_生徒", "student_保護者"]:
+#                 label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
+#                 st.markdown(
+#                     f"""
+#                     <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+#                       <div style="text-align:right;">
+#                         <div style="font-size:0.8em;color:#666;">{label}</div>
+#                         <div style="
+#                           display:inline-block;
+#                           background-color:#f1f3f4;
+#                           padding:8px 12px;
+#                           border-radius:12px;
+#                           width:auto;              /* ← 内容に合わせて縮む */
+#                           max-width:70%;           /* ← 長文だけ折り返し */
+#                           word-wrap:break-word;
+#                           white-space:pre-wrap;
+#                           color:#111;
+#                           text-align:left;         /* ← 吹き出し内は左揃え */
+#                         ">
+#                           {text}
+#                         </div>
+#                         <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
+#                       </div>
+#                     </div>
+#                     """,
+#                     unsafe_allow_html=True
+#                 )
+
+
+
+#     # --- 以下（クラス宛、全員宛、学年宛、送信欄）は変更なし ---
+#     # （元のコードのままでOK）
+
+
+
+
+#     # --- クラス宛履歴 ---
+#     elif target_type == "クラス" and class_name:
+#         st.subheader(f"👥 {class_name} 宛メッセージ履歴")
+
+#         # Firestore参照
+#         ref = (
+#             db.collection("rooms")
+#             .document("class")
+#             .collection(str(class_name))
+#             .document("messages")
+#             .collection("items")
+#         )
+
+#         # メッセージ取得（最新→古い）
+#         all_msgs = []
+#         for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
+
+#             m = d.to_dict()
+#             if m:
+#                 all_msgs.append(m)
+
+#         # 直近3件 & 過去
+#         latest = all_msgs[:3]
+#         older = all_msgs[3:]
+
+#         # ✅ ① 過去履歴（expanderを上）
+#         if older:
+#             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+#                 for m in older[::-1]:  # 古い順
+#                     ts = m.get("timestamp")
+#                     jst = pytz.timezone("Asia/Tokyo")
+#                     ts_jst = ts.astimezone(jst) if ts else None
+#                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#                     text = m.get("message", m.get("text", ""))
+
+#                     st.markdown(
+#                         f"""
+#                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                             <div style="
+#                                 background:#f1f3f4;
+#                                 padding:10px 14px;
+#                                 border-radius:12px;
+#                                 max-width:80%;
+#                                 display:inline-block;
+#                                 color:#111;
+#                                 word-break:break-word;
+#                             ">
+#                                 {text}
+#                             </div>
+#                         </div>
+#                         <div style="font-size:0.8em; color:#666; margin-left:4px;">
+#                           {ts_str}
+#                         </div>
+#                         """,
+#                         unsafe_allow_html=True
+#                     )
+
+#         # ✅ ② 直近3件（新しいほど下）
+#         st.write("### 📌 直近3件")
+
+#         for m in latest[::-1]:  # ← reverse
+#             ts = m.get("timestamp")
+#             jst = pytz.timezone("Asia/Tokyo")
+#             ts_jst = ts.astimezone(jst) if ts else None
+#             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#             text = m.get("message", m.get("text", ""))
+
+#             st.markdown(
+#                 f"""
+#                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                     <div style="
+#                         background:#f1f3f4;
+#                         padding:10px 14px;
+#                         border-radius:12px;
+#                         max-width:80%;
+#                         display:inline-block;
+#                         color:#111;
+#                         word-break:break-word;
+#                     ">
+#                         {text}
+#                     </div>
+#                 </div>
+#                 <div style="font-size:0.8em; color:#666; margin-left:4px;">
+#                   {ts_str}
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True
+#             )
+
+#         st.divider()
+
+
+
+#     # --- 全員宛履歴 ---
+#     elif target_type == "全員":
+#         st.subheader("🌏 全員宛メッセージ履歴")
+
+#         all_ref = db.collection("rooms").document("all").collection("messages")
+
+#         # メッセージ取得（最新→古い）
+#         all_msgs = []
+#         for d in all_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
+#             m = d.to_dict()
+#             if m:
+#                 all_msgs.append(m)
+
+#         # 直近3件 & 過去
+#         latest = all_msgs[:3]
+#         older = all_msgs[3:]
+
+#         # 過去履歴
+#         if older:
+#             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+#                 for m in older[::-1]:
+#                     ts = m.get("timestamp")
+#                     jst = pytz.timezone("Asia/Tokyo")
+#                     ts_jst = ts.astimezone(jst) if ts else None
+#                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#                     text = m.get("message", m.get("text", ""))
+
+#                     st.markdown(
+#                         f"""
+#                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                             <div style="
+#                                 background:#f1f3f4;
+#                                 padding:10px 14px;
+#                                 border-radius:12px;
+#                                 max-width:80%;
+#                                 display:inline-block;
+#                                 color:#111;
+#                                 word-break:break-word;
+#                             ">
+#                                 {text}
+#                             </div>
+#                         </div>
+#                         <div style="font-size:0.8em; color:#666; margin-left:4px;">
+#                         {ts_str}
+#                         </div>
+#                         """,
+#                         unsafe_allow_html=True
+#                     )
+
+#         # 直近3件
+#         st.write("### 📌 直近3件")
+#         for m in latest[::-1]:
+#             ts = m.get("timestamp")
+#             jst = pytz.timezone("Asia/Tokyo")
+#             ts_jst = ts.astimezone(jst) if ts else None
+#             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#             text = m.get("message", m.get("text", ""))
+
+#             st.markdown(
+#                 f"""
+#                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                     <div style="
+#                         background:#f1f3f4;
+#                         padding:10px 14px;
+#                         border-radius:12px;
+#                         max-width:80%;
+#                         display:inline-block;
+#                         color:#111;
+#                         word-break:break-word;
+#                     ">
+#                         {text}
+#                     </div>
+#                 </div>
+#                 <div style="font-size:0.8em; color:#666; margin-left:4px;">
+#                 {ts_str}
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True
+#             )
+
+#         st.divider()
+
+
+
+
+#     ######### 学年宛て ###########
+#     elif target_type == "学年" and grade:
+#         st.subheader(f"🏫 {grade} 宛メッセージ履歴")
+
+#         ref = (
+#             db.collection("rooms")
+#             .document("grade")
+#             .collection(grade)
+#             .document("messages")
+#             .collection("items")
+#         )
+
+#         # メッセージ取得（最新→古い）
+#         grade_msgs = []
+#         for d in ref.order_by("timestamp", direction="DESCENDING").limit(100).stream():
+#             m = d.to_dict()
+#             if m:
+#                 grade_msgs.append(m)
+
+#         # 直近3件 & 過去
+#         latest = grade_msgs[:3]
+#         older = grade_msgs[3:]
+
+#         # ✅ ① 過去履歴（expander上）
+#         if older:
+#             with st.expander(f"📜 過去の履歴を表示（{len(older)}件）"):
+#                 for m in older[::-1]:  # 古い順に表示
+#                     ts = m.get("timestamp")
+#                     jst = pytz.timezone("Asia/Tokyo")
+#                     ts_jst = ts.astimezone(jst) if ts else None
+#                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#                     text = m.get("message", m.get("text", ""))
+
+#                     st.markdown(
+#                         f"""
+#                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                             <div style="
+#                                 background:#f1f3f4;
+#                                 padding:10px 14px;
+#                                 border-radius:12px;
+#                                 max-width:80%;
+#                                 display:inline-block;
+#                                 color:#111;
+#                                 word-break:break-word;
+#                             ">
+#                                 {text}
+#                             </div>
+#                         </div>
+#                         <div style="font-size:0.8em; color:#666; margin-left:4px;">
+#                           {ts_str}
+#                         </div>
+#                         """,
+#                         unsafe_allow_html=True
+#                     )
+
+#         # ✅ ② 直近3件（新しいほど下）
+#         st.write("### 📌 直近3件")
+
+#         for m in latest[::-1]:  # 最新→古い を反転
+#             ts = m.get("timestamp")
+#             jst = pytz.timezone("Asia/Tokyo")
+#             ts_jst = ts.astimezone(jst) if ts else None
+#             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
+#             text = m.get("message", m.get("text", ""))
+
+#             st.markdown(
+#                 f"""
+#                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
+#                     <div style="
+#                         background:#f1f3f4;
+#                         padding:10px 14px;
+#                         border-radius:12px;
+#                         max-width:80%;
+#                         display:inline-block;
+#                         color:#111;
+#                         word-break:break-word;
+#                     ">
+#                         {text}
+#                     </div>
+#                 </div>
+#                 <div style="font-size:0.8em; color:#666; margin-left:4px;">
+#                   {ts_str}
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True
+#             )
+
+#         st.divider()
+
+
+
+#     # --- 送信欄 ---
+#     st.markdown("---")
+#     st.subheader("📨 メッセージ送信")
+
+#     # ✅ フォーム形式に変更（反応率100%・ラグ消滅）
+#     with st.form("send_form", clear_on_submit=True):
+#         text = st.text_area("メッセージを入力", height=80)
+#         send_clicked = st.form_submit_button("送信", use_container_width=True)
+
+#     if send_clicked:
+#         send_message(target_type, selected_id, grade, class_name, text)
+#         st.success("送信しました")
