@@ -31,9 +31,8 @@ def get_all_students():
 
 
 # ==================================================
-# ✅ 未読件数を数える関数（サイドバー表示用）
+# ✅ 未読件数を数える関数（タブのバッジ用）
 # ==================================================
-
 def count_unread_messages():
     students = get_all_students()
     unread_count = 0
@@ -59,12 +58,10 @@ def count_unread_messages():
                 continue
             if msg.get("sender") != "admin":
                 read_by = msg.get("read_by", [])
-                # ✅ 固定文字 "admin" → 現在の管理者ID で判定
                 if current_admin_id and current_admin_id not in read_by:
                     unread_count += 1
 
     return unread_count
-
 
 
 # ==================================================
@@ -96,7 +93,6 @@ def get_latest_received_messages():
             sender = msg.get("sender", "")
             if sender in ["student", "生徒", "guardian", "保護者"]:
                 read_by = msg.get("read_by", [])
-                current_admin_id = st.session_state.get("member_id")
                 is_unread = current_admin_id not in read_by if current_admin_id else False
                 results.append({
                     "id": user_id,
@@ -108,11 +104,11 @@ def get_latest_received_messages():
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
                 })
-                # ✅ 最新1件だけ採用（生徒・保護者別けずに最後のメッセージ）
+                # ✅ 最新1件だけ採用
                 break
 
     # ✅ 最新順でソート
-    results.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
+    results.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
     return results
 
 
@@ -174,14 +170,21 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # 開くボタン
+        # 🔘 開くボタン
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button("開く ▶", key=f"open_{m['id']}"):
+                # ✅ ① チャットで開きたい生徒IDを保存
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
 
-                # 🔥 次の rerun でチャット管理タブに飛ぶ
+                # ✅ ② 「受信ボックスから来た」フラグをON
                 st.session_state["redirect_to_admin_chat"] = True
 
-                st.rerun()
+                # 🔸 tabsレイアウトでは、ここでタブは自動では切り替わらない
+                #    上の「💬 チャット管理」タブをクリックしたとき、
+                #    1000_admin_home.py 側の
+                #      if st.session_state.get("redirect_to_admin_chat", False):
+                #          show_admin_chat(initial_student_id=...)
+                #    が動いて、自動でその生徒とのチャットが開く
+                st.success("上の「💬 チャット管理」タブを押すと、この生徒とのチャットが開きます。")
