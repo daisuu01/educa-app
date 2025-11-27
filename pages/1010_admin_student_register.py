@@ -1,13 +1,14 @@
 # =============================================
 # pages/1010_admin_student_register.py
-# 生徒登録ページ（独立ページ）
+# 生徒登録ページ（独立ページ → タブ方式対応）
 # =============================================
 
 import streamlit as st
 from firebase_utils import import_students_from_excel_and_csv
 
 # ---- ページ設定 ----
-st.set_page_config(page_title="生徒登録", layout="wide")
+# ※ タブ方式では set_page_config は禁止（1000_admin_home.pyで1回だけ実行する）
+# st.set_page_config(page_title="生徒登録", layout="wide")
 
 # ---- サイドバー完全非表示＋Running無効化＋フェード無効化 ----
 st.markdown("""
@@ -86,6 +87,7 @@ if st.session_state.get("role") != "admin":
     st.error("⚠ 管理者のみアクセスできます")
     st.stop()
 
+# ---- ページ内容 ----
 st.title("👥 生徒登録")
 st.markdown("---")
 
@@ -106,7 +108,7 @@ if excel_file and csv_file:
 
     st.dataframe(df, use_container_width=True)
 
-# ---- 管理メニューへ戻る ----
+# ---- 管理メニューへ戻る（削除：タブ方式では不要）
 st.markdown("---")
-if st.button("⬅ 管理者メニューに戻る"):
-    st.switch_page("pages/1000_admin_home.py")
+# if st.button("⬅ 管理者メニューに戻る"):
+#     st.switch_page("pages/1000_admin_home.py")
