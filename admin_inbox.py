@@ -178,9 +178,9 @@ def show_admin_inbox():
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button("開く ▶", key=f"open_{m['id']}"):
+                # ✅ チャット管理画面に自動遷移（session_stateに情報を保存してrerun）
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
-                st.session_state["just_opened_from_inbox"] = True  # 自動更新を一時停止
-                
-                # ✅ チャット管理画面に自動遷移（admin_chat.pyを使用）
-                st.switch_page("admin_chat.py")
+                st.session_state["just_opened_from_inbox"] = True
+                st.session_state["admin_menu_selection"] = "💬 チャット管理"
+                st.rerun()
