@@ -462,43 +462,44 @@ def show_admin_chat(initial_student_id=None):
 
 
 
-    # ---------- admin-chat タブ専用の wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
-    tab_labels = ["個人", "学年", "クラス", "全員"]
-    tab_objects = st.tabs(tab_labels)
+    tabs = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    # --- 初期タブ ---
+    # 初期化
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
 
-    # ======================================
-    # 🔥 ここが Streamlit で唯一安定する方法！
-    # “アクティブなタブは index=0 と同じ iframe にいる”
-    # ======================================
-    # tab_objects は list だが、現在アクティブなタブは
-    # 最初に描画される tab_objects[0] の内容が切り替わる。
-    # つまり、tab_objects[0] が「押されたタブ」を表す。
+    # ---- 個人 ----
+    with tabs[0]:
+        tab_key = st.text_input("tab_key", "個人", key="dummy_personal", label_visibility="collapsed")
+        if tab_key != st.session_state["admin_chat_tab"]:
+            st.session_state["admin_chat_tab"] = "個人"
 
-    active_index = tab_labels.index(st.session_state["admin_chat_tab"])
+    # ---- 学年 ----
+    with tabs[1]:
+        tab_key = st.text_input("tab_key2", "学年", key="dummy_grade", label_visibility="collapsed")
+        if tab_key != st.session_state["admin_chat_tab"]:
+            st.session_state["admin_chat_tab"] = "学年"
 
-    # タブ描画順を「アクティブタブを先頭」に並べ替え
-    ordered_labels = tab_labels[active_index:] + tab_labels[:active_index]
+    # ---- クラス ----
+    with tabs[2]:
+        tab_key = st.text_input("tab_key3", "クラス", key="dummy_class", label_visibility="collapsed")
+        if tab_key != st.session_state["admin_chat_tab"]:
+            st.session_state["admin_chat_tab"] = "クラス"
 
-
-    # st.tabs() をもう一度描き直して順番を確定
-    tabs2 = st.tabs(ordered_labels)
-
-    # 最初（先頭）が現在押されたタブ
-    current_tab_name = ordered_labels[0]
-
-    # セッションに保存
-    st.session_state["admin_chat_tab"] = current_tab_name
-
-    target_type = current_tab_name
+    # ---- 全員 ----
+    with tabs[3]:
+        tab_key = st.text_input("tab_key4", "全員", key="dummy_all", label_visibility="collapsed")
+        if tab_key != st.session_state["admin_chat_tab"]:
+            st.session_state["admin_chat_tab"] = "全員"
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+    # ここで現在のタブが確定
+    target_type = st.session_state["admin_chat_tab"]
 
 
 
