@@ -73,10 +73,12 @@ def count_unread_messages():
 
 # ==================================================
 # 🔹 各生徒の最新メッセージ（既読・未読どちらも）を取得
+# ✅ キャッシュで高速化（5秒間保持）
 # ==================================================
-def get_latest_received_messages():
+@st.cache_data(ttl=5, show_spinner=False)
+def _get_latest_received_messages_cached(admin_id: str):
+    """キャッシュ用の内部関数（admin_idを引数で渡す）"""
     students = get_all_students()
-    current_admin_id = st.session_state.get("member_id")
     results = []
 
     for s in students:
@@ -89,7 +91,7 @@ def get_latest_received_messages():
             .document("messages")
             .collection("items")
             .order_by("timestamp", direction="DESCENDING")
-            .limit(10)  # ← 10件取得して生徒・保護者メッセージを探す
+            .limit(10)
         )
 
         for d in ref.stream():
@@ -98,10 +100,9 @@ def get_latest_received_messages():
                 continue
 
             sender = msg.get("sender", "")
-            # ✅ 生徒・保護者のメッセージだけを抽出
             if sender in ["student", "生徒", "guardian", "保護者", "student_生徒", "student_保護者"]:
                 read_by = msg.get("read_by", [])
-                is_unread = current_admin_id not in read_by if current_admin_id else False
+                is_unread = admin_id not in read_by if admin_id else False
                 results.append({
                     "id": user_id,
                     "name": s["name"],
@@ -112,12 +113,16 @@ def get_latest_received_messages():
                     "is_unread": is_unread,
                     "actor": msg.get("actor"),
                 })
-                # ✅ 生徒・保護者の最新メッセージが見つかったらループ終了
                 break
 
-    # ✅ 最新順でソート
     results.sort(key=lambda x: x.get("timestamp", datetime(2000,1,1)), reverse=True)
     return results
+
+
+def get_latest_received_messages():
+    """外部から呼ばれる関数（session_stateを使う）"""
+    current_admin_id = st.session_state.get("member_id")
+    return _get_latest_received_messages_cached(current_admin_id or "")
 
 
 # ==================================================
