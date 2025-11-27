@@ -431,9 +431,9 @@ def show_admin_chat(initial_student_id=None):
     st.title("💬 チャット管理")
 
         # ←このすぐ下に追加！！
-    if "selected_student_id" in st.session_state and st.session_state["selected_student_id"]:
-        initial_student_id = st.session_state["selected_student_id"]
-        st.session_state["admin_chat_tab"] = "個人"
+    if st.session_state.get("just_opened_from_inbox"):
+        initial_student_id = st.session_state.get("selected_student_id")
+        st.session_state["just_opened_from_inbox"] = False
 
     # --- タブの見た目調整CSS（今まで通り） ---
     st.markdown("""
