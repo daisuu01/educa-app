@@ -462,8 +462,7 @@ def show_admin_chat(initial_student_id=None):
 
 
 
-# ---------- admin-chat タブ専用 wrapper ----------
-# ---------- admin-chat タブ専用 wrapper ----------
+    # ---------- admin-chat タブ専用の wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
@@ -473,58 +472,41 @@ def show_admin_chat(initial_student_id=None):
         st.session_state["admin_chat_tab"] = "個人"
 
 
-    # ===== ▼ タブの中に“透明なボタン”を置く ▼ =====
-    TAB_STYLE = """
-    <style>
-    .transparent-btn button {
-        background: none !important;
-        border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        opacity: 0 !important;
-    }
-    </style>
-    """
-    st.markdown(TAB_STYLE, unsafe_allow_html=True)
+    # ===== ▼ 完全非表示のイベントボタン ▼ =====
+    def hidden_button(key):
+        # 高さ0・幅0・透明なコンテナに押し込む
+        empty = st.empty()
+        with empty.container():
+            clicked = st.button(key, help="", key=f"hidden_{key}")
+        empty.empty()  # 描画直後に消すので完全に見えない
+        return clicked
 
 
     with tab1:
-        # 「個人」タブが押された瞬間だけこの領域が実行される
-        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
-        if st.button("switch_personal"):
+        if hidden_button("personal"):
             st.session_state["admin_chat_tab"] = "個人"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
-        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
-        if st.button("switch_grade"):
+        if hidden_button("grade"):
             st.session_state["admin_chat_tab"] = "学年"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab3:
-        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
-        if st.button("switch_class"):
+        if hidden_button("class"):
             st.session_state["admin_chat_tab"] = "クラス"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab4:
-        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
-        if st.button("switch_all"):
+        if hidden_button("all"):
             st.session_state["admin_chat_tab"] = "全員"
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
     # --- 現在のタブ ---
     target_type = st.session_state["admin_chat_tab"]
 
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 
 
