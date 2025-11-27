@@ -181,34 +181,33 @@ def show_admin_inbox():
         # 開くボタン
         col1, col2 = st.columns([4, 1])
         with col2:
-            if st.button("開く ▶", key=f"open_{m['id']}"):
-                # ✅ この生徒のチャットを開く
-                st.session_state["inbox_selected_student_id"] = m["id"]
-                st.session_state["inbox_selected_student_name"] = m["name"]
-                st.rerun()
+            # ✅ 現在開いているチャットかどうかチェック
+            is_open = st.session_state.get("inbox_selected_student_id") == m["id"]
+            
+            if is_open:
+                # 閉じるボタン
+                if st.button("❌ 閉じる", key=f"close_{m['id']}"):
+                    st.session_state["inbox_selected_student_id"] = None
+                    st.session_state["inbox_selected_student_name"] = None
+                    st.rerun()
+            else:
+                # 開くボタン
+                if st.button("開く ▶", key=f"open_{m['id']}"):
+                    st.session_state["inbox_selected_student_id"] = m["id"]
+                    st.session_state["inbox_selected_student_name"] = m["name"]
+                    st.rerun()
 
-    # ==================================================
-    # ✅ チャット画面表示（生徒が選択されている場合）
-    # ==================================================
-    if "inbox_selected_student_id" in st.session_state and st.session_state["inbox_selected_student_id"]:
-        show_chat_in_inbox()
+        # ✅ この生徒のチャットが開かれている場合、ここに表示
+        if st.session_state.get("inbox_selected_student_id") == m["id"]:
+            show_chat_in_inbox(m["id"], m["name"])
 
 
 # ==================================================
 # 🖥️ 受信ボックス内でチャット表示＋返信機能
 # ==================================================
-def show_chat_in_inbox():
-    student_id = st.session_state.get("inbox_selected_student_id")
-    student_name = st.session_state.get("inbox_selected_student_name", student_id)
-
+def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
     st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
-
-    # 閉じるボタン
-    if st.button("❌ チャットを閉じる", key="close_chat"):
-        st.session_state["inbox_selected_student_id"] = None
-        st.session_state["inbox_selected_student_name"] = None
-        st.rerun()
 
     # ✅ admin_chatの関数を使ってメッセージ取得
     messages = get_messages_and_mark_read(student_id, None, None)
@@ -233,14 +232,16 @@ def show_chat_in_inbox():
     # 送信欄
     st.markdown("---")
     st.subheader("📨 返信する")
-    with st.form("inbox_send_form", clear_on_submit=True):
-        text = st.text_area("メッセージを入力", height=80)
+    with st.form(f"inbox_send_form_{student_id}", clear_on_submit=True):
+        text = st.text_area("メッセージを入力", height=80, key=f"text_{student_id}")
         send_clicked = st.form_submit_button("送信", use_container_width=True)
     
     if send_clicked and text.strip():
         send_message("個人", student_id, None, None, text)
         st.success("✅ 送信しました")
         st.rerun()
+    
+    st.markdown("---")
 
 
 # ==================================================
