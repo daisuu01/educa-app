@@ -602,24 +602,26 @@ def show_admin_chat(initial_student_id=None):
                             label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                             st.markdown(
                                 f"""
-                                <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                                  <div style="text-align:right;">
-                                    <div style="font-size:0.8em;color:#666;">{label}</div>
-                                    <div style="
-                                      display:inline-block;
-                                      background-color:#f1f3f4;
-                                      padding:8px 12px;
-                                      border-radius:12px;
-                                      width:auto;
-                                      max-width:70%;
-                                      word-wrap:break-word;
-                                      white-space:pre-wrap;
-                                      color:#111;
-                                      text-align:left;
-                                    ">{text}</div>
-                                    <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                                  </div>
-                                </div>
+								<div style="display:flex; justify-content:flex-end; margin:10px 0;">
+									<div style="display:flex; flex-direction:column; align-items:flex-end;">
+										<div style="font-size:0.8em;color:#666;">{label}</div>
+
+										<div style="
+											display:inline-block;
+											background-color:#f1f3f4;
+											padding:8px 12px;
+											border-radius:12px;
+											max-width:70%;
+											word-break:break-word;
+											white-space:pre-wrap;
+											color:#111;
+											text-align:left;
+										">{text}</div>
+
+										<div style="font-size:0.8em;color:#666; text-align:right; width:100%;">{ts_str}</div>
+									</div>
+								</div>
+
                                 """,
                                 unsafe_allow_html=True
                             )
@@ -669,24 +671,26 @@ def show_admin_chat(initial_student_id=None):
                     label = "👦 生徒" if sender in ["生徒", "student", "student_生徒"] else "👨‍👩‍👧 保護者"
                     st.markdown(
                         f"""
-                        <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-                          <div style="text-align:right;">
-                            <div style="font-size:0.8em;color:#666;">{label}</div>
-                            <div style="
-                              display:inline-block;
-                              background-color:#f1f3f4;
-                              padding:8px 12px;
-                              border-radius:12px;
-                              width:auto;
-                              max-width:70%;
-                              word-wrap:break-word;
-                              white-space:pre-wrap;
-                              color:#111;
-                              text-align:left;
-                            ">{text}</div>                         
-                            <div style="font-size:0.8em;color:#666;text-align:right;">{ts_str}</div>
-                          </div>
-                        </div>
+						<div style="display:flex; justify-content:flex-end; margin:10px 0;">
+							<div style="display:flex; flex-direction:column; align-items:flex-end;">
+								<div style="font-size:0.8em;color:#666;">{label}</div>
+
+								<div style="
+									display:inline-block;
+									background-color:#f1f3f4;
+									padding:8px 12px;
+									border-radius:12px;
+									max-width:70%;
+									word-break:break-word;
+									white-space:pre-wrap;
+									color:#111;
+									text-align:left;
+								">{text}</div>
+
+								<div style="font-size:0.8em;color:#666; text-align:right; width:100%;">{ts_str}</div>
+							</div>
+						</div>
+
                         """,
                         unsafe_allow_html=True
                     )
