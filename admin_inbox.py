@@ -180,8 +180,7 @@ def show_admin_inbox():
             if st.button("開く ▶", key=f"open_{m['id']}"):
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
-
-                # 💬 チャット管理タブを押したら、自動で対象チャットを開くフラグ
-                st.session_state["redirect_to_admin_chat"] = True
-
-                st.success("上の『💬 チャット管理』タブを押すと、この生徒とのチャットが開きます。")
+                st.session_state["just_opened_from_inbox"] = True  # 自動更新を一時停止
+                
+                # ✅ チャット管理画面に自動遷移
+                st.switch_page("admin_chat.py")
