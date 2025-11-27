@@ -463,33 +463,68 @@ def show_admin_chat(initial_student_id=None):
 
 
 # ---------- admin-chat タブ専用 wrapper ----------
+# ---------- admin-chat タブ専用 wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
 
-    # --- 初期値 ---
+    # --- 初期タブ ---
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
-    # --- 個人タブ ---
+
+    # ===== ▼ タブの中に“透明なボタン”を置く ▼ =====
+    TAB_STYLE = """
+    <style>
+    .transparent-btn button {
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        opacity: 0 !important;
+    }
+    </style>
+    """
+    st.markdown(TAB_STYLE, unsafe_allow_html=True)
+
+
     with tab1:
-        st.session_state["admin_chat_tab"] = "個人"
+        # 「個人」タブが押された瞬間だけこの領域が実行される
+        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
+        if st.button("switch_personal"):
+            st.session_state["admin_chat_tab"] = "個人"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- 学年タブ ---
     with tab2:
-        st.session_state["admin_chat_tab"] = "学年"
+        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
+        if st.button("switch_grade"):
+            st.session_state["admin_chat_tab"] = "学年"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- クラスタブ ---
     with tab3:
-        st.session_state["admin_chat_tab"] = "クラス"
+        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
+        if st.button("switch_class"):
+            st.session_state["admin_chat_tab"] = "クラス"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- 全員タブ ---
     with tab4:
-        st.session_state["admin_chat_tab"] = "全員"
+        st.markdown('<div class="transparent-btn">', unsafe_allow_html=True)
+        if st.button("switch_all"):
+            st.session_state["admin_chat_tab"] = "全員"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
+
+    # --- 現在のタブ ---
     target_type = st.session_state["admin_chat_tab"]
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 
