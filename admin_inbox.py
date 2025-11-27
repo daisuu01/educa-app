@@ -178,9 +178,12 @@ def show_admin_inbox():
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button("開く ▶", key=f"open_{m['id']}"):
-                # ✅ 開いても削除せず残す仕様
                 st.session_state["selected_student_id"] = m["id"]
                 st.session_state["selected_student_name"] = m["name"]
                 st.session_state["admin_mode"] = "チャット管理"
                 st.session_state["just_opened_from_inbox"] = True
+
+                # 🔥 タブを強制的に切り替える
+                st.session_state["_active_tab"] = "💬 チャット管理"
+
                 st.rerun()

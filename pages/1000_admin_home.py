@@ -54,7 +54,7 @@ st.markdown("""
     visibility: hidden !important;
 }
 
-/* サイドバー完全削除（必要なら） */
+/* サイドバー完全削除 */
 [data-testid="stSidebar"],
 [data-testid="stSidebarCollapsedControl"] {
     display: none !important;
@@ -76,11 +76,9 @@ function killOpacity() {
     });
 }
 
-// DOM 更新が起きた瞬間に即上書き
 new MutationObserver(() => killOpacity())
     .observe(document.body, { childList: true, subtree: true });
 
-// 念のため 0.2 秒ごとにも実行
 setInterval(killOpacity, 200);
 </script>
 """, unsafe_allow_html=True)
@@ -96,6 +94,11 @@ if st.session_state.get("role") != "admin":
 
 member_id = st.session_state.get("member_id")
 
+# 🔥 ★追加：タブ切替のための内部状態
+if "_active_tab" not in st.session_state:
+    st.session_state["_active_tab"] = "👥 生徒登録"
+
+
 # --------------------------------------------
 # 🎉 管理者メニュー（タブ表示）
 # --------------------------------------------
@@ -106,15 +109,20 @@ st.markdown("---")
 # 🔥 未読数（リアルタイム）
 unread = count_unread_messages()
 
-# 🔥 タブ6つ
-tabs = st.tabs([
+
+# 🔥 タブ定義
+tab_labels = [
     "👥 生徒登録",
     "📋 登録済みユーザー一覧",
     "💬 チャット管理",
     f"📥 受信ボックス（{unread}）",
     "⏰ 送信予約",
     "👀 保護者未読一覧"
-])
+]
+
+# 🔥 ★ここだけ追加：key を状態に紐付ける
+tabs = st.tabs(tab_labels, key=st.session_state["_active_tab"])
+
 
 # ------------------------
 # 👥 生徒登録
@@ -133,12 +141,14 @@ with tabs[0]:
             st.warning("登録対象が見つかりませんでした。")
         st.dataframe(df, use_container_width=True)
 
+
 # ------------------------
 # 📋 登録済みユーザー一覧
 # ------------------------
 with tabs[1]:
     st.header("📋 登録済みユーザー一覧")
     st.dataframe(fetch_all_users(), use_container_width=True)
+
 
 # ------------------------
 # 💬 チャット管理
@@ -147,6 +157,7 @@ with tabs[2]:
     st.header("💬 チャット管理")
     show_admin_chat()
 
+
 # ------------------------
 # 📥 受信BOX
 # ------------------------
@@ -154,12 +165,14 @@ with tabs[3]:
     st.header("📥 受信ボックス")
     show_admin_inbox()
 
+
 # ------------------------
 # ⏰ 送信予約
 # ------------------------
 with tabs[4]:
     st.header("⏰ 送信予約")
     show_schedule_main()
+
 
 # ------------------------
 # 👀 保護者未読一覧
