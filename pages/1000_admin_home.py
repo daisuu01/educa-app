@@ -129,6 +129,12 @@ tabs = st.tabs(tab_labels)
 # 👥 生徒登録
 # ------------------------
 with tabs[0]:
+    # ✅ このタブに来たらチャット状態をクリア
+    if st.session_state.get("selected_student_id"):
+        st.session_state["selected_student_id"] = None
+    if st.session_state.get("inbox_selected_student_id"):
+        st.session_state["inbox_selected_student_id"] = None
+    
     st.header("👥 生徒登録")
     excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
     csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
@@ -147,6 +153,12 @@ with tabs[0]:
 # 📋 登録済みユーザー一覧
 # ------------------------
 with tabs[1]:
+    # ✅ このタブに来たらチャット状態をクリア
+    if st.session_state.get("selected_student_id"):
+        st.session_state["selected_student_id"] = None
+    if st.session_state.get("inbox_selected_student_id"):
+        st.session_state["inbox_selected_student_id"] = None
+    
     st.header("📋 登録済みユーザー一覧")
     st.dataframe(fetch_all_users(), use_container_width=True)
 
@@ -155,6 +167,10 @@ with tabs[1]:
 # 💬 チャット管理
 # ------------------------
 with tabs[2]:
+    # ✅ 受信ボックスの状態をクリア（チャット管理では使わない）
+    if st.session_state.get("inbox_selected_student_id"):
+        st.session_state["inbox_selected_student_id"] = None
+    
     st.header("💬 チャット管理")
     
     # ✅ 受信ボックスから遷移した場合
@@ -170,6 +186,10 @@ with tabs[2]:
 # 📥 受信BOX
 # ------------------------
 with tabs[3]:
+    # ✅ チャット管理の状態をクリア（受信ボックスでは使わない）
+    if st.session_state.get("selected_student_id"):
+        st.session_state["selected_student_id"] = None
+    
     st.header("📥 受信ボックス")
     show_admin_inbox()
 
@@ -178,6 +198,12 @@ with tabs[3]:
 # ⏰ 送信予約
 # ------------------------
 with tabs[4]:
+    # ✅ このタブに来たらチャット状態をクリア
+    if st.session_state.get("selected_student_id"):
+        st.session_state["selected_student_id"] = None
+    if st.session_state.get("inbox_selected_student_id"):
+        st.session_state["inbox_selected_student_id"] = None
+    
     st.header("⏰ 送信予約")
     show_schedule_main()
 
@@ -186,6 +212,12 @@ with tabs[4]:
 # 👀 保護者未読一覧
 # ------------------------
 with tabs[5]:
+    # ✅ このタブに来たらチャット状態をクリア
+    if st.session_state.get("selected_student_id"):
+        st.session_state["selected_student_id"] = None
+    if st.session_state.get("inbox_selected_student_id"):
+        st.session_state["inbox_selected_student_id"] = None
+    
     st.header("👀 保護者未読一覧")
     show_unread_guardian_list()
 
