@@ -109,8 +109,7 @@ st.markdown("---")
 # 🔥 未読数（リアルタイム）
 unread = count_unread_messages()
 
-
-# 🔥 タブ定義
+# ★ タブ定義
 tab_labels = [
     "👥 生徒登録",
     "📋 登録済みユーザー一覧",
@@ -120,77 +119,79 @@ tab_labels = [
     "👀 保護者未読一覧"
 ]
 
-# 🔥 ★ここだけ追加：key を状態に紐付ける
+# ★ 現在のタブ index を決定
+active_label = st.session_state["_active_tab"]
+active_index = tab_labels.index(active_label)
+
+# タブ描画
 tabs = st.tabs(tab_labels)
-
-
 
 # ------------------------
 # 👥 生徒登録
 # ------------------------
-with tabs[0]:
-    st.header("👥 生徒登録")
-    excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
-    csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
+if active_index == 0:
+    with tabs[0]:
+        st.header("👥 生徒登録")
+        excel_file = st.file_uploader("📘 Excel（名簿）", type=["xlsx"])
+        csv_file = st.file_uploader("📄 CSV（初期PW）", type=["csv"])
 
-    if excel_file and csv_file:
-        st.info("処理中…")
-        df = import_students_from_excel_and_csv(excel_file, csv_file)
-        if len(df) > 0:
-            st.success("Firestoreへ登録が完了しました！")
-        else:
-            st.warning("登録対象が見つかりませんでした。")
-        st.dataframe(df, use_container_width=True)
-
+        if excel_file and csv_file:
+            st.info("処理中…")
+            df = import_students_from_excel_and_csv(excel_file, csv_file)
+            if len(df) > 0:
+                st.success("Firestoreへ登録が完了しました！")
+            else:
+                st.warning("登録対象が見つかりませんでした。")
+            st.dataframe(df, use_container_width=True)
 
 # ------------------------
 # 📋 登録済みユーザー一覧
 # ------------------------
-with tabs[1]:
-    st.header("📋 登録済みユーザー一覧")
-    st.dataframe(fetch_all_users(), use_container_width=True)
-
+if active_index == 1:
+    with tabs[1]:
+        st.header("📋 登録済みユーザー一覧")
+        st.dataframe(fetch_all_users(), use_container_width=True)
 
 # ------------------------
 # 💬 チャット管理
 # ------------------------
-with tabs[2]:
+if active_index == 2:
+    with tabs[2]:
 
-    # 🔥 受信ボックスから来たときだけ自動遷移
-    if st.session_state.get("redirect_to_admin_chat", False):
-        show_admin_chat(initial_student_id=st.session_state.get("selected_student_id"))
-        st.session_state["redirect_to_admin_chat"] = False
-        st.stop()
+        # 🔥 受信ボックスから開く場合
+        if st.session_state.get("redirect_to_admin_chat", False):
+            show_admin_chat(
+                initial_student_id=st.session_state.get("selected_student_id")
+            )
+            st.session_state["redirect_to_admin_chat"] = False
+            st.stop()
 
-    st.header("💬 チャット管理")
-    show_admin_chat()
-
+        st.header("💬 チャット管理")
+        show_admin_chat()
 
 # ------------------------
 # 📥 受信BOX
 # ------------------------
-with tabs[3]:
-    st.header("📥 受信ボックス")
-    show_admin_inbox()
-
+if active_index == 3:
+    with tabs[3]:
+        st.header("📥 受信ボックス")
+        show_admin_inbox()
 
 # ------------------------
 # ⏰ 送信予約
 # ------------------------
-with tabs[4]:
-    st.header("⏰ 送信予約")
-    show_schedule_main()
-
+if active_index == 4:
+    with tabs[4]:
+        st.header("⏰ 送信予約")
+        show_schedule_main()
 
 # ------------------------
 # 👀 保護者未読一覧
 # ------------------------
-with tabs[5]:
-    st.header("👀 保護者未読一覧")
-    show_unread_guardian_list()
-
-
-
+if active_index == 5:
+    with tabs[5]:
+        st.header("👀 保護者未読一覧")
+        show_unread_guardian_list()
 
 
 
