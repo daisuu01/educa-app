@@ -193,7 +193,9 @@ def _render_message(user_id: str, msg: dict):
 
     if self_message:
         sender_label = "👦 生徒" if msg.get("sender") == "student" else "👨‍👩‍👧 保護者"
-        admin_read_label = "（既読）" if "admin" in read_by else "（未読）"
+        # ✅ 管理者既読判定：read_byにuser_id以外のIDがあれば既読とみなす
+        admin_read = any(uid != user_id for uid in read_by)
+        admin_read_label = "（既読）" if admin_read else "（未読）"
 
         col1, col2 = st.columns([9, 1])
         with col1:
