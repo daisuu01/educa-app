@@ -610,7 +610,7 @@ def show_admin_chat(initial_student_id=None):
                                       background-color:#f1f3f4;
                                       padding:8px 12px;
                                       border-radius:12px;
-                                      width:auto;
+                                      min-width:80px;
                                       max-width:70%;
                                       word-wrap:break-word;
                                       white-space:pre-wrap;
@@ -677,7 +677,7 @@ def show_admin_chat(initial_student_id=None):
                               background-color:#f1f3f4;
                               padding:8px 12px;
                               border-radius:12px;
-                              width:auto;
+                              min-width:80px;
                               max-width:70%;
                               word-wrap:break-word;
                               white-space:pre-wrap;
