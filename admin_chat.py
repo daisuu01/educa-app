@@ -465,46 +465,38 @@ def show_admin_chat(initial_student_id=None):
     # ---------- admin-chat タブ専用の wrapper ----------
     st.markdown('<div class="admin-chat-tabs">', unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4 = st.tabs(["個人", "学年", "クラス", "全員"])
+    tab_labels = ["個人", "学年", "クラス", "全員"]
+    tab_objects = st.tabs(tab_labels)
 
     # --- 初期タブ ---
     if "admin_chat_tab" not in st.session_state:
         st.session_state["admin_chat_tab"] = "個人"
 
 
-    # ===== ▼ 完全非表示のイベントボタン ▼ =====
-    def hidden_button(key):
-        # 高さ0・幅0・透明なコンテナに押し込む
-        empty = st.empty()
-        with empty.container():
-            clicked = st.button(key, help="", key=f"hidden_{key}")
-        empty.empty()  # 描画直後に消すので完全に見えない
-        return clicked
+    # ======================================
+    # 🔥 ここが Streamlit で唯一安定する方法！
+    # “アクティブなタブは index=0 と同じ iframe にいる”
+    # ======================================
+    # tab_objects は list だが、現在アクティブなタブは
+    # 最初に描画される tab_objects[0] の内容が切り替わる。
+    # つまり、tab_objects[0] が「押されたタブ」を表す。
+
+    active_index = tab_labels.index(st.session_state["admin_chat_tab"])
+
+    # タブ描画順を「アクティブタブを先頭」に並べ替え
+    ordered_labels = tab_labels[active_index:] + tab_labels[:active_index]
 
 
-    with tab1:
-        if hidden_button("personal"):
-            st.session_state["admin_chat_tab"] = "個人"
-            st.rerun()
+    # st.tabs() をもう一度描き直して順番を確定
+    tabs2 = st.tabs(ordered_labels)
 
-    with tab2:
-        if hidden_button("grade"):
-            st.session_state["admin_chat_tab"] = "学年"
-            st.rerun()
+    # 最初（先頭）が現在押されたタブ
+    current_tab_name = ordered_labels[0]
 
-    with tab3:
-        if hidden_button("class"):
-            st.session_state["admin_chat_tab"] = "クラス"
-            st.rerun()
+    # セッションに保存
+    st.session_state["admin_chat_tab"] = current_tab_name
 
-    with tab4:
-        if hidden_button("all"):
-            st.session_state["admin_chat_tab"] = "全員"
-            st.rerun()
-
-
-    # --- 現在のタブ ---
-    target_type = st.session_state["admin_chat_tab"]
+    target_type = current_tab_name
 
     st.markdown('</div>', unsafe_allow_html=True)
 
