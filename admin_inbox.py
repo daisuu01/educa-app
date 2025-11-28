@@ -253,8 +253,9 @@ def show_chat_in_inbox(student_id, student_name):
     
     if send_clicked and text.strip():
         send_message("個人", student_id, None, None, text)
+        # ✅ キャッシュをクリアして最新メッセージを反映
+        _get_latest_received_messages_cached.clear()
         st.success("✅ 送信しました")
-        st.rerun()
     
     st.markdown("---")
 
