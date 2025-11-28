@@ -270,10 +270,6 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
     # --- 送信欄 ---
     st.subheader("📨 メッセージ送信")
 
-    # ✅ 送信後の入力クリア処理
-    if st.session_state.pop("__clear_chat_input__", False):
-        st.session_state.pop("chat_input", None)
-
     ui_choice = st.radio(
         "送信者を選択してください",
         ["生徒", "保護者"],
@@ -284,17 +280,17 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
     # ✅ actor に変換
     actor = "student" if ui_choice == "生徒" else "guardian"
 
-    text = st.text_area("メッセージを入力", height=80, key="chat_input")
-
-    col3, col4 = st.columns([3, 1])
-    with col4:
-        if st.button("送信", use_container_width=True):
-            if not text.strip():
-                st.warning("⚠️ メッセージを入力してください。")
-            else:
-                # ✅ Firestore へ user_id と actor を渡す
-                send_message(user_id, actor, text)
-                st.success("✅ 送信しました")
-                st.session_state["__clear_chat_input__"] = True
-                st.rerun()
+    # ✅ st.formで確実な送信処理
+    with st.form(key="user_chat_send_form", clear_on_submit=True):
+        text = st.text_area("メッセージを入力", height=80, key="chat_input")
+        send_clicked = st.form_submit_button("送信", use_container_width=True)
+    
+    if send_clicked:
+        if not text.strip():
+            st.warning("⚠️ メッセージを入力してください。")
+        else:
+            # ✅ Firestore へ user_id と actor を渡す
+            send_message(user_id, actor, text)
+            st.success("✅ 送信しました")
+            st.rerun()
 

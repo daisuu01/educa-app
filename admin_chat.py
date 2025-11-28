@@ -695,9 +695,10 @@ def show_admin_chat(initial_student_id=None):
             with st.form("send_form_personal", clear_on_submit=True):
                 text = st.text_area("メッセージを入力", height=80)
                 send_clicked = st.form_submit_button("送信", use_container_width=True)
-            if send_clicked and selected_id:
+            if send_clicked and selected_id and text.strip():
                 send_message("個人", selected_id, grade, class_name, text)
-                st.success("送信しました")
+                st.success("✅ 送信しました")
+                st.rerun()
 
     # ============================================================
     # ② 学年タブ
@@ -791,9 +792,10 @@ def show_admin_chat(initial_student_id=None):
         with st.form("send_form_grade", clear_on_submit=True):
             text = st.text_area("メッセージを入力", height=80)
             send_clicked = st.form_submit_button("送信", use_container_width=True)
-        if send_clicked:
+        if send_clicked and text.strip():
             send_message("学年", None, grade, None, text)
-            st.success("送信しました")
+            st.success("✅ 送信しました")
+            st.rerun()
 
     # ============================================================
     # ③ クラスタブ
@@ -902,9 +904,10 @@ def show_admin_chat(initial_student_id=None):
             with st.form("send_form_class", clear_on_submit=True):
                 text = st.text_area("メッセージを入力", height=80)
                 send_clicked = st.form_submit_button("送信", use_container_width=True)
-            if send_clicked:
+            if send_clicked and text.strip():
                 send_message("クラス", None, None, class_name, text)
-                st.success("送信しました")
+                st.success("✅ 送信しました")
+                st.rerun()
 
     # ============================================================
     # ④ 全員タブ
@@ -987,9 +990,10 @@ def show_admin_chat(initial_student_id=None):
         with st.form("send_form_all", clear_on_submit=True):
             text = st.text_area("メッセージを入力", height=80)
             send_clicked = st.form_submit_button("送信", use_container_width=True)
-        if send_clicked:
+        if send_clicked and text.strip():
             send_message("全員", None, None, None, text)
-            st.success("送信しました")
+            st.success("✅ 送信しました")
+            st.rerun()
 
 
 
