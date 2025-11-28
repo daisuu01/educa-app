@@ -257,7 +257,18 @@ def show_chat_in_inbox(student_id, student_name):
         _get_latest_received_messages_cached.clear()
         st.success("✅ 送信しました")
     
+    # ✅ 下部にも閉じるボタン追加
     st.markdown("---")
+    st.markdown(
+        """
+        <div style="text-align:center; margin:10px 0;">
+            <span style="font-size:0.9em; color:#666;">
+                ☝️ 上のチャット履歴タイトルをクリックすると折りたためます
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 # ==================================================
