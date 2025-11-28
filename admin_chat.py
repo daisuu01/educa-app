@@ -550,10 +550,7 @@ def show_admin_chat(initial_student_id=None):
 
             st.subheader(f"🧑‍🎓 {display_name} さんとのチャット")
             
-            # ✅ 閉じるボタン
-            if st.button("❌ チャットを閉じる", key="close_chat_personal"):
-                st.session_state["selected_student_id"] = None
-                st.rerun()
+            st.info("💡 チャットを閉じるには、上の検索欄をクリアしてください")
 
             messages = get_messages_and_mark_read(selected_id, grade, class_name)
             messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)

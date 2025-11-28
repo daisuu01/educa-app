@@ -219,32 +219,9 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # 開くボタン
-        col1, col2 = st.columns([4, 1])
-        with col2:
-            # ✅ 現在開いているチャットかどうかチェック
-            is_open = st.session_state.get("inbox_selected_student_id") == m["id"]
-            
-            if is_open:
-                # 閉じるボタン
-                if st.button("❌ 閉じる", key=f"close_{m['id']}"):
-                    st.session_state["inbox_selected_student_id"] = None
-                    st.session_state["inbox_selected_student_name"] = None
-                    st.rerun()
-            else:
-                # 開くボタン
-                if st.button("開く ▶", key=f"open_{m['id']}"):
-                    st.session_state["inbox_selected_student_id"] = m["id"]
-                    st.session_state["inbox_selected_student_name"] = m["name"]
-                    st.rerun()
-
-    # ✅ すべてのメッセージ表示後、選択された生徒のチャットを表示
-    selected_id = st.session_state.get("inbox_selected_student_id")
-    selected_name = st.session_state.get("inbox_selected_student_name")
-    
-    if selected_id and selected_name:
-        st.divider()
-        show_chat_in_inbox(selected_id, selected_name)
+        # ✅ expanderで折りたたみ式のチャット履歴表示（st.rerun()不要）
+        with st.expander(f"💬 {name} とのチャット履歴を見る", expanded=False):
+            show_chat_in_inbox(m["id"], m["name"])
 
 
 # ==================================================
