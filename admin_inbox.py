@@ -228,9 +228,8 @@ def show_admin_inbox():
         
         if is_open:
             # 上部の閉じるボタン
-            if st.button(f"� {name} とのチャット履歴を閉じる", key=f"close_top_{m['id']}"):
+            if st.button(f"🔽 {name} とのチャット履歴を閉じる", key=f"close_top_{m['id']}"):
                 st.session_state[chat_key] = False
-                st.rerun()
             
             # チャット表示
             show_chat_in_inbox(m["id"], m["name"])
@@ -238,12 +237,10 @@ def show_admin_inbox():
             # 下部の閉じるボタン
             if st.button(f"🔼 {name} とのチャット履歴を閉じる", key=f"close_bottom_{m['id']}"):
                 st.session_state[chat_key] = False
-                st.rerun()
         else:
             # 開くボタン
             if st.button(f"💬 {name} とのチャット履歴を開く", key=f"open_{m['id']}"):
                 st.session_state[chat_key] = True
-                st.rerun()
 
 
 # ==================================================
