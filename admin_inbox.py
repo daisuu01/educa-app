@@ -219,9 +219,8 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式チャット（未読はデフォルト展開）
-        default_expanded = m["is_unread"]  # 未読メッセージは自動展開
-        with st.expander(f"💬 {name} とのチャット履歴", expanded=default_expanded):
+        # ✅ expanderで折りたたみ式チャット（全て閉じた状態）
+        with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
             show_chat_in_inbox(m["id"], m["name"])
 
 
