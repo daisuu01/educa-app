@@ -219,8 +219,9 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式のチャット履歴表示（st.rerun()不要）
-        with st.expander(f"💬 {name} とのチャット履歴を見る", expanded=False):
+        # ✅ expanderで折りたたみ式チャット（未読はデフォルト展開）
+        default_expanded = m["is_unread"]  # 未読メッセージは自動展開
+        with st.expander(f"💬 {name} とのチャット履歴", expanded=default_expanded):
             show_chat_in_inbox(m["id"], m["name"])
 
 
@@ -253,22 +254,11 @@ def show_chat_in_inbox(student_id, student_name):
     
     if send_clicked and text.strip():
         send_message("個人", student_id, None, None, text)
-        # ✅ キャッシュをクリアして最新メッセージを反映
+        # ✅ キャッシュクリアのみ（st.rerun()削除でexpander展開維持）
         _get_latest_received_messages_cached.clear()
         st.success("✅ 送信しました")
     
-    # ✅ 下部にも閉じるボタン追加
     st.markdown("---")
-    st.markdown(
-        """
-        <div style="text-align:center; margin:10px 0;">
-            <span style="font-size:0.9em; color:#666;">
-                ☝️ 上のチャット履歴タイトルをクリックすると折りたためます
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 
 # ==================================================
