@@ -276,8 +276,20 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
-        with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
+        # ✅ expanderで折りたたみ式チャット
+        # エクスパンダーの開閉状態をsession_stateで管理
+        expander_key = f"inbox_expander_{m['id']}"
+        
+        # 既読ボタンが押された場合、エクスパンダーを開いたままにする
+        if st.session_state.get(f"marked_read_inbox_{m['id']}"):
+            is_expanded = True
+        else:
+            is_expanded = st.session_state.get(expander_key, False)
+        
+        with st.expander(f"💬 {name} とのチャット履歴", expanded=is_expanded):
+            # エクスパンダーが開かれたことを記録
+            if is_expanded:
+                st.session_state[expander_key] = True
             show_chat_in_inbox(m["id"], m["name"])
 
 
