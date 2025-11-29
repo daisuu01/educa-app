@@ -369,16 +369,13 @@ def show_chat_in_inbox(student_id, student_name):
         send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
     
     if send_clicked:
-        if not text or not text.strip():
+        if not text.strip():
             st.warning("⚠️ メッセージを入力してください")
         else:
-            try:
-                send_message("個人", student_id, None, None, text)
-                _get_latest_received_messages_cached.clear()
-                st.success("✅ 送信しました")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ 送信エラー: {e}")
+            send_message("個人", student_id, None, None, text)
+            _get_latest_received_messages_cached.clear()
+            st.success("✅ 送信しました")
+            st.rerun()
     
     st.markdown("---")
 
