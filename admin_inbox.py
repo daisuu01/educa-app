@@ -15,10 +15,10 @@ from admin_chat import send_message
 
 
 # ==================================================
-# 🔹 メッセージ取得（既読処理なし）
+# 🔹 メッセージ取得
 # ==================================================
-def get_messages_no_mark(user_id: str, limit: int = 50):
-    """既読処理を行わずにメッセージを取得"""
+def get_messages(user_id: str, limit: int = 50):
+    """メッセージを取得"""
     all_msgs = []
     
     personal_ref = (
@@ -42,33 +42,15 @@ def get_messages_no_mark(user_id: str, limit: int = 50):
 
 
 # ==================================================
-# 🔹 既読処理のみを行う関数
+# 🔹 チェックボックス状態を管理
 # ==================================================
-def mark_messages_as_read(user_id: str):
-    """指定されたユーザーの未読メッセージを既読にする"""
-    current_admin_id = st.session_state.get("member_id")
-    if not current_admin_id:
-        return
-    
-    personal_ref = (
-        db.collection("rooms")
-        .document("personal")
-        .collection(user_id)
-        .document("messages")
-        .collection("items")
-    )
-    
-    # 最新50件を取得して既読処理
-    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
-        m = d.to_dict()
-        if not m:
-            continue
-        
-        # この管理者がまだ既読にしていなければ read_by に追加
-        if current_admin_id not in m.get("read_by", []):
-            personal_ref.document(d.id).update({
-                "read_by": firestore.ArrayUnion([current_admin_id])
-            })
+def is_checked(user_id: str) -> bool:
+    """指定されたユーザーがチェック済みかどうか"""
+    return st.session_state.get(f"inbox_checked_{user_id}", False)
+
+def set_checked(user_id: str, checked: bool):
+    """指定されたユーザーのチェック状態を設定"""
+    st.session_state[f"inbox_checked_{user_id}"] = checked
 
 
 # ==================================================
@@ -237,6 +219,7 @@ def show_admin_inbox():
         class_name = m["class"] or "-"
         text = m.get("text", "")
         ts = m.get("timestamp")
+        student_id = m["id"]
 
         jst = pytz.timezone("Asia/Tokyo")
         ts_jst = ts.astimezone(jst) if ts else None
@@ -245,40 +228,58 @@ def show_admin_inbox():
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
-        # ✅ 未読／既読でスタイル分け
-        if m["is_unread"]:
-            bg_color = "#ffe5e5"
-            border_color = "#ff4d4d"
-            font_weight = "bold"
-            opacity = "1.0"
-        else:
+        # ✅ チェックボックスの状態で色分け
+        is_checked = is_checked(student_id)
+        if is_checked:
             bg_color = "#f0f0f0"
             border_color = "#999"
             font_weight = "normal"
             opacity = "0.75"
+        else:
+            bg_color = "#ffe5e5"
+            border_color = "#ff4d4d"
+            font_weight = "bold"
+            opacity = "1.0"
 
-        st.markdown(
-            f"""
-            <div style="background-color:{bg_color};
-                        border-left:6px solid {border_color};
-                        padding:10px 14px;
-                        border-radius:10px;
-                        margin:8px 0;
-                        opacity:{opacity};">
-                <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
-                    🧑‍🎓 {name}（{grade}・{class_name}）
-                    <span style="font-size:0.9em;color:#555;">— {who} から</span>
+        # ✅ チェックボックスとメッセージ情報を横並びに
+        col_check, col_msg = st.columns([0.5, 9.5])
+        
+        with col_check:
+            # チェックボックス
+            checked = st.checkbox(
+                "✓",
+                value=is_checked,
+                key=f"check_{student_id}",
+                label_visibility="collapsed",
+                help="確認済みにする"
+            )
+            # チェック状態が変わったら保存
+            if checked != is_checked:
+                set_checked(student_id, checked)
+        
+        with col_msg:
+            st.markdown(
+                f"""
+                <div style="background-color:{bg_color};
+                            border-left:6px solid {border_color};
+                            padding:10px 14px;
+                            border-radius:10px;
+                            margin:8px 0;
+                            opacity:{opacity};">
+                    <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
+                        🧑‍🎓 {name}（{grade}・{class_name}）
+                        <span style="font-size:0.9em;color:#555;">— {who} から</span>
+                    </div>
+                    <div style="color:#333;margin-top:4px;">{text}</div>
+                    <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
                 </div>
-                <div style="color:#333;margin-top:4px;">{text}</div>
-                <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                """,
+                unsafe_allow_html=True
+            )
 
         # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
-            show_chat_in_inbox(m["id"], m["name"])
+            show_chat_in_inbox(student_id, m["name"])
 
 
 # ==================================================
@@ -288,8 +289,8 @@ def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
     st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
 
-    # ✅ 既読処理なしでメッセージ取得
-    messages = get_messages_no_mark(student_id)
+    # ✅ メッセージ取得
+    messages = get_messages(student_id)
     messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
 
     jst = pytz.timezone("Asia/Tokyo")
@@ -310,29 +311,11 @@ def show_chat_in_inbox(student_id, student_name):
         st.success("✅ 送信しました")
         st.session_state[f"message_sent_inbox_{student_id}"] = False
     
-    # 既読成功メッセージを表示
-    if st.session_state.get(f"marked_read_inbox_{student_id}"):
-        st.success("✅ 既読にしました")
-        st.session_state[f"marked_read_inbox_{student_id}"] = False
-    
-    # ✅ 既読ボタンもフォーム内に配置して、送信ボタンと同じ動作にする
-    with st.form(key=f"inbox_actions_form_{student_id}", clear_on_submit=True):
+    # ✅ user_chat.pyのパターン：st.formで送信処理
+    with st.form(key=f"inbox_send_form_{student_id}", clear_on_submit=True):
         text = st.text_area("メッセージを入力", height=80, key=f"inbox_chat_input_{student_id}")
-        
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            mark_read_clicked = st.form_submit_button("📖 既読にする", use_container_width=True)
-        with col2:
-            send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
+        send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
     
-    # 既読ボタンの処理
-    if mark_read_clicked:
-        mark_messages_as_read(student_id)
-        _get_latest_received_messages_cached.clear()
-        st.session_state[f"marked_read_inbox_{student_id}"] = True
-        st.rerun()
-    
-    # 送信ボタンの処理
     if send_clicked:
         if not text or not text.strip():
             st.warning("⚠️ メッセージを入力してください")
