@@ -228,57 +228,47 @@ def show_admin_inbox():
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
-        # ✅ チェックボックスの状態で色分け
+        # ✅ 確認済み状態で色分け（エクスパンダーを開いたら自動的に確認済み）
         checked_status = is_checked(student_id)
         if checked_status:
             bg_color = "#f0f0f0"
             border_color = "#999"
             font_weight = "normal"
             opacity = "0.75"
+            status_badge = ""
         else:
             bg_color = "#ffe5e5"
             border_color = "#ff4d4d"
             font_weight = "bold"
             opacity = "1.0"
+            status_badge = '<span style="background:#ff4d4d;color:white;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-left:8px;">未確認</span>'
 
-        # ✅ チェックボックスとメッセージ情報を横並びに
-        col_check, col_msg = st.columns([0.5, 9.5])
-        
-        with col_check:
-            # チェックボックス
-            checked = st.checkbox(
-                "✓",
-                value=checked_status,
-                key=f"check_{student_id}",
-                label_visibility="collapsed",
-                help="確認済みにする"
-            )
-            # チェック状態が変わったら保存
-            if checked != checked_status:
-                set_checked(student_id, checked)
-        
-        with col_msg:
-            st.markdown(
-                f"""
-                <div style="background-color:{bg_color};
-                            border-left:6px solid {border_color};
-                            padding:10px 14px;
-                            border-radius:10px;
-                            margin:8px 0;
-                            opacity:{opacity};">
-                    <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
-                        🧑‍🎓 {name}（{grade}・{class_name}）
-                        <span style="font-size:0.9em;color:#555;">— {who} から</span>
-                    </div>
-                    <div style="color:#333;margin-top:4px;">{text}</div>
-                    <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
+        st.markdown(
+            f"""
+            <div style="background-color:{bg_color};
+                        border-left:6px solid {border_color};
+                        padding:10px 14px;
+                        border-radius:10px;
+                        margin:8px 0;
+                        opacity:{opacity};">
+                <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
+                    🧑‍🎓 {name}（{grade}・{class_name}）
+                    <span style="font-size:0.9em;color:#555;">— {who} から</span>
+                    {status_badge}
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+                <div style="color:#333;margin-top:4px;">{text}</div>
+                <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
+        # ✅ expanderで折りたたみ式チャット
+        # エクスパンダーを開いたら自動的に確認済みにする
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
+            # エクスパンダーが開かれたので、確認済みにする
+            if not checked_status:
+                set_checked(student_id, True)
             show_chat_in_inbox(student_id, m["name"])
 
 
