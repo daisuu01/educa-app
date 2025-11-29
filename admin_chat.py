@@ -807,11 +807,6 @@ def show_admin_chat(initial_student_id=None):
         st.markdown("---")
         st.subheader("📨 メッセージ送信（学年）")
         
-        # 送信成功メッセージを表示
-        if st.session_state.get("message_sent_grade"):
-            st.success("✅ 送信しました")
-            st.session_state["message_sent_grade"] = False
-        
         # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
         if "send_count_grade" not in st.session_state:
             st.session_state["send_count_grade"] = 0
@@ -823,8 +818,8 @@ def show_admin_chat(initial_student_id=None):
         if st.button("送信", type="primary", use_container_width=True, key=f"btn_grade_{grade}"):
             if text and text.strip():
                 send_message("学年", None, grade, None, text)
-                st.session_state["message_sent_grade"] = True
                 st.session_state["send_count_grade"] += 1  # カウンターを増やしてkeyを変更
+                st.success("✅ 送信しました")
                 st.rerun()
             else:
                 st.warning("⚠️ メッセージを入力してください")
