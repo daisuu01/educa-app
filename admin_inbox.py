@@ -219,11 +219,6 @@ def show_admin_inbox():
         grade = m["grade"] or "未設定"
         class_name = m["class"] or "-"
         text = m.get("text", "")
-        
-        # デバッグ: textの中身を確認
-        if "<" in str(text) or ">" in str(text):
-            st.warning(f"⚠️ DEBUG: メッセージにHTMLタグが含まれています: {repr(text[:100])}")
-        
         ts = m.get("timestamp")
         student_id = m["id"]
 
