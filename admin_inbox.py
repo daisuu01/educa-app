@@ -15,6 +15,21 @@ from admin_chat import send_message
 
 
 # ==================================================
+# 🔹 チェックボックス状態管理（session_state）
+# ==================================================
+def is_checked(user_id: str) -> bool:
+    """指定されたユーザーが確認済みかどうかを返す"""
+    key = f"inbox_checked_{user_id}"
+    return st.session_state.get(key, False)
+
+
+def set_checked(user_id: str, checked: bool):
+    """指定されたユーザーの確認状態を設定"""
+    key = f"inbox_checked_{user_id}"
+    st.session_state[key] = checked
+
+
+# ==================================================
 # 🔹 メッセージ取得（既読処理なし）
 # ==================================================
 def get_messages_no_mark(user_id: str, limit: int = 50):
@@ -237,6 +252,7 @@ def show_admin_inbox():
         class_name = m["class"] or "-"
         text = m.get("text", "")
         ts = m.get("timestamp")
+        student_id = m["id"]
 
         jst = pytz.timezone("Asia/Tokyo")
         ts_jst = ts.astimezone(jst) if ts else None
@@ -245,17 +261,20 @@ def show_admin_inbox():
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
-        # ✅ 未読／既読でスタイル分け
-        if m["is_unread"]:
-            bg_color = "#ffe5e5"
-            border_color = "#ff4d4d"
-            font_weight = "bold"
-            opacity = "1.0"
-        else:
+        # ✅ チェックボックスの状態を確認
+        checked_status = is_checked(student_id)
+        
+        # ✅ チェック済みなら既読スタイル、未チェックなら未読スタイル
+        if checked_status:
             bg_color = "#f0f0f0"
             border_color = "#999"
             font_weight = "normal"
             opacity = "0.75"
+        else:
+            bg_color = "#ffe5e5"
+            border_color = "#ff4d4d"
+            font_weight = "bold"
+            opacity = "1.0"
 
         st.markdown(
             f"""
@@ -276,9 +295,22 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
+        # ✅ チェックボックスで確認状態を管理
+        checked = st.checkbox(
+            "✅ 確認済み",
+            value=checked_status,
+            key=f"check_{student_id}",
+            help="確認したらチェックを入れてください"
+        )
+        
+        # チェック状態が変わったら保存してリロード
+        if checked != checked_status:
+            set_checked(student_id, checked)
+            st.rerun()
+
         # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
-            show_chat_in_inbox(m["id"], m["name"])
+            show_chat_in_inbox(student_id, m["name"])
 
 
 # ==================================================
