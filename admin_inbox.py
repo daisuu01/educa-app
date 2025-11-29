@@ -11,7 +11,64 @@ from firebase_admin import firestore
 from firebase_utils import db
 
 # ✅ admin_chat から関数をインポート
-from admin_chat import get_messages_and_mark_read, send_message
+from admin_chat import send_message
+
+
+# ==================================================
+# 🔹 既読処理のみを行う関数
+# ==================================================
+def mark_as_read_only(user_id: str):
+    """指定されたユーザーの未読メッセージを既読にする"""
+    current_admin_id = st.session_state.get("member_id")
+    if not current_admin_id:
+        return
+    
+    personal_ref = (
+        db.collection("rooms")
+        .document("personal")
+        .collection(user_id)
+        .document("messages")
+        .collection("items")
+    )
+    
+    # 最新50件を取得して既読処理
+    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
+        m = d.to_dict()
+        if not m:
+            continue
+        
+        # この管理者がまだ既読にしていなければ read_by に追加
+        if current_admin_id not in m.get("read_by", []):
+            personal_ref.document(d.id).update({
+                "read_by": firestore.ArrayUnion([current_admin_id])
+            })
+
+
+# ==================================================
+# 🔹 メッセージ取得（既読処理なし）
+# ==================================================
+def get_messages_no_mark(user_id: str, limit: int = 50):
+    """既読処理を行わずにメッセージを取得"""
+    all_msgs = []
+    
+    personal_ref = (
+        db.collection("rooms")
+        .document("personal")
+        .collection(user_id)
+        .document("messages")
+        .collection("items")
+    )
+    
+    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(limit).stream():
+        m = d.to_dict()
+        if m:
+            m["id"] = d.id
+            m["_origin"] = "personal"
+            all_msgs.append(m)
+    
+    # 表示用：古い順に並べ替え
+    all_msgs.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)))
+    return all_msgs
 
 
 # ==================================================
@@ -219,25 +276,46 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式チャット（全て閉じた状態）
-        with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
-            show_chat_in_inbox(m["id"], m["name"])
+        # ✅ expanderで折りたたみ式チャット
+        # expanderのキーを使って開閉状態を追跡
+        expander_key = f"expander_{m['id']}"
+        
+        # expanderを表示
+        expander = st.expander(f"💬 {name} とのチャット履歴", expanded=False)
+        
+        with expander:
+            # expander内でボタンを配置し、クリックされたら既読処理
+            opened_key = f"chat_opened_{m['id']}"
+            
+            if opened_key not in st.session_state:
+                st.session_state[opened_key] = False
+            
+            # 初回表示時に既読ボタンを表示
+            if not st.session_state[opened_key]:
+                st.info("💡 このチャットはまだ未読です。下のボタンをクリックすると既読になります。")
+                if st.button("📖 既読にしてチャット履歴を表示", key=f"mark_read_btn_{m['id']}", type="primary", use_container_width=True):
+                    mark_as_read_only(m["id"])
+                    st.session_state[opened_key] = True
+                    st.rerun()
+            else:
+                # 既読済みの場合はチャット履歴を表示
+                show_chat_in_inbox_no_mark(m["id"], m["name"])
 
 
 # ==================================================
-# �️ 受信ボックス内でチャット表示＋返信機能（直近3件のみ）
+# 🖥️ 受信ボックス内でチャット表示＋返信機能（既読処理なし版）
 # ==================================================
-def show_chat_in_inbox(student_id, student_name):
+def show_chat_in_inbox_no_mark(student_id, student_name):
     st.markdown("---")
-    st.subheader(f"�💬 {student_name} ({student_id}) とのチャット")
+    st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
 
-    # ✅ admin_chatの関数を使ってメッセージ取得
-    messages = get_messages_and_mark_read(student_id, None, None)
+    # ✅ 既読処理なしでメッセージ取得
+    messages = get_messages_no_mark(student_id)
     messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
 
     jst = pytz.timezone("Asia/Tokyo")
 
-    # ✅ 直近3件のみ表示（過去履歴expanderは削除）
+    # ✅ 直近3件のみ表示
     latest = messages[:3]
 
     st.write("### 📌 直近3件")
