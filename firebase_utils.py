@@ -28,8 +28,8 @@ def init_firebase():
             # AttrDict → dict にキャスト（再帰処理不要）
             firebase_config = dict(st.secrets["firebase"])
             
-            # Storageバケット名を取得（project_idから生成）
-            storage_bucket = firebase_config.get("project_id") + ".appspot.com"
+            # Storageバケット名を設定（新しいFirebaseプロジェクトは.firebasestorage.app）
+            storage_bucket = firebase_config.get("project_id") + ".firebasestorage.app"
 
             # 🔸 これだけでOK。json.dumps/json.loads不要
             cred = credentials.Certificate(firebase_config)
@@ -47,10 +47,10 @@ def init_firebase():
 
             cred = credentials.Certificate(firebase_path)
             
-            # Storageバケット名を取得
+            # Storageバケット名を設定（新しいFirebaseプロジェクトは.firebasestorage.app）
             with open(firebase_path, 'r') as f:
                 firebase_json = json.load(f)
-                storage_bucket = firebase_json.get("project_id") + ".appspot.com"
+                storage_bucket = firebase_json.get("project_id") + ".firebasestorage.app"
             
             firebase_admin.initialize_app(cred, {
                 'storageBucket': storage_bucket
@@ -74,6 +74,19 @@ def init_firebase():
 # ==============================
 db = init_firebase()
 USERS = db.collection("users")
+
+# ==============================
+# 🔹 Storage バケット名を保存
+# ==============================
+STORAGE_BUCKET_NAME = None
+try:
+    # 初期化済みのアプリからバケット名を取得
+    app = firebase_admin.get_app()
+    if hasattr(app, 'options') and hasattr(app.options, 'get'):
+        STORAGE_BUCKET_NAME = app.options.get('storageBucket')
+    print(f"✅ Storage bucket name: {STORAGE_BUCKET_NAME}")
+except Exception as e:
+    print(f"⚠️ Storage bucket name could not be retrieved: {e}")
 
 
 
@@ -341,8 +354,12 @@ def upload_file_to_storage(uploaded_file, folder_path: str) -> dict:
         dict: {"url": ダウンロードURL, "filename": ファイル名, "size": ファイルサイズ}
     """
     try:
-        # Firebase Storageのバケットを取得（バケット名を明示的に指定）
-        bucket = storage.bucket("educa-app2.appspot.com")
+        # Firebase Storageのバケットを取得（初期化時のバケット名を使用）
+        if STORAGE_BUCKET_NAME:
+            bucket = storage.bucket(STORAGE_BUCKET_NAME)
+        else:
+            # バケット名が取得できない場合はデフォルトバケットを試す
+            bucket = storage.bucket()
         
         # ファイル名にタイムスタンプとUUIDを追加してユニークにする
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
