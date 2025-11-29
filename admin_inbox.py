@@ -337,7 +337,7 @@ def show_chat_in_inbox(student_id, student_name):
             # キャッシュをクリアして未読カウントを更新
             _get_latest_received_messages_cached.clear()
             st.session_state[f"marked_read_inbox_{student_id}"] = True
-            # ✅ st.rerun()を削除 - リロードせず、次の自動更新を待つ
+            st.rerun()
     
     with col2:
         if st.button(
