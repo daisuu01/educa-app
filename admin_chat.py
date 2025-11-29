@@ -572,6 +572,16 @@ def show_admin_chat(initial_student_id=None):
                         ts_jst = ts.astimezone(jst) if ts else None
                         ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                         read_by = msg.get("read_by", [])
+                        
+                        # 添付ファイル情報があればリンクを作る
+                        file_info = msg.get("file")
+                        file_html = ""
+                        if file_info:
+                            filename = file_info.get("filename", "ファイル")
+                            file_url = file_info.get("url", "")
+                            file_size = file_info.get("size", 0) or 0
+                            size_kb = round(file_size / 1024, 1) if file_size else 0
+                            file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
 
                         if sender in ["admin", "先生", "講師"]:
                             guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
@@ -588,7 +598,7 @@ def show_admin_chat(initial_student_id=None):
                                         display:inline-block;
                                         word-break:break-word;
                                         white-space:pre-wrap;
-                                    ">{text}</div>
+                                    ">{text}{file_html}</div>
                                 </div>
                                 <div style="
                                     margin-left:8px;
@@ -620,7 +630,7 @@ def show_admin_chat(initial_student_id=None):
                                       white-space:pre-wrap;
                                       color:#111;
                                       text-align:left;
-                                    ">{text}</div>
+                                    ">{text}{file_html}</div>
                                     <div style="font-size:0.8em;color:#666;">{ts_str}</div>
                                   </div>
                                 </div>
@@ -637,6 +647,16 @@ def show_admin_chat(initial_student_id=None):
                 ts_jst = ts.astimezone(jst) if ts else None
                 ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                 read_by = msg.get("read_by", [])
+                
+                # 添付ファイル情報があればリンクを作る
+                file_info = msg.get("file")
+                file_html = ""
+                if file_info:
+                    filename = file_info.get("filename", "ファイル")
+                    file_url = file_info.get("url", "")
+                    file_size = file_info.get("size", 0) or 0
+                    size_kb = round(file_size / 1024, 1) if file_size else 0
+                    file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
 
                 if sender in ["admin", "先生", "講師"]:
                     guardian_read = "✅ 保護者既読" if selected_id in read_by else "❌ 保護者未読"
@@ -653,7 +673,7 @@ def show_admin_chat(initial_student_id=None):
                                 display:inline-block;
                                 word-break:break-word;
                                 white-space:pre-wrap;
-                            ">{text}</div>
+                            ">{text}{file_html}</div>
                         </div>
                         <div style="
                             margin-left:8px;
@@ -685,7 +705,7 @@ def show_admin_chat(initial_student_id=None):
                               white-space:pre-wrap;
                               color:#111;
                               text-align:left;
-                            ">{text}</div>
+                            ">{text}{file_html}</div>
                             <div style="font-size:0.8em;color:#666;">{ts_str}</div>
                           </div>
                         </div>
@@ -776,6 +796,17 @@ def show_admin_chat(initial_student_id=None):
                     ts_jst = ts.astimezone(jst) if ts else None
                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
+                    
+                    # 添付ファイル情報があればリンクを作る
+                    file_info = m.get("file")
+                    file_html = ""
+                    if file_info:
+                        filename = file_info.get("filename", "ファイル")
+                        file_url = file_info.get("url", "")
+                        file_size = file_info.get("size", 0) or 0
+                        size_kb = round(file_size / 1024, 1) if file_size else 0
+                        file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+                    
                     st.markdown(
                         f"""
                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -788,7 +819,7 @@ def show_admin_chat(initial_student_id=None):
                                 color:#111;
                                 word-break:break-word;
                             ">
-                                {text}
+                                {text}{file_html}
                             </div>
                         </div>
                         <div style="font-size:0.8em; color:#666; margin-left:4px;">
@@ -804,6 +835,17 @@ def show_admin_chat(initial_student_id=None):
             ts_jst = ts.astimezone(jst) if ts else None
             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
+            
+            # 添付ファイル情報があればリンクを作る
+            file_info = m.get("file")
+            file_html = ""
+            if file_info:
+                filename = file_info.get("filename", "ファイル")
+                file_url = file_info.get("url", "")
+                file_size = file_info.get("size", 0) or 0
+                size_kb = round(file_size / 1024, 1) if file_size else 0
+                file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+            
             st.markdown(
                 f"""
                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -816,7 +858,7 @@ def show_admin_chat(initial_student_id=None):
                         color:#111;
                         word-break:break-word;
                     ">
-                        {text}
+                        {text}{file_html}
                     </div>
                 </div>
                 <div style="font-size:0.8em; color:#666; margin-left:4px;">
@@ -921,6 +963,17 @@ def show_admin_chat(initial_student_id=None):
                         ts_jst = ts.astimezone(jst) if ts else None
                         ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                         text = m.get("message", m.get("text", ""))
+                        
+                        # 添付ファイル情報があればリンクを作る
+                        file_info = m.get("file")
+                        file_html = ""
+                        if file_info:
+                            filename = file_info.get("filename", "ファイル")
+                            file_url = file_info.get("url", "")
+                            file_size = file_info.get("size", 0) or 0
+                            size_kb = round(file_size / 1024, 1) if file_size else 0
+                            file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+                        
                         st.markdown(
                             f"""
                             <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -933,7 +986,7 @@ def show_admin_chat(initial_student_id=None):
                                     color:#111;
                                     word-break:break-word;
                                 ">
-                                    {text}
+                                    {text}{file_html}
                                 </div>
                             </div>
                             <div style="font-size:0.8em; color:#666; margin-left:4px;">
@@ -949,6 +1002,17 @@ def show_admin_chat(initial_student_id=None):
                 ts_jst = ts.astimezone(jst) if ts else None
                 ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                 text = m.get("message", m.get("text", ""))
+                
+                # 添付ファイル情報があればリンクを作る
+                file_info = m.get("file")
+                file_html = ""
+                if file_info:
+                    filename = file_info.get("filename", "ファイル")
+                    file_url = file_info.get("url", "")
+                    file_size = file_info.get("size", 0) or 0
+                    size_kb = round(file_size / 1024, 1) if file_size else 0
+                    file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+                
                 st.markdown(
                     f"""
                     <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -1040,6 +1104,17 @@ def show_admin_chat(initial_student_id=None):
                     ts_jst = ts.astimezone(jst) if ts else None
                     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
                     text = m.get("message", m.get("text", ""))
+                    
+                    # 添付ファイル情報があればリンクを作る
+                    file_info = m.get("file")
+                    file_html = ""
+                    if file_info:
+                        filename = file_info.get("filename", "ファイル")
+                        file_url = file_info.get("url", "")
+                        file_size = file_info.get("size", 0) or 0
+                        size_kb = round(file_size / 1024, 1) if file_size else 0
+                        file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+                    
                     st.markdown(
                         f"""
                         <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -1052,7 +1127,7 @@ def show_admin_chat(initial_student_id=None):
                                 color:#111;
                                 word-break:break-word;
                             ">
-                                {text}
+                                {text}{file_html}
                             </div>
                         </div>
                         <div style="font-size:0.8em; color:#666; margin-left:4px;">
@@ -1068,6 +1143,17 @@ def show_admin_chat(initial_student_id=None):
             ts_jst = ts.astimezone(jst) if ts else None
             ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
             text = m.get("message", m.get("text", ""))
+            
+            # 添付ファイル情報があればリンクを作る
+            file_info = m.get("file")
+            file_html = ""
+            if file_info:
+                filename = file_info.get("filename", "ファイル")
+                file_url = file_info.get("url", "")
+                file_size = file_info.get("size", 0) or 0
+                size_kb = round(file_size / 1024, 1) if file_size else 0
+                file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+            
             st.markdown(
                 f"""
                 <div style="display:flex; justify-content:flex-start; margin:10px 0;">
@@ -1080,7 +1166,7 @@ def show_admin_chat(initial_student_id=None):
                         color:#111;
                         word-break:break-word;
                     ">
-                        {text}
+                        {text}{file_html}
                     </div>
                 </div>
                 <div style="font-size:0.8em; color:#666; margin-left:4px;">
