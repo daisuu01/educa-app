@@ -368,24 +368,6 @@ def show_chat_in_inbox(student_id, student_name):
         st.success("✅ 送信しました")
         st.session_state[f"message_sent_inbox_{student_id}"] = False
     
-    # 既読成功メッセージを表示
-    if st.session_state.get(f"marked_read_inbox_{student_id}"):
-        st.success("✅ 既読にしました")
-        st.session_state[f"marked_read_inbox_{student_id}"] = False
-    
-    # ✅ user_chat.pyのパターン：既読ボタン（メッセージ単位ではなく、ユーザー単位）
-    if st.button(
-        "📖 既読にする",
-        key=f"mark_read_inbox_{student_id}",
-        help="このユーザーの未読メッセージを既読にします"
-    ):
-        mark_messages_as_read(student_id)
-        _get_latest_received_messages_cached.clear()
-        st.session_state[f"marked_read_inbox_{student_id}"] = True
-        st.rerun()
-    
-    st.markdown("---")
-    
     # ✅ user_chat.pyのパターン：st.formで送信処理
     with st.form(key=f"inbox_send_form_{student_id}", clear_on_submit=True):
         text = st.text_area("メッセージを入力", height=80, key=f"inbox_chat_input_{student_id}")
