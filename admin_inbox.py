@@ -247,23 +247,26 @@ def show_chat_in_inbox(student_id, student_name):
     # 送信欄
     st.markdown("---")
     st.subheader("📨 返信する")
+    
+    # 送信成功メッセージを表示
+    if st.session_state.get(f"message_sent_inbox_{student_id}"):
+        st.success("✅ 送信しました")
+        st.session_state[f"message_sent_inbox_{student_id}"] = False
+    
     with st.form(f"inbox_send_form_{student_id}", clear_on_submit=True):
         text = st.text_area("メッセージを入力", height=80, key=f"inbox_text_{student_id}")
         send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
         
         # ✅ フォーム内で送信処理を実行
-        if send_clicked:
-            if text and text.strip():
-                try:
-                    send_message("個人", student_id, None, None, text)
-                    # ✅ キャッシュクリアして最新メッセージを反映
-                    _get_latest_received_messages_cached.clear()
-                    st.success("✅ 送信しました")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ 送信エラー: {e}")
-            else:
-                st.warning("⚠️ メッセージを入力してください")
+        if send_clicked and text and text.strip():
+            try:
+                send_message("個人", student_id, None, None, text)
+                # ✅ キャッシュクリアして最新メッセージを反映
+                _get_latest_received_messages_cached.clear()
+                st.session_state[f"message_sent_inbox_{student_id}"] = True
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ 送信エラー: {e}")
     
     st.markdown("---")
 
