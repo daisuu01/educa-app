@@ -692,13 +692,16 @@ def show_admin_chat(initial_student_id=None):
             # 送信欄（個人）
             st.markdown("---")
             st.subheader("📨 メッセージ送信（個人）")
-            with st.form("send_form_personal", clear_on_submit=True):
-                text = st.text_area("メッセージを入力", height=80)
+            with st.form(f"send_form_personal_{selected_id}", clear_on_submit=True):
+                text = st.text_area("メッセージを入力", height=80, key=f"text_personal_{selected_id}")
                 send_clicked = st.form_submit_button("送信", use_container_width=True)
-            if send_clicked and selected_id and text.strip():
-                send_message("個人", selected_id, grade, class_name, text)
-                st.success("✅ 送信しました")
-                st.rerun()
+            if send_clicked:
+                if selected_id and text.strip():
+                    send_message("個人", selected_id, grade, class_name, text)
+                    st.success("✅ 送信しました")
+                    st.rerun()
+                elif not text.strip():
+                    st.warning("⚠️ メッセージを入力してください")
 
     # ============================================================
     # ② 学年タブ
@@ -789,13 +792,16 @@ def show_admin_chat(initial_student_id=None):
 
         st.markdown("---")
         st.subheader("📨 メッセージ送信（学年）")
-        with st.form("send_form_grade", clear_on_submit=True):
-            text = st.text_area("メッセージを入力", height=80)
+        with st.form(f"send_form_grade_{grade}", clear_on_submit=True):
+            text = st.text_area("メッセージを入力", height=80, key=f"text_grade_{grade}")
             send_clicked = st.form_submit_button("送信", use_container_width=True)
-        if send_clicked and text.strip():
-            send_message("学年", None, grade, None, text)
-            st.success("✅ 送信しました")
-            st.rerun()
+        if send_clicked:
+            if text.strip():
+                send_message("学年", None, grade, None, text)
+                st.success("✅ 送信しました")
+                st.rerun()
+            else:
+                st.warning("⚠️ メッセージを入力してください")
 
     # ============================================================
     # ③ クラスタブ
@@ -901,13 +907,16 @@ def show_admin_chat(initial_student_id=None):
 
             st.markdown("---")
             st.subheader("📨 メッセージ送信（クラス）")
-            with st.form("send_form_class", clear_on_submit=True):
-                text = st.text_area("メッセージを入力", height=80)
+            with st.form(f"send_form_class_{class_name}", clear_on_submit=True):
+                text = st.text_area("メッセージを入力", height=80, key=f"text_class_{class_name}")
                 send_clicked = st.form_submit_button("送信", use_container_width=True)
-            if send_clicked and text.strip():
-                send_message("クラス", None, None, class_name, text)
-                st.success("✅ 送信しました")
-                st.rerun()
+            if send_clicked:
+                if text.strip():
+                    send_message("クラス", None, None, class_name, text)
+                    st.success("✅ 送信しました")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ メッセージを入力してください")
 
     # ============================================================
     # ④ 全員タブ
@@ -988,12 +997,15 @@ def show_admin_chat(initial_student_id=None):
         st.markdown("---")
         st.subheader("📨 メッセージ送信（全員）")
         with st.form("send_form_all", clear_on_submit=True):
-            text = st.text_area("メッセージを入力", height=80)
+            text = st.text_area("メッセージを入力", height=80, key="text_all")
             send_clicked = st.form_submit_button("送信", use_container_width=True)
-        if send_clicked and text.strip():
-            send_message("全員", None, None, None, text)
-            st.success("✅ 送信しました")
-            st.rerun()
+        if send_clicked:
+            if text.strip():
+                send_message("全員", None, None, None, text)
+                st.success("✅ 送信しました")
+                st.rerun()
+            else:
+                st.warning("⚠️ メッセージを入力してください")
 
 
 
