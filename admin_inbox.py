@@ -251,13 +251,6 @@ def show_admin_inbox():
         who_escaped = html.escape(str(who))
         text_escaped = html.escape(str(text)).replace('\n', '<br>')
         ts_str_escaped = html.escape(str(ts_str))
-        
-        # デバッグ: テキストの内容を確認
-        if student_id == "2":
-            st.write("🔍 DEBUG - 元のテキスト:", repr(text))
-            st.write("🔍 DEBUG - エスケープ後:", repr(text_escaped))
-            st.markdown("### テスト: HTMLが正しく動作するか")
-            st.markdown('<div style="background:red;color:white;padding:10px;">これは赤い背景のテストです</div>', unsafe_allow_html=True)
 
         st.markdown(
             f"""
@@ -287,9 +280,10 @@ def show_admin_inbox():
             help="確認したらチェックを入れてください"
         )
         
-        # チェック状態が変わったら保存
+        # チェック状態が変わったら保存してリロード
         if checked != checked_status:
             set_checked(student_id, checked)
+            st.rerun()
         
         # ✅ expanderで折りたたみ式チャット
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
