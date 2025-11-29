@@ -305,16 +305,6 @@ def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
     st.subheader("📨 返信する")
     
-    # 送信成功メッセージを表示
-    if st.session_state.get(f"message_sent_inbox_{student_id}"):
-        st.success("✅ 送信しました")
-        st.session_state[f"message_sent_inbox_{student_id}"] = False
-    
-    # 既読成功メッセージを表示
-    if st.session_state.get(f"marked_read_inbox_{student_id}"):
-        st.success("✅ 既読にしました")
-        st.session_state[f"marked_read_inbox_{student_id}"] = False
-    
     # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
     if f"send_count_inbox_{student_id}" not in st.session_state:
         st.session_state[f"send_count_inbox_{student_id}"] = 0
@@ -336,8 +326,8 @@ def show_chat_in_inbox(student_id, student_name):
             mark_messages_as_read(student_id)
             # キャッシュをクリアして未読カウントを更新
             _get_latest_received_messages_cached.clear()
-            st.session_state[f"marked_read_inbox_{student_id}"] = True
-            # ✅ st.rerun()を削除 - リロードせず、次の自動更新を待つ
+            # ✅ トースト通知で成功を表示（ページ再実行なし）
+            st.toast("✅ 既読にしました", icon="✅")
     
     with col2:
         if st.button(
@@ -352,9 +342,10 @@ def show_chat_in_inbox(student_id, student_name):
                     send_message("個人", student_id, None, None, text)
                     # ✅ キャッシュクリアして最新メッセージを反映
                     _get_latest_received_messages_cached.clear()
-                    st.session_state[f"message_sent_inbox_{student_id}"] = True
                     st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
-                    st.rerun()
+                    # ✅ トースト通知で成功を表示（ページ再実行なし）
+                    st.toast("✅ 送信しました", icon="📨")
+                    # ✅ 5秒後に自動更新されてメッセージが表示される
                 except Exception as e:
                     st.error(f"❌ 送信エラー: {e}")
             else:
