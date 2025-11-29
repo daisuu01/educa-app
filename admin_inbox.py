@@ -369,10 +369,10 @@ def show_chat_in_inbox(student_id, student_name):
         
         # ファイル添付機能
         uploaded_file = st.file_uploader(
-            "📎 ファイルを添付（任意）",
+            "📎 ファイルを添付（任意） - ファイルをここにドラッグ＆ドロップ、または「Browse files」をクリック",
             type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
             key=f"inbox_file_upload_{student_id}",
-            help="PDF、Word、画像などのファイルを添付できます"
+            help="PDF、Word、画像などのファイルを添付できます。ファイルを直接ドラッグするか、ボタンをクリックして選択してください。"
         )
         
         send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
