@@ -698,8 +698,11 @@ def show_admin_chat(initial_student_id=None):
                 st.success("✅ 送信しました")
                 st.session_state["message_sent_personal"] = False
             
-            # ✅ フォーム外でテキストエリアを配置
-            text_key = f"msg_input_personal_{selected_id}"
+            # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
+            if "send_count_personal" not in st.session_state:
+                st.session_state["send_count_personal"] = 0
+            
+            text_key = f"msg_input_personal_{selected_id}_{st.session_state['send_count_personal']}"
             text = st.text_area("メッセージを入力", height=80, key=text_key)
             
             # ボタンだけをフォームなしで配置
@@ -707,8 +710,7 @@ def show_admin_chat(initial_student_id=None):
                 if selected_id and text and text.strip():
                     send_message("個人", selected_id, grade, class_name, text)
                     st.session_state["message_sent_personal"] = True
-                    # テキストエリアをクリア
-                    st.session_state[text_key] = ""
+                    st.session_state["send_count_personal"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
                 elif not text or not text.strip():
                     st.warning("⚠️ メッセージを入力してください")
@@ -810,8 +812,11 @@ def show_admin_chat(initial_student_id=None):
             st.success("✅ 送信しました")
             st.session_state["message_sent_grade"] = False
         
-        # ✅ フォーム外でテキストエリアを配置
-        text_key = f"msg_input_grade_{grade}"
+        # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
+        if "send_count_grade" not in st.session_state:
+            st.session_state["send_count_grade"] = 0
+        
+        text_key = f"msg_input_grade_{grade}_{st.session_state['send_count_grade']}"
         text = st.text_area("メッセージを入力", height=80, key=text_key)
         
         # ボタンだけをフォームなしで配置
@@ -819,8 +824,7 @@ def show_admin_chat(initial_student_id=None):
             if text and text.strip():
                 send_message("学年", None, grade, None, text)
                 st.session_state["message_sent_grade"] = True
-                # テキストエリアをクリア
-                st.session_state[text_key] = ""
+                st.session_state["send_count_grade"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
             else:
                 st.warning("⚠️ メッセージを入力してください")
@@ -935,8 +939,11 @@ def show_admin_chat(initial_student_id=None):
                 st.success("✅ 送信しました")
                 st.session_state["message_sent_class"] = False
             
-            # ✅ フォーム外でテキストエリアを配置
-            text_key = f"msg_input_class_{class_name}"
+            # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
+            if "send_count_class" not in st.session_state:
+                st.session_state["send_count_class"] = 0
+            
+            text_key = f"msg_input_class_{class_name}_{st.session_state['send_count_class']}"
             text = st.text_area("メッセージを入力", height=80, key=text_key)
             
             # ボタンだけをフォームなしで配置
@@ -944,8 +951,7 @@ def show_admin_chat(initial_student_id=None):
                 if text and text.strip():
                     send_message("クラス", None, None, class_name, text)
                     st.session_state["message_sent_class"] = True
-                    # テキストエリアをクリア
-                    st.session_state[text_key] = ""
+                    st.session_state["send_count_class"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
                 else:
                     st.warning("⚠️ メッセージを入力してください")
@@ -1034,8 +1040,11 @@ def show_admin_chat(initial_student_id=None):
             st.success("✅ 送信しました")
             st.session_state["message_sent_all"] = False
         
-        # ✅ フォーム外でテキストエリアを配置
-        text_key = "msg_input_all"
+        # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
+        if "send_count_all" not in st.session_state:
+            st.session_state["send_count_all"] = 0
+        
+        text_key = f"msg_input_all_{st.session_state['send_count_all']}"
         text = st.text_area("メッセージを入力", height=80, key=text_key)
         
         # ボタンだけをフォームなしで配置
@@ -1043,8 +1052,7 @@ def show_admin_chat(initial_student_id=None):
             if text and text.strip():
                 send_message("全員", None, None, None, text)
                 st.session_state["message_sent_all"] = True
-                # テキストエリアをクリア
-                st.session_state[text_key] = ""
+                st.session_state["send_count_all"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
             else:
                 st.warning("⚠️ メッセージを入力してください")

@@ -253,8 +253,11 @@ def show_chat_in_inbox(student_id, student_name):
         st.success("✅ 送信しました")
         st.session_state[f"message_sent_inbox_{student_id}"] = False
     
-    # ✅ フォーム外でテキストエリアを配置
-    text_key = f"msg_input_inbox_{student_id}"
+    # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
+    if f"send_count_inbox_{student_id}" not in st.session_state:
+        st.session_state[f"send_count_inbox_{student_id}"] = 0
+    
+    text_key = f"msg_input_inbox_{student_id}_{st.session_state[f'send_count_inbox_{student_id}']}"
     text = st.text_area("メッセージを入力", height=80, key=text_key)
     
     # ボタンだけをフォームなしで配置
@@ -265,8 +268,7 @@ def show_chat_in_inbox(student_id, student_name):
                 # ✅ キャッシュクリアして最新メッセージを反映
                 _get_latest_received_messages_cached.clear()
                 st.session_state[f"message_sent_inbox_{student_id}"] = True
-                # テキストエリアをクリア
-                st.session_state[text_key] = ""
+                st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ 送信エラー: {e}")
