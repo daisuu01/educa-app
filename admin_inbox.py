@@ -276,20 +276,8 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式チャット
-        # エクスパンダーの開閉状態をsession_stateで管理
-        expander_key = f"inbox_expander_{m['id']}"
-        
-        # 既読ボタンが押された場合、エクスパンダーを開いたままにする
-        if st.session_state.get(f"marked_read_inbox_{m['id']}"):
-            is_expanded = True
-        else:
-            is_expanded = st.session_state.get(expander_key, False)
-        
-        with st.expander(f"💬 {name} とのチャット履歴", expanded=is_expanded):
-            # エクスパンダーが開かれたことを記録
-            if is_expanded:
-                st.session_state[expander_key] = True
+        # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
+        with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
             show_chat_in_inbox(m["id"], m["name"])
 
 
@@ -327,24 +315,24 @@ def show_chat_in_inbox(student_id, student_name):
         st.success("✅ 既読にしました")
         st.session_state[f"marked_read_inbox_{student_id}"] = False
     
-    # ✅ user_chat.pyのパターン：既読ボタン（メッセージ単位ではなく、ユーザー単位）
-    if st.button(
-        "📖 既読にする",
-        key=f"mark_read_inbox_{student_id}",
-        help="このユーザーの未読メッセージを既読にします"
-    ):
+    # ✅ 既読ボタンもフォーム内に配置して、送信ボタンと同じ動作にする
+    with st.form(key=f"inbox_actions_form_{student_id}", clear_on_submit=True):
+        text = st.text_area("メッセージを入力", height=80, key=f"inbox_chat_input_{student_id}")
+        
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            mark_read_clicked = st.form_submit_button("📖 既読にする", use_container_width=True)
+        with col2:
+            send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
+    
+    # 既読ボタンの処理
+    if mark_read_clicked:
         mark_messages_as_read(student_id)
         _get_latest_received_messages_cached.clear()
         st.session_state[f"marked_read_inbox_{student_id}"] = True
         st.rerun()
     
-    st.markdown("---")
-    
-    # ✅ user_chat.pyのパターン：st.formで送信処理
-    with st.form(key=f"inbox_send_form_{student_id}", clear_on_submit=True):
-        text = st.text_area("メッセージを入力", height=80, key=f"inbox_chat_input_{student_id}")
-        send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
-    
+    # 送信ボタンの処理
     if send_clicked:
         if not text or not text.strip():
             st.warning("⚠️ メッセージを入力してください")
