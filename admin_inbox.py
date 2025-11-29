@@ -315,50 +315,35 @@ def show_chat_in_inbox(student_id, student_name):
         st.success("✅ 既読にしました")
         st.session_state[f"marked_read_inbox_{student_id}"] = False
     
-    # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
-    if f"send_count_inbox_{student_id}" not in st.session_state:
-        st.session_state[f"send_count_inbox_{student_id}"] = 0
+    # ✅ user_chat.pyのパターン：既読ボタン（メッセージ単位ではなく、ユーザー単位）
+    if st.button(
+        "📖 既読にする",
+        key=f"mark_read_inbox_{student_id}",
+        help="このユーザーの未読メッセージを既読にします"
+    ):
+        mark_messages_as_read(student_id)
+        _get_latest_received_messages_cached.clear()
+        st.session_state[f"marked_read_inbox_{student_id}"] = True
+        st.rerun()
     
-    text_key = f"msg_input_inbox_{student_id}_{st.session_state[f'send_count_inbox_{student_id}']}"
-    text = st.text_area("メッセージを入力", height=80, key=text_key)
+    st.markdown("---")
     
-    # 既読ボタン（左）と送信ボタン（右）を横並びに配置
-    col1, col2 = st.columns([1, 1])
+    # ✅ user_chat.pyのパターン：st.formで送信処理
+    with st.form(key=f"inbox_send_form_{student_id}", clear_on_submit=True):
+        text = st.text_area("メッセージを入力", height=80, key=f"inbox_chat_input_{student_id}")
+        send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
     
-    with col1:
-        # 既読ボタン - user_chat.pyの実装を参考に一意のkeyを設定
-        if st.button(
-            "📖 既読にする",
-            key=f"mark_read_inbox_{student_id}",
-            use_container_width=True,
-            help="このユーザーの未読メッセージを既読にします"
-        ):
-            mark_messages_as_read(student_id)
-            # キャッシュをクリアして未読カウントを更新
-            _get_latest_received_messages_cached.clear()
-            st.session_state[f"marked_read_inbox_{student_id}"] = True
-            st.rerun()
-    
-    with col2:
-        if st.button(
-            "📨 送信",
-            key=f"send_inbox_{student_id}",
-            type="primary",
-            use_container_width=True,
-            help="メッセージを送信します"
-        ):
-            if text and text.strip():
-                try:
-                    send_message("個人", student_id, None, None, text)
-                    # ✅ キャッシュクリアして最新メッセージを反映
-                    _get_latest_received_messages_cached.clear()
-                    st.session_state[f"message_sent_inbox_{student_id}"] = True
-                    st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ 送信エラー: {e}")
-            else:
-                st.warning("⚠️ メッセージを入力してください")
+    if send_clicked:
+        if not text or not text.strip():
+            st.warning("⚠️ メッセージを入力してください")
+        else:
+            try:
+                send_message("個人", student_id, None, None, text)
+                _get_latest_received_messages_cached.clear()
+                st.session_state[f"message_sent_inbox_{student_id}"] = True
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ 送信エラー: {e}")
     
     st.markdown("---")
 
