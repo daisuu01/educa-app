@@ -229,8 +229,8 @@ def show_admin_inbox():
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
         # ✅ チェックボックスの状態で色分け
-        is_checked = is_checked(student_id)
-        if is_checked:
+        checked_status = is_checked(student_id)
+        if checked_status:
             bg_color = "#f0f0f0"
             border_color = "#999"
             font_weight = "normal"
@@ -248,13 +248,13 @@ def show_admin_inbox():
             # チェックボックス
             checked = st.checkbox(
                 "✓",
-                value=is_checked,
+                value=checked_status,
                 key=f"check_{student_id}",
                 label_visibility="collapsed",
                 help="確認済みにする"
             )
             # チェック状態が変わったら保存
-            if checked != is_checked:
+            if checked != checked_status:
                 set_checked(student_id, checked)
         
         with col_msg:
