@@ -17,16 +17,42 @@ from admin_chat import send_message
 # ==================================================
 # 🔹 チェックボックス状態管理（session_state）
 # ==================================================
-def is_checked(user_id: str) -> bool:
-    """指定されたユーザーが確認済みかどうかを返す"""
-    key = f"inbox_checked_{user_id}"
-    return st.session_state.get(key, False)
+def is_checked(user_id: str, latest_timestamp=None) -> bool:
+    """指定されたユーザーが確認済みかどうかを返す
+    
+    新しいメッセージが来ていたら、自動的に未確認状態にリセット
+    """
+    checked_key = f"inbox_checked_{user_id}"
+    timestamp_key = f"inbox_timestamp_{user_id}"
+    
+    # 保存されているチェック状態とタイムスタンプを取得
+    is_checked_status = st.session_state.get(checked_key, False)
+    saved_timestamp = st.session_state.get(timestamp_key)
+    
+    # 新しいメッセージが来ていたらチェックをリセット
+    if latest_timestamp and saved_timestamp:
+        if latest_timestamp > saved_timestamp:
+            st.session_state[checked_key] = False
+            st.session_state[timestamp_key] = latest_timestamp
+            return False
+    
+    # タイムスタンプが保存されていない場合は保存
+    if latest_timestamp and not saved_timestamp:
+        st.session_state[timestamp_key] = latest_timestamp
+    
+    return is_checked_status
 
 
-def set_checked(user_id: str, checked: bool):
+def set_checked(user_id: str, checked: bool, latest_timestamp=None):
     """指定されたユーザーの確認状態を設定"""
-    key = f"inbox_checked_{user_id}"
-    st.session_state[key] = checked
+    checked_key = f"inbox_checked_{user_id}"
+    timestamp_key = f"inbox_timestamp_{user_id}"
+    
+    st.session_state[checked_key] = checked
+    
+    # チェックを入れた時のタイムスタンプも保存
+    if checked and latest_timestamp:
+        st.session_state[timestamp_key] = latest_timestamp
 
 
 # ==================================================
@@ -261,8 +287,8 @@ def show_admin_inbox():
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
-        # ✅ チェックボックスの状態を確認
-        checked_status = is_checked(student_id)
+        # ✅ チェックボックスの状態を確認（タイムスタンプを渡して新着チェック）
+        checked_status = is_checked(student_id, ts)
         
         # ✅ チェック済みなら既読スタイル、未チェックなら未読スタイル
         if checked_status:
@@ -305,7 +331,7 @@ def show_admin_inbox():
         
         # チェック状態が変わったら保存してリロード
         if checked != checked_status:
-            set_checked(student_id, checked)
+            set_checked(student_id, checked, ts)
             st.rerun()
 
         # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
