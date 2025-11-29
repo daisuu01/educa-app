@@ -720,7 +720,7 @@ def show_admin_chat(initial_student_id=None):
                 send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
             
             if send_clicked:
-                if selected_id and text and text.strip():
+                if selected_id and (text.strip() or uploaded_file):
                     # ファイルがあればアップロード
                     file_info = None
                     if uploaded_file:
@@ -734,10 +734,10 @@ def show_admin_chat(initial_student_id=None):
                     st.session_state["message_sent_personal"] = True
                     st.session_state["send_count_personal"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
-                elif not text or not text.strip():
-                    st.warning("⚠️ メッセージを入力してください")
-                else:
+                elif not selected_id:
                     st.warning("⚠️ 送信先が選択されていません")
+                else:
+                    st.warning("⚠️ メッセージまたはファイルを入力してください")
 
     # ============================================================
     # ② 学年タブ
@@ -852,7 +852,7 @@ def show_admin_chat(initial_student_id=None):
             send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
         
         if send_clicked:
-            if text and text.strip():
+            if text.strip() or uploaded_file:
                 # ファイルがあればアップロード
                 file_info = None
                 if uploaded_file:
@@ -867,7 +867,7 @@ def show_admin_chat(initial_student_id=None):
                 st.session_state["send_count_grade"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
             else:
-                st.warning("⚠️ メッセージを入力してください")
+                st.warning("⚠️ メッセージまたはファイルを入力してください")
 
     # ============================================================
     # ③ クラスタブ
@@ -997,7 +997,7 @@ def show_admin_chat(initial_student_id=None):
                 send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
             
             if send_clicked:
-                if text and text.strip():
+                if text.strip() or uploaded_file:
                     # ファイルがあればアップロード
                     file_info = None
                     if uploaded_file:
@@ -1012,7 +1012,7 @@ def show_admin_chat(initial_student_id=None):
                     st.session_state["send_count_class"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
                 else:
-                    st.warning("⚠️ メッセージを入力してください")
+                    st.warning("⚠️ メッセージまたはファイルを入力してください")
 
     # ============================================================
     # ④ 全員タブ
@@ -1116,7 +1116,7 @@ def show_admin_chat(initial_student_id=None):
             send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
         
         if send_clicked:
-            if text and text.strip():
+            if text.strip() or uploaded_file:
                 # ファイルがあればアップロード
                 file_info = None
                 if uploaded_file:
@@ -1131,7 +1131,7 @@ def show_admin_chat(initial_student_id=None):
                 st.session_state["send_count_all"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
             else:
-                st.warning("⚠️ メッセージを入力してください")
+                st.warning("⚠️ メッセージまたはファイルを入力してください")
 
 
 
