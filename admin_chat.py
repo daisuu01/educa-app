@@ -309,16 +309,20 @@ def get_messages_and_mark_read(user_id: str, grade: str = None, class_name: str 
 # ==================================================
 # 🔹 メッセージ送信（個人・学年・クラス・全員対応）
 # ==================================================
-def send_message(target_type: str, user_id: str = None, grade: str = None, class_name: str = None, text: str = ""):
-    if not text.strip():
+def send_message(target_type: str, user_id: str = None, grade: str = None, class_name: str = None, text: str = "", file_info: dict = None):
+    if not text.strip() and not file_info:
         return
 
     data = {
-        "message": text.strip(),
+        "message": text.strip() if text else "",
         "sender": "admin",
         "timestamp": datetime.now(timezone.utc),
         "read_by": ["admin"],  # 管理者は既読
     }
+    
+    # ファイル情報があれば追加
+    if file_info:
+        data["file"] = file_info
 
     # --- 個人宛 ---
     if target_type == "個人" and user_id:

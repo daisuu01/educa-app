@@ -94,13 +94,15 @@ def get_all_messages(user_id: str, grade: str, class_name: str, limit: int = 50)
 # ==================================================
 # 🔹 Firestoreへメッセージ送信
 # ==================================================
-def send_message(user_id: str, actor: str, text: str):
+def send_message(user_id: str, actor: str, text: str, file_info: dict = None):
     """
     actor: 'student' or 'guardian' （UIのラジオから決定）
     Firestore保存は sender=user_id, read_by=[user_id] に統一
+    file_info: ファイル情報（url, filename, size, storage_path）
     """
-    if not text.strip():
+    if not text.strip() and not file_info:
         return
+    
     ref = (
         db.collection("rooms")
         .document("personal")
@@ -108,13 +110,20 @@ def send_message(user_id: str, actor: str, text: str):
         .document("messages")
         .collection("items")
     )
-    ref.add({
-        "message": text.strip(),
+    
+    message_data = {
+        "message": text.strip() if text else "",
         "sender": actor,                     # ✅ 固定ID
         "user_id": user_id,                       # ✅ 表示用（'student'|'guardian'）
         "timestamp": datetime.now(timezone.utc),
         "read_by": [user_id],                  # ✅ 送信者は既読
-    })
+    }
+    
+    # ファイル情報があれば追加
+    if file_info:
+        message_data["file"] = file_info
+    
+    ref.add(message_data)
 
 
 # ==================================================
@@ -182,6 +191,8 @@ def _render_message(user_id: str, msg: dict):
     text = msg.get("message", msg.get("text", ""))
     read_by = msg.get("read_by", [])
     ts = msg.get("timestamp")
+    file_info = msg.get("file")  # ファイル情報を取得
+    
     # 日本時間に変換して表示
     jst = pytz.timezone("Asia/Tokyo")
     ts_jst = ts.astimezone(jst) if ts else None
@@ -190,6 +201,14 @@ def _render_message(user_id: str, msg: dict):
     # ✅ 新旧データ両対応：自分のメッセージ判定を拡張
     self_message = (msg.get("user_id") == user_id)
     
+    # ファイル表示用のHTMLを生成
+    file_html = ""
+    if file_info:
+        filename = file_info.get("filename", "ファイル")
+        file_url = file_info.get("url", "")
+        file_size = file_info.get("size", 0)
+        size_kb = round(file_size / 1024, 1) if file_size else 0
+        file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
 
     if self_message:
         sender_label = "👦 生徒" if msg.get("sender") == "student" else "👨‍👩‍👧 保護者"
@@ -201,7 +220,7 @@ def _render_message(user_id: str, msg: dict):
                 <div style="font-size:0.8em;color:#666;">{sender_label}</div>
                 <div style="display:inline-block;background-color:#d2e3fc;
                 padding:10px 14px;border-radius:12px;max-width:80%;
-                word-wrap:break-word;white-space:pre-wrap;color:#111;">{text}</div>
+                word-wrap:break-word;white-space:pre-wrap;color:#111;">{text}{file_html}</div>
                 <div style="font-size:0.8em;color:#666;">{ts_str}</div>
                 </div>""",
                 unsafe_allow_html=True
@@ -218,7 +237,7 @@ def _render_message(user_id: str, msg: dict):
             f"""<div style="display:flex;align-items:center;justify-content:flex-start;margin:8px 0;">
             <div style="background-color:{bubble_color};
             padding:10px 14px;border-radius:12px;max-width:80%;
-            word-wrap:break-word;white-space:pre-wrap;color:#111;">{text}</div>
+            word-wrap:break-word;white-space:pre-wrap;color:#111;">{text}{file_html}</div>
             <div style="margin-left:8px;font-size:0.85em;">{user_read_label}</div>
             </div>
             <div style="font-size:0.8em;color:#666;">{ts_str}</div>""",
@@ -280,14 +299,34 @@ def show_chat_page(user_id: str, grade: str = None, class_name: str = None):
     # ✅ st.formで確実な送信処理
     with st.form(key="user_chat_send_form", clear_on_submit=True):
         text = st.text_area("メッセージを入力", height=80, key="chat_input")
+        
+        # ファイル添付機能
+        uploaded_file = st.file_uploader(
+            "📎 ファイルを添付（任意）",
+            type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
+            key="file_upload",
+            help="PDF、Word、画像などのファイルを添付できます"
+        )
+        
         send_clicked = st.form_submit_button("送信", use_container_width=True)
     
     if send_clicked:
-        if not text.strip():
-            st.warning("⚠️ メッセージを入力してください。")
+        if not text.strip() and not uploaded_file:
+            st.warning("⚠️ メッセージまたはファイルを入力してください。")
         else:
-            # ✅ Firestore へ user_id と actor を渡す
-            send_message(user_id, actor, text)
+            # ファイルアップロード処理
+            file_info = None
+            if uploaded_file:
+                try:
+                    from firebase_utils import upload_file_to_storage
+                    folder_path = f"chat_files/personal/{user_id}"
+                    file_info = upload_file_to_storage(uploaded_file, folder_path)
+                except Exception as e:
+                    st.error(f"❌ ファイルアップロードエラー: {e}")
+                    st.stop()
+            
+            # ✅ Firestore へ user_id と actor を渡す（ファイル情報も含む）
+            send_message(user_id, actor, text, file_info)
             st.success("✅ 送信しました")
             st.rerun()
 

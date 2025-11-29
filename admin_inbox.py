@@ -366,13 +366,33 @@ def show_chat_in_inbox(student_id, student_name):
     # ✅ user_chat.pyのパターン：st.formで送信処理
     with st.form(key=f"inbox_send_form_{student_id}", clear_on_submit=True):
         text = st.text_area("メッセージを入力", height=80, key=f"inbox_chat_input_{student_id}")
+        
+        # ファイル添付機能
+        uploaded_file = st.file_uploader(
+            "📎 ファイルを添付（任意）",
+            type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
+            key=f"inbox_file_upload_{student_id}",
+            help="PDF、Word、画像などのファイルを添付できます"
+        )
+        
         send_clicked = st.form_submit_button("📨 送信", use_container_width=True, type="primary")
     
     if send_clicked:
-        if not text.strip():
-            st.warning("⚠️ メッセージを入力してください")
+        if not text.strip() and not uploaded_file:
+            st.warning("⚠️ メッセージまたはファイルを入力してください")
         else:
-            send_message("個人", student_id, None, None, text)
+            # ファイルアップロード処理
+            file_info = None
+            if uploaded_file:
+                try:
+                    from firebase_utils import upload_file_to_storage
+                    folder_path = f"chat_files/personal/{student_id}"
+                    file_info = upload_file_to_storage(uploaded_file, folder_path)
+                except Exception as e:
+                    st.error(f"❌ ファイルアップロードエラー: {e}")
+                    st.stop()
+            
+            send_message("個人", student_id, None, None, text, file_info)
             _get_latest_received_messages_cached.clear()
             st.success("✅ 送信しました")
             st.rerun()
@@ -391,6 +411,17 @@ def render_message(msg, student_id, jst):
     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
     read_by = msg.get("read_by", [])
 
+    # 添付ファイル情報があればリンクを作る
+    file_info = msg.get("file")
+    file_html = ""
+    if file_info:
+        filename = file_info.get("filename", "ファイル")
+        file_url = file_info.get("url", "")
+        file_size = file_info.get("size", 0) or 0
+        size_kb = round(file_size / 1024, 1) if file_size else 0
+        # シンプルなリンク表示（別タブで開く）
+        file_html = f'<div style="margin-top:8px;"><a href="{file_url}" target="_blank" style="color:#1a73e8;text-decoration:none;">📎 {filename} ({size_kb}KB)</a></div>'
+
     if sender in ["admin", "先生", "講師"]:
         # 管理者メッセージ（左側）
         guardian_read = "✅ 保護者既読" if student_id in read_by else "❌ 保護者未読"
@@ -407,7 +438,7 @@ def render_message(msg, student_id, jst):
                     display:inline-block;
                     word-break:break-word;
                     white-space:pre-wrap;
-                ">{text}</div>
+                ">{text}{file_html}</div>
             </div>
             <div style="
                 margin-left:8px;
@@ -440,7 +471,7 @@ def render_message(msg, student_id, jst):
                   white-space:pre-wrap;
                   color:#111;
                   text-align:left;
-                ">{text}</div>
+                ">{text}{file_html}</div>
                 <div style="font-size:0.8em;color:#666;">{ts_str}</div>
               </div>
             </div>

@@ -5,12 +5,14 @@
 import pandas as pd
 import hashlib
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 from dotenv import load_dotenv
 import os
 import json
 import streamlit as st
 from typing import Dict
+from datetime import datetime
+import uuid
 
 
 def init_firebase():
@@ -25,10 +27,15 @@ def init_firebase():
         if hasattr(st, "secrets") and "firebase" in st.secrets:
             # AttrDict → dict にキャスト（再帰処理不要）
             firebase_config = dict(st.secrets["firebase"])
+            
+            # Storageバケット名を取得（project_idから生成）
+            storage_bucket = firebase_config.get("project_id") + ".appspot.com"
 
             # 🔸 これだけでOK。json.dumps/json.loads不要
             cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred)
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': storage_bucket
+            })
             print("✅ Firebase initialized via Streamlit Secrets")
 
         # ✅ 2️⃣ ローカル環境 (.env 経由)
@@ -39,7 +46,15 @@ def init_firebase():
                 raise FileNotFoundError(f"❌ Firebase認証ファイルが見つかりません: {firebase_path}")
 
             cred = credentials.Certificate(firebase_path)
-            firebase_admin.initialize_app(cred)
+            
+            # Storageバケット名を取得
+            with open(firebase_path, 'r') as f:
+                firebase_json = json.load(f)
+                storage_bucket = firebase_json.get("project_id") + ".appspot.com"
+            
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': storage_bucket
+            })
             print(f"✅ Firebase initialized via local JSON ({firebase_path})")
 
         db = firestore.client()
@@ -309,3 +324,51 @@ def fetch_all_users():
     except Exception as e:
         print(f"❌ Firestore一覧取得エラー: {e}")
         return pd.DataFrame()
+
+
+# ==================================================
+# 📎 ファイルアップロード機能
+# ==================================================
+def upload_file_to_storage(uploaded_file, folder_path: str) -> dict:
+    """
+    Firebase Storageにファイルをアップロードし、ダウンロードURLを返す
+    
+    Args:
+        uploaded_file: Streamlitのst.file_uploaderから取得したファイルオブジェクト
+        folder_path: Storage内の保存先フォルダパス（例: "chat_files/personal/user_id"）
+    
+    Returns:
+        dict: {"url": ダウンロードURL, "filename": ファイル名, "size": ファイルサイズ}
+    """
+    try:
+        # Firebase Storageのバケットを取得
+        bucket = storage.bucket()
+        
+        # ファイル名にタイムスタンプとUUIDを追加してユニークにする
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        original_filename = uploaded_file.name
+        safe_filename = f"{timestamp}_{unique_id}_{original_filename}"
+        
+        # Storage内のパスを作成
+        blob_path = f"{folder_path}/{safe_filename}"
+        blob = bucket.blob(blob_path)
+        
+        # ファイルをアップロード
+        uploaded_file.seek(0)  # ファイルポインタを先頭に戻す
+        blob.upload_from_file(uploaded_file, content_type=uploaded_file.type)
+        
+        # 公開URLを取得（トークン付き）
+        blob.make_public()
+        download_url = blob.public_url
+        
+        return {
+            "url": download_url,
+            "filename": original_filename,
+            "size": uploaded_file.size,
+            "storage_path": blob_path
+        }
+    
+    except Exception as e:
+        print(f"❌ ファイルアップロードエラー: {e}")
+        raise e
