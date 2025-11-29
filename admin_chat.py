@@ -693,17 +693,17 @@ def show_admin_chat(initial_student_id=None):
             st.markdown("---")
             st.subheader("📨 メッセージ送信（個人）")
             
-            # 送信成功メッセージを表示
-            if st.session_state.get("message_sent_personal"):
-                st.success("✅ 送信しました")
-                st.session_state["message_sent_personal"] = False
-            
             # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
             if "send_count_personal" not in st.session_state:
                 st.session_state["send_count_personal"] = 0
             
             text_key = f"msg_input_personal_{selected_id}_{st.session_state['send_count_personal']}"
             text = st.text_area("メッセージを入力", height=80, key=text_key)
+            
+            # 送信成功メッセージを表示（入力欄の下）
+            if st.session_state.get("message_sent_personal"):
+                st.success("✅ 送信しました")
+                st.session_state["message_sent_personal"] = False
             
             # ボタンだけをフォームなしで配置
             if st.button("送信", type="primary", use_container_width=True, key=f"btn_personal_{selected_id}"):
@@ -807,17 +807,17 @@ def show_admin_chat(initial_student_id=None):
         st.markdown("---")
         st.subheader("📨 メッセージ送信（学年）")
         
-        # 送信成功メッセージを表示
-        if st.session_state.get("message_sent_grade"):
-            st.success("✅ 送信しました")
-            st.session_state["message_sent_grade"] = False
-        
         # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
         if "send_count_grade" not in st.session_state:
             st.session_state["send_count_grade"] = 0
         
         text_key = f"msg_input_grade_{grade}_{st.session_state['send_count_grade']}"
         text = st.text_area("メッセージを入力", height=80, key=text_key)
+        
+        # 送信成功メッセージを表示（入力欄の下）
+        if st.session_state.get("message_sent_grade"):
+            st.success("✅ 送信しました")
+            st.session_state["message_sent_grade"] = False
         
         # ボタンだけをフォームなしで配置
         if st.button("送信", type="primary", use_container_width=True, key=f"btn_grade_{grade}"):
