@@ -15,36 +15,6 @@ from admin_chat import send_message
 
 
 # ==================================================
-# 🔹 既読処理のみを行う関数
-# ==================================================
-def mark_as_read_only(user_id: str):
-    """指定されたユーザーの未読メッセージを既読にする"""
-    current_admin_id = st.session_state.get("member_id")
-    if not current_admin_id:
-        return
-    
-    personal_ref = (
-        db.collection("rooms")
-        .document("personal")
-        .collection(user_id)
-        .document("messages")
-        .collection("items")
-    )
-    
-    # 最新50件を取得して既読処理
-    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
-        m = d.to_dict()
-        if not m:
-            continue
-        
-        # この管理者がまだ既読にしていなければ read_by に追加
-        if current_admin_id not in m.get("read_by", []):
-            personal_ref.document(d.id).update({
-                "read_by": firestore.ArrayUnion([current_admin_id])
-            })
-
-
-# ==================================================
 # 🔹 メッセージ取得（既読処理なし）
 # ==================================================
 def get_messages_no_mark(user_id: str, limit: int = 50):
@@ -69,6 +39,36 @@ def get_messages_no_mark(user_id: str, limit: int = 50):
     # 表示用：古い順に並べ替え
     all_msgs.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)))
     return all_msgs
+
+
+# ==================================================
+# 🔹 既読処理のみを行う関数
+# ==================================================
+def mark_messages_as_read(user_id: str):
+    """指定されたユーザーの未読メッセージを既読にする"""
+    current_admin_id = st.session_state.get("member_id")
+    if not current_admin_id:
+        return
+    
+    personal_ref = (
+        db.collection("rooms")
+        .document("personal")
+        .collection(user_id)
+        .document("messages")
+        .collection("items")
+    )
+    
+    # 最新50件を取得して既読処理
+    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
+        m = d.to_dict()
+        if not m:
+            continue
+        
+        # この管理者がまだ既読にしていなければ read_by に追加
+        if current_admin_id not in m.get("read_by", []):
+            personal_ref.document(d.id).update({
+                "read_by": firestore.ArrayUnion([current_admin_id])
+            })
 
 
 # ==================================================
@@ -276,36 +276,15 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式チャット
-        # expanderのキーを使って開閉状態を追跡
-        expander_key = f"expander_{m['id']}"
-        
-        # expanderを表示
-        expander = st.expander(f"💬 {name} とのチャット履歴", expanded=False)
-        
-        with expander:
-            # expander内でボタンを配置し、クリックされたら既読処理
-            opened_key = f"chat_opened_{m['id']}"
-            
-            if opened_key not in st.session_state:
-                st.session_state[opened_key] = False
-            
-            # 初回表示時に既読ボタンを表示
-            if not st.session_state[opened_key]:
-                st.info("💡 このチャットはまだ未読です。下のボタンをクリックすると既読になります。")
-                if st.button("📖 既読にしてチャット履歴を表示", key=f"mark_read_btn_{m['id']}", type="primary", use_container_width=True):
-                    mark_as_read_only(m["id"])
-                    st.session_state[opened_key] = True
-                    st.rerun()
-            else:
-                # 既読済みの場合はチャット履歴を表示
-                show_chat_in_inbox_no_mark(m["id"], m["name"])
+        # ✅ expanderで折りたたみ式チャット（全て閉じた状態）
+        with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
+            show_chat_in_inbox(m["id"], m["name"])
 
 
 # ==================================================
-# 🖥️ 受信ボックス内でチャット表示＋返信機能（既読処理なし版）
+# 💬 受信ボックス内でチャット表示＋返信機能（直近3件のみ）
 # ==================================================
-def show_chat_in_inbox_no_mark(student_id, student_name):
+def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
     st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
 
@@ -331,6 +310,11 @@ def show_chat_in_inbox_no_mark(student_id, student_name):
         st.success("✅ 送信しました")
         st.session_state[f"message_sent_inbox_{student_id}"] = False
     
+    # 既読成功メッセージを表示
+    if st.session_state.get(f"marked_read_inbox_{student_id}"):
+        st.success("✅ 既読にしました")
+        st.session_state[f"marked_read_inbox_{student_id}"] = False
+    
     # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
     if f"send_count_inbox_{student_id}" not in st.session_state:
         st.session_state[f"send_count_inbox_{student_id}"] = 0
@@ -338,20 +322,31 @@ def show_chat_in_inbox_no_mark(student_id, student_name):
     text_key = f"msg_input_inbox_{student_id}_{st.session_state[f'send_count_inbox_{student_id}']}"
     text = st.text_area("メッセージを入力", height=80, key=text_key)
     
-    # ボタンだけをフォームなしで配置
-    if st.button("送信", type="primary", use_container_width=True, key=f"btn_inbox_{student_id}"):
-        if text and text.strip():
-            try:
-                send_message("個人", student_id, None, None, text)
-                # ✅ キャッシュクリアして最新メッセージを反映
-                _get_latest_received_messages_cached.clear()
-                st.session_state[f"message_sent_inbox_{student_id}"] = True
-                st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ 送信エラー: {e}")
-        else:
-            st.warning("⚠️ メッセージを入力してください")
+    # 既読ボタン（左）と送信ボタン（右）を横並びに配置
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        if st.button("📖 既読にする", use_container_width=True, key=f"mark_read_btn_{student_id}"):
+            mark_messages_as_read(student_id)
+            # キャッシュをクリアして未読カウントを更新
+            _get_latest_received_messages_cached.clear()
+            st.session_state[f"marked_read_inbox_{student_id}"] = True
+            st.rerun()
+    
+    with col2:
+        if st.button("📨 送信", type="primary", use_container_width=True, key=f"btn_inbox_{student_id}"):
+            if text and text.strip():
+                try:
+                    send_message("個人", student_id, None, None, text)
+                    # ✅ キャッシュクリアして最新メッセージを反映
+                    _get_latest_received_messages_cached.clear()
+                    st.session_state[f"message_sent_inbox_{student_id}"] = True
+                    st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ 送信エラー: {e}")
+            else:
+                st.warning("⚠️ メッセージを入力してください")
     
     st.markdown("---")
 
