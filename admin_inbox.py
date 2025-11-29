@@ -250,16 +250,17 @@ def show_chat_in_inbox(student_id, student_name):
     with st.form(f"inbox_send_form_{student_id}", clear_on_submit=True):
         text = st.text_area("メッセージを入力", height=80, key=f"inbox_text_{student_id}")
         send_clicked = st.form_submit_button("送信", use_container_width=True)
-    
-    if send_clicked:
-        if text.strip():
-            send_message("個人", student_id, None, None, text)
-            # ✅ キャッシュクリアして最新メッセージを反映
-            _get_latest_received_messages_cached.clear()
-            st.success("✅ 送信しました")
-            st.rerun()
-        else:
-            st.warning("⚠️ メッセージを入力してください")
+        
+        # ✅ フォーム内で送信処理を実行
+        if send_clicked:
+            if text.strip():
+                send_message("個人", student_id, None, None, text)
+                # ✅ キャッシュクリアして最新メッセージを反映
+                _get_latest_received_messages_cached.clear()
+                st.success("✅ 送信しました")
+                st.rerun()
+            else:
+                st.warning("⚠️ メッセージを入力してください")
     
     st.markdown("---")
 
