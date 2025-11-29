@@ -6,6 +6,7 @@ import streamlit as st
 from datetime import datetime, timezone
 import pytz
 from firebase_admin import firestore
+import html
 
 # ✅ Firebase は共通モジュールから利用
 from firebase_utils import db
@@ -243,6 +244,9 @@ def show_admin_inbox():
             opacity = "1.0"
             status_badge = '<span style="background:#ff4d4d;color:white;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-left:8px;">未確認</span>'
 
+        # テキストをHTMLエスケープ
+        text_escaped = html.escape(text)
+
         st.markdown(
             f"""
             <div style="background-color:{bg_color};
@@ -256,7 +260,7 @@ def show_admin_inbox():
                     <span style="font-size:0.9em;color:#555;">— {who} から</span>
                     {status_badge}
                 </div>
-                <div style="color:#333;margin-top:4px;">{text}</div>
+                <div style="color:#333;margin-top:4px;">{text_escaped}</div>
                 <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
             </div>
             """,
