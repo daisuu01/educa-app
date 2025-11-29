@@ -706,13 +706,31 @@ def show_admin_chat(initial_student_id=None):
             if "send_count_personal" not in st.session_state:
                 st.session_state["send_count_personal"] = 0
             
-            text_key = f"msg_input_personal_{selected_id}_{st.session_state['send_count_personal']}"
-            text = st.text_area("メッセージを入力", height=80, key=text_key)
+            # フォームを使用してファイルアップロードを含める
+            with st.form(key=f"form_personal_{selected_id}_{st.session_state['send_count_personal']}"):
+                text = st.text_area("メッセージを入力", height=80)
+                
+                # ファイル添付機能
+                uploaded_file = st.file_uploader(
+                    "📎 ファイルを添付する場合は、Browse filesを押してください",
+                    type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
+                    help="PDF、Word、画像などのファイルを添付できます。ファイルを直接ドラッグするか、ボタンをクリックして選択してください。"
+                )
+                
+                send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
             
-            # ボタンだけをフォームなしで配置
-            if st.button("送信", type="primary", use_container_width=True, key=f"btn_personal_{selected_id}"):
+            if send_clicked:
                 if selected_id and text and text.strip():
-                    send_message("個人", selected_id, grade, class_name, text)
+                    # ファイルがあればアップロード
+                    file_info = None
+                    if uploaded_file:
+                        try:
+                            from firebase_utils import upload_file_to_storage
+                            file_info = upload_file_to_storage(uploaded_file, f"chat_files/personal/{selected_id}")
+                        except Exception as e:
+                            st.error(f"❌ ファイルアップロードエラー: {e}")
+                    
+                    send_message("個人", selected_id, grade, class_name, text, file_info)
                     st.session_state["message_sent_personal"] = True
                     st.session_state["send_count_personal"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
@@ -820,13 +838,31 @@ def show_admin_chat(initial_student_id=None):
         if "send_count_grade" not in st.session_state:
             st.session_state["send_count_grade"] = 0
         
-        text_key = f"msg_input_grade_{grade}_{st.session_state['send_count_grade']}"
-        text = st.text_area("メッセージを入力", height=80, key=text_key)
+        # フォームを使用してファイルアップロードを含める
+        with st.form(key=f"form_grade_{grade}_{st.session_state['send_count_grade']}"):
+            text = st.text_area("メッセージを入力", height=80)
+            
+            # ファイル添付機能
+            uploaded_file = st.file_uploader(
+                "📎 ファイルを添付する場合は、Browse filesを押してください",
+                type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
+                help="PDF、Word、画像などのファイルを添付できます。ファイルを直接ドラッグするか、ボタンをクリックして選択してください。"
+            )
+            
+            send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
         
-        # ボタンだけをフォームなしで配置
-        if st.button("送信", type="primary", use_container_width=True, key=f"btn_grade_{grade}"):
+        if send_clicked:
             if text and text.strip():
-                send_message("学年", None, grade, None, text)
+                # ファイルがあればアップロード
+                file_info = None
+                if uploaded_file:
+                    try:
+                        from firebase_utils import upload_file_to_storage
+                        file_info = upload_file_to_storage(uploaded_file, f"chat_files/grade/{grade}")
+                    except Exception as e:
+                        st.error(f"❌ ファイルアップロードエラー: {e}")
+                
+                send_message("学年", None, grade, None, text, file_info)
                 st.session_state["message_sent_grade"] = True
                 st.session_state["send_count_grade"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
@@ -947,13 +983,31 @@ def show_admin_chat(initial_student_id=None):
             if "send_count_class" not in st.session_state:
                 st.session_state["send_count_class"] = 0
             
-            text_key = f"msg_input_class_{class_name}_{st.session_state['send_count_class']}"
-            text = st.text_area("メッセージを入力", height=80, key=text_key)
+            # フォームを使用してファイルアップロードを含める
+            with st.form(key=f"form_class_{class_name}_{st.session_state['send_count_class']}"):
+                text = st.text_area("メッセージを入力", height=80)
+                
+                # ファイル添付機能
+                uploaded_file = st.file_uploader(
+                    "📎 ファイルを添付する場合は、Browse filesを押してください",
+                    type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
+                    help="PDF、Word、画像などのファイルを添付できます。ファイルを直接ドラッグするか、ボタンをクリックして選択してください。"
+                )
+                
+                send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
             
-            # ボタンだけをフォームなしで配置
-            if st.button("送信", type="primary", use_container_width=True, key=f"btn_class_{class_name}"):
+            if send_clicked:
                 if text and text.strip():
-                    send_message("クラス", None, None, class_name, text)
+                    # ファイルがあればアップロード
+                    file_info = None
+                    if uploaded_file:
+                        try:
+                            from firebase_utils import upload_file_to_storage
+                            file_info = upload_file_to_storage(uploaded_file, f"chat_files/class/{class_name}")
+                        except Exception as e:
+                            st.error(f"❌ ファイルアップロードエラー: {e}")
+                    
+                    send_message("クラス", None, None, class_name, text, file_info)
                     st.session_state["message_sent_class"] = True
                     st.session_state["send_count_class"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
@@ -1048,13 +1102,31 @@ def show_admin_chat(initial_student_id=None):
         if "send_count_all" not in st.session_state:
             st.session_state["send_count_all"] = 0
         
-        text_key = f"msg_input_all_{st.session_state['send_count_all']}"
-        text = st.text_area("メッセージを入力", height=80, key=text_key)
+        # フォームを使用してファイルアップロードを含める
+        with st.form(key=f"form_all_{st.session_state['send_count_all']}"):
+            text = st.text_area("メッセージを入力", height=80)
+            
+            # ファイル添付機能
+            uploaded_file = st.file_uploader(
+                "📎 ファイルを添付する場合は、Browse filesを押してください",
+                type=["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "txt", "xlsx", "xls"],
+                help="PDF、Word、画像などのファイルを添付できます。ファイルを直接ドラッグするか、ボタンをクリックして選択してください。"
+            )
+            
+            send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
         
-        # ボタンだけをフォームなしで配置
-        if st.button("送信", type="primary", use_container_width=True, key="btn_all"):
+        if send_clicked:
             if text and text.strip():
-                send_message("全員", None, None, None, text)
+                # ファイルがあればアップロード
+                file_info = None
+                if uploaded_file:
+                    try:
+                        from firebase_utils import upload_file_to_storage
+                        file_info = upload_file_to_storage(uploaded_file, f"chat_files/all")
+                    except Exception as e:
+                        st.error(f"❌ ファイルアップロードエラー: {e}")
+                
+                send_message("全員", None, None, None, text, file_info)
                 st.session_state["message_sent_all"] = True
                 st.session_state["send_count_all"] += 1  # カウンターを増やしてkeyを変更
                 st.rerun()
