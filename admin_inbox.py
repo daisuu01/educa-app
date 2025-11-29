@@ -251,6 +251,11 @@ def show_admin_inbox():
         who_escaped = html.escape(str(who))
         text_escaped = html.escape(str(text)).replace('\n', '<br>')
         ts_str_escaped = html.escape(str(ts_str))
+        
+        # デバッグ: テキストの内容を確認
+        if student_id == "2":
+            st.write("🔍 DEBUG - 元のテキスト:", repr(text))
+            st.write("🔍 DEBUG - エスケープ後:", repr(text_escaped))
 
         st.markdown(
             f"""
