@@ -276,16 +276,8 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
-        # ✅ expanderで折りたたみ式チャット
-        # expanderの開閉状態をsession_stateで管理
-        expander_key = f"inbox_expander_{m['id']}"
-        if expander_key not in st.session_state:
-            st.session_state[expander_key] = False
-        
-        # expanderが開かれた状態を保持
-        with st.expander(f"💬 {name} とのチャット履歴", expanded=st.session_state[expander_key]):
-            # expanderが開かれたことを記録
-            st.session_state[expander_key] = True
+        # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
+        with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
             show_chat_in_inbox(m["id"], m["name"])
 
 
@@ -345,7 +337,7 @@ def show_chat_in_inbox(student_id, student_name):
             # キャッシュをクリアして未読カウントを更新
             _get_latest_received_messages_cached.clear()
             st.session_state[f"marked_read_inbox_{student_id}"] = True
-            st.rerun()
+            # ✅ st.rerun()を削除 - リロードせず、次の自動更新を待つ
     
     with col2:
         if st.button(
