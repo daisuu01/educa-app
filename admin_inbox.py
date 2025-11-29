@@ -256,6 +256,8 @@ def show_admin_inbox():
         if student_id == "2":
             st.write("🔍 DEBUG - 元のテキスト:", repr(text))
             st.write("🔍 DEBUG - エスケープ後:", repr(text_escaped))
+            st.markdown("### テスト: HTMLが正しく動作するか")
+            st.markdown('<div style="background:red;color:white;padding:10px;">これは赤い背景のテストです</div>', unsafe_allow_html=True)
 
         st.markdown(
             f"""
