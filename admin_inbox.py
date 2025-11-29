@@ -244,8 +244,13 @@ def show_admin_inbox():
             opacity = "1.0"
             status_badge = '<span style="background:#ff4d4d;color:white;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-left:8px;">未確認</span>'
 
-        # テキストをHTMLエスケープ
-        text_escaped = html.escape(text)
+        # 全ての変数をHTMLエスケープ
+        name_escaped = html.escape(str(name))
+        grade_escaped = html.escape(str(grade))
+        class_name_escaped = html.escape(str(class_name))
+        who_escaped = html.escape(str(who))
+        text_escaped = html.escape(str(text)).replace('\n', '<br>')
+        ts_str_escaped = html.escape(str(ts_str))
 
         st.markdown(
             f"""
@@ -256,12 +261,12 @@ def show_admin_inbox():
                         margin:8px 0;
                         opacity:{opacity};">
                 <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
-                    🧑‍🎓 {name}（{grade}・{class_name}）
-                    <span style="font-size:0.9em;color:#555;">— {who} から</span>
+                    🧑‍🎓 {name_escaped}（{grade_escaped}・{class_name_escaped}）
+                    <span style="font-size:0.9em;color:#555;">— {who_escaped} から</span>
                     {status_badge}
                 </div>
-                <div style="color:#333;margin-top:4px;">{text_escaped}</div>
-                <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
+                <div style="color:#333;margin-top:4px;white-space:pre-wrap;word-wrap:break-word;">{text_escaped}</div>
+                <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str_escaped}</div>
             </div>
             """,
             unsafe_allow_html=True
