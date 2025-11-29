@@ -698,18 +698,22 @@ def show_admin_chat(initial_student_id=None):
                 st.success("✅ 送信しました")
                 st.session_state["message_sent_personal"] = False
             
-            with st.form(f"send_form_personal_{selected_id}", clear_on_submit=True):
-                text = st.text_area("メッセージを入力", height=80, key=f"text_personal_{selected_id}")
-                send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
-                
-                # ✅ フォーム内で送信処理を実行
-                if send_clicked and text and text.strip():
-                    if selected_id:
-                        send_message("個人", selected_id, grade, class_name, text)
-                        st.session_state["message_sent_personal"] = True
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ 送信先が選択されていません")
+            # ✅ フォーム外でテキストエリアを配置
+            text_key = f"msg_input_personal_{selected_id}"
+            text = st.text_area("メッセージを入力", height=80, key=text_key)
+            
+            # ボタンだけをフォームなしで配置
+            if st.button("送信", type="primary", use_container_width=True, key=f"btn_personal_{selected_id}"):
+                if selected_id and text and text.strip():
+                    send_message("個人", selected_id, grade, class_name, text)
+                    st.session_state["message_sent_personal"] = True
+                    # テキストエリアをクリア
+                    st.session_state[text_key] = ""
+                    st.rerun()
+                elif not text or not text.strip():
+                    st.warning("⚠️ メッセージを入力してください")
+                else:
+                    st.warning("⚠️ 送信先が選択されていません")
 
     # ============================================================
     # ② 学年タブ
@@ -806,15 +810,20 @@ def show_admin_chat(initial_student_id=None):
             st.success("✅ 送信しました")
             st.session_state["message_sent_grade"] = False
         
-        with st.form(f"send_form_grade_{grade}", clear_on_submit=True):
-            text = st.text_area("メッセージを入力", height=80, key=f"text_grade_{grade}")
-            send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
-            
-            # ✅ フォーム内で送信処理を実行
-            if send_clicked and text and text.strip():
+        # ✅ フォーム外でテキストエリアを配置
+        text_key = f"msg_input_grade_{grade}"
+        text = st.text_area("メッセージを入力", height=80, key=text_key)
+        
+        # ボタンだけをフォームなしで配置
+        if st.button("送信", type="primary", use_container_width=True, key=f"btn_grade_{grade}"):
+            if text and text.strip():
                 send_message("学年", None, grade, None, text)
                 st.session_state["message_sent_grade"] = True
+                # テキストエリアをクリア
+                st.session_state[text_key] = ""
                 st.rerun()
+            else:
+                st.warning("⚠️ メッセージを入力してください")
 
     # ============================================================
     # ③ クラスタブ
@@ -926,15 +935,20 @@ def show_admin_chat(initial_student_id=None):
                 st.success("✅ 送信しました")
                 st.session_state["message_sent_class"] = False
             
-            with st.form(f"send_form_class_{class_name}", clear_on_submit=True):
-                text = st.text_area("メッセージを入力", height=80, key=f"text_class_{class_name}")
-                send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
-                
-                # ✅ フォーム内で送信処理を実行
-                if send_clicked and text and text.strip():
+            # ✅ フォーム外でテキストエリアを配置
+            text_key = f"msg_input_class_{class_name}"
+            text = st.text_area("メッセージを入力", height=80, key=text_key)
+            
+            # ボタンだけをフォームなしで配置
+            if st.button("送信", type="primary", use_container_width=True, key=f"btn_class_{class_name}"):
+                if text and text.strip():
                     send_message("クラス", None, None, class_name, text)
                     st.session_state["message_sent_class"] = True
+                    # テキストエリアをクリア
+                    st.session_state[text_key] = ""
                     st.rerun()
+                else:
+                    st.warning("⚠️ メッセージを入力してください")
 
     # ============================================================
     # ④ 全員タブ
@@ -1020,15 +1034,20 @@ def show_admin_chat(initial_student_id=None):
             st.success("✅ 送信しました")
             st.session_state["message_sent_all"] = False
         
-        with st.form("send_form_all", clear_on_submit=True):
-            text = st.text_area("メッセージを入力", height=80, key="text_all")
-            send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
-            
-            # ✅ フォーム内で送信処理を実行
-            if send_clicked and text and text.strip():
+        # ✅ フォーム外でテキストエリアを配置
+        text_key = "msg_input_all"
+        text = st.text_area("メッセージを入力", height=80, key=text_key)
+        
+        # ボタンだけをフォームなしで配置
+        if st.button("送信", type="primary", use_container_width=True, key="btn_all"):
+            if text and text.strip():
                 send_message("全員", None, None, None, text)
                 st.session_state["message_sent_all"] = True
+                # テキストエリアをクリア
+                st.session_state[text_key] = ""
                 st.rerun()
+            else:
+                st.warning("⚠️ メッセージを入力してください")
 
 
 
