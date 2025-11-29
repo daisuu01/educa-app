@@ -181,7 +181,7 @@ def _get_latest_received_messages_cached(admin_id: str):
 
     for s in students:
         user_id = s["id"]
-        # ✅ 最新10件取得して、生徒・保護者のメッセージを探す
+        # ✅ 最新50件取得して、生徒・保護者のメッセージを探す
         ref = (
             db.collection("rooms")
             .document("personal")
@@ -189,7 +189,7 @@ def _get_latest_received_messages_cached(admin_id: str):
             .document("messages")
             .collection("items")
             .order_by("timestamp", direction="DESCENDING")
-            .limit(10)
+            .limit(50)
         )
 
         for d in ref.stream():
