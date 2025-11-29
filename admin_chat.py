@@ -871,7 +871,7 @@ def show_admin_chat(initial_student_id=None):
         st.markdown("---")
         st.subheader("📨 メッセージ送信（学年）")
         
-        # 送信成功メッセージを表示
+        # 送信成功メッセージを表示（フォームの前に配置）
         if st.session_state.get("message_sent_grade"):
             st.success("✅ 送信しました")
             st.session_state["message_sent_grade"] = False
