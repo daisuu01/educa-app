@@ -120,31 +120,15 @@ tab_labels = [
     "👀 保護者未読一覧"
 ]
 
-# ✅ タブの状態を session_state で管理
-if "admin_active_tab" not in st.session_state:
-    st.session_state["admin_active_tab"] = 0
-
-# ✅ タブ選択（ラジオボタンで実装）
-selected_tab_index = st.radio(
-    "メニュー選択",
-    range(len(tab_labels)),
-    format_func=lambda x: tab_labels[x],
-    index=st.session_state["admin_active_tab"],
-    horizontal=True,
-    key="tab_selector"
-)
-
-# ✅ 選択されたタブを session_state に保存
-st.session_state["admin_active_tab"] = selected_tab_index
-
-st.markdown("---")
+# 🔥 ★ここだけ追加：key を状態に紐付ける
+tabs = st.tabs(tab_labels)
 
 
 
 # ------------------------
 # 👥 生徒登録
 # ------------------------
-if selected_tab_index == 0:
+with tabs[0]:
     # ✅ このタブに来たらチャット状態をクリア
     if st.session_state.get("selected_student_id"):
         st.session_state["selected_student_id"] = None
@@ -168,7 +152,7 @@ if selected_tab_index == 0:
 # ------------------------
 # 📋 登録済みユーザー一覧
 # ------------------------
-if selected_tab_index == 1:
+with tabs[1]:
     # ✅ このタブに来たらチャット状態をクリア
     if st.session_state.get("selected_student_id"):
         st.session_state["selected_student_id"] = None
@@ -182,7 +166,7 @@ if selected_tab_index == 1:
 # ------------------------
 # 💬 チャット管理
 # ------------------------
-if selected_tab_index == 2:
+with tabs[2]:
     # ✅ 受信ボックスの状態をクリア（チャット管理では使わない）
     if st.session_state.get("inbox_selected_student_id"):
         st.session_state["inbox_selected_student_id"] = None
@@ -201,7 +185,7 @@ if selected_tab_index == 2:
 # ------------------------
 # 📥 受信BOX
 # ------------------------
-if selected_tab_index == 3:
+with tabs[3]:
     # ✅ チャット管理の状態をクリア（受信ボックスでは使わない）
     if st.session_state.get("selected_student_id"):
         st.session_state["selected_student_id"] = None
@@ -213,7 +197,7 @@ if selected_tab_index == 3:
 # ------------------------
 # ⏰ 送信予約
 # ------------------------
-if selected_tab_index == 4:
+with tabs[4]:
     # ✅ このタブに来たらチャット状態をクリア
     if st.session_state.get("selected_student_id"):
         st.session_state["selected_student_id"] = None
@@ -227,7 +211,7 @@ if selected_tab_index == 4:
 # ------------------------
 # 👀 保護者未読一覧
 # ------------------------
-if selected_tab_index == 5:
+with tabs[5]:
     # ✅ このタブに来たらチャット状態をクリア
     if st.session_state.get("selected_student_id"):
         st.session_state["selected_student_id"] = None

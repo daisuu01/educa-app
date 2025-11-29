@@ -305,6 +305,16 @@ def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
     st.subheader("📨 返信する")
     
+    # 送信成功メッセージを表示
+    if st.session_state.get(f"message_sent_inbox_{student_id}"):
+        st.success("✅ 送信しました")
+        st.session_state[f"message_sent_inbox_{student_id}"] = False
+    
+    # 既読成功メッセージを表示
+    if st.session_state.get(f"marked_read_inbox_{student_id}"):
+        st.success("✅ 既読にしました")
+        st.session_state[f"marked_read_inbox_{student_id}"] = False
+    
     # ✅ 送信カウンターでkeyを変更し、送信後に自動的に空にする
     if f"send_count_inbox_{student_id}" not in st.session_state:
         st.session_state[f"send_count_inbox_{student_id}"] = 0
@@ -316,7 +326,7 @@ def show_chat_in_inbox(student_id, student_name):
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # ✅ user_chat.pyのパターンに合わせる：シンプルなボタン + st.rerun()
+        # 既読ボタン - user_chat.pyの実装を参考に一意のkeyを設定
         if st.button(
             "📖 既読にする",
             key=f"mark_read_inbox_{student_id}",
@@ -326,7 +336,8 @@ def show_chat_in_inbox(student_id, student_name):
             mark_messages_as_read(student_id)
             # キャッシュをクリアして未読カウントを更新
             _get_latest_received_messages_cached.clear()
-            st.rerun()
+            st.session_state[f"marked_read_inbox_{student_id}"] = True
+            # ✅ st.rerun()を削除 - リロードせず、次の自動更新を待つ
     
     with col2:
         if st.button(
@@ -341,6 +352,7 @@ def show_chat_in_inbox(student_id, student_name):
                     send_message("個人", student_id, None, None, text)
                     # ✅ キャッシュクリアして最新メッセージを反映
                     _get_latest_received_messages_cached.clear()
+                    st.session_state[f"message_sent_inbox_{student_id}"] = True
                     st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
                     st.rerun()
                 except Exception as e:
