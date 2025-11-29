@@ -6,7 +6,6 @@ import streamlit as st
 from datetime import datetime, timezone
 import pytz
 from firebase_admin import firestore
-import html
 
 # ✅ Firebase は共通モジュールから利用
 from firebase_utils import db
@@ -16,10 +15,10 @@ from admin_chat import send_message
 
 
 # ==================================================
-# 🔹 メッセージ取得
+# 🔹 メッセージ取得（既読処理なし）
 # ==================================================
-def get_messages(user_id: str, limit: int = 50):
-    """メッセージを取得"""
+def get_messages_no_mark(user_id: str, limit: int = 50):
+    """既読処理を行わずにメッセージを取得"""
     all_msgs = []
     
     personal_ref = (
@@ -43,15 +42,33 @@ def get_messages(user_id: str, limit: int = 50):
 
 
 # ==================================================
-# 🔹 チェックボックス状態を管理
+# 🔹 既読処理のみを行う関数
 # ==================================================
-def is_checked(user_id: str) -> bool:
-    """指定されたユーザーがチェック済みかどうか"""
-    return st.session_state.get(f"inbox_checked_{user_id}", False)
-
-def set_checked(user_id: str, checked: bool):
-    """指定されたユーザーのチェック状態を設定"""
-    st.session_state[f"inbox_checked_{user_id}"] = checked
+def mark_messages_as_read(user_id: str):
+    """指定されたユーザーの未読メッセージを既読にする"""
+    current_admin_id = st.session_state.get("member_id")
+    if not current_admin_id:
+        return
+    
+    personal_ref = (
+        db.collection("rooms")
+        .document("personal")
+        .collection(user_id)
+        .document("messages")
+        .collection("items")
+    )
+    
+    # 最新50件を取得して既読処理
+    for d in personal_ref.order_by("timestamp", direction="DESCENDING").limit(50).stream():
+        m = d.to_dict()
+        if not m:
+            continue
+        
+        # この管理者がまだ既読にしていなければ read_by に追加
+        if current_admin_id not in m.get("read_by", []):
+            personal_ref.document(d.id).update({
+                "read_by": firestore.ArrayUnion([current_admin_id])
+            })
 
 
 # ==================================================
@@ -220,7 +237,6 @@ def show_admin_inbox():
         class_name = m["class"] or "-"
         text = m.get("text", "")
         ts = m.get("timestamp")
-        student_id = m["id"]
 
         jst = pytz.timezone("Asia/Tokyo")
         ts_jst = ts.astimezone(jst) if ts else None
@@ -229,28 +245,17 @@ def show_admin_inbox():
         actor = m.get("actor")
         who = "生徒" if actor == "student" else ("保護者" if actor == "guardian" else "生徒/保護者")
 
-        # ✅ 確認済み状態で色分け（エクスパンダーを開いたら自動的に確認済み）
-        checked_status = is_checked(student_id)
-        if checked_status:
-            bg_color = "#f0f0f0"
-            border_color = "#999"
-            font_weight = "normal"
-            opacity = "0.75"
-            status_badge = ""
-        else:
+        # ✅ 未読／既読でスタイル分け
+        if m["is_unread"]:
             bg_color = "#ffe5e5"
             border_color = "#ff4d4d"
             font_weight = "bold"
             opacity = "1.0"
-            status_badge = '<span style="background:#ff4d4d;color:white;padding:2px 8px;border-radius:4px;font-size:0.8em;margin-left:8px;">未確認</span>'
-
-        # 全ての変数をHTMLエスケープ
-        name_escaped = html.escape(str(name))
-        grade_escaped = html.escape(str(grade))
-        class_name_escaped = html.escape(str(class_name))
-        who_escaped = html.escape(str(who))
-        text_escaped = html.escape(str(text)).replace('\n', '<br>')
-        ts_str_escaped = html.escape(str(ts_str))
+        else:
+            bg_color = "#f0f0f0"
+            border_color = "#999"
+            font_weight = "normal"
+            opacity = "0.75"
 
         st.markdown(
             f"""
@@ -261,33 +266,19 @@ def show_admin_inbox():
                         margin:8px 0;
                         opacity:{opacity};">
                 <div style="font-size:1.05em;font-weight:{font_weight};color:#222;">
-                    🧑‍🎓 {name_escaped}（{grade_escaped}・{class_name_escaped}）
-                    <span style="font-size:0.9em;color:#555;">— {who_escaped} から</span>
-                    {status_badge}
+                    🧑‍🎓 {name}（{grade}・{class_name}）
+                    <span style="font-size:0.9em;color:#555;">— {who} から</span>
                 </div>
-                <div style="color:#333;margin-top:4px;white-space:pre-wrap;word-wrap:break-word;">{text_escaped}</div>
-                <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str_escaped}</div>
+                <div style="color:#333;margin-top:4px;">{text}</div>
+                <div style="font-size:0.85em;color:#666;margin-top:6px;">📅 {ts_str}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # ✅ チェックボックスで確認状態を管理
-        checked = st.checkbox(
-            "✅ 確認済み",
-            value=checked_status,
-            key=f"check_{student_id}",
-            help="確認したらチェックを入れてください"
-        )
-        
-        # チェック状態が変わったら保存してリロード
-        if checked != checked_status:
-            set_checked(student_id, checked)
-            st.rerun()
-        
-        # ✅ expanderで折りたたみ式チャット
+        # ✅ expanderで折りたたみ式チャット（デフォルトは閉じた状態）
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
-            show_chat_in_inbox(student_id, m["name"])
+            show_chat_in_inbox(m["id"], m["name"])
 
 
 # ==================================================
@@ -297,8 +288,8 @@ def show_chat_in_inbox(student_id, student_name):
     st.markdown("---")
     st.subheader(f"💬 {student_name} ({student_id}) とのチャット")
 
-    # ✅ メッセージ取得
-    messages = get_messages(student_id)
+    # ✅ 既読処理なしでメッセージ取得
+    messages = get_messages_no_mark(student_id)
     messages.sort(key=lambda x: x.get("timestamp", datetime(2000, 1, 1)), reverse=True)
 
     jst = pytz.timezone("Asia/Tokyo")
@@ -318,6 +309,24 @@ def show_chat_in_inbox(student_id, student_name):
     if st.session_state.get(f"message_sent_inbox_{student_id}"):
         st.success("✅ 送信しました")
         st.session_state[f"message_sent_inbox_{student_id}"] = False
+    
+    # 既読成功メッセージを表示
+    if st.session_state.get(f"marked_read_inbox_{student_id}"):
+        st.success("✅ 既読にしました")
+        st.session_state[f"marked_read_inbox_{student_id}"] = False
+    
+    # ✅ user_chat.pyのパターン：既読ボタン（メッセージ単位ではなく、ユーザー単位）
+    if st.button(
+        "📖 既読にする",
+        key=f"mark_read_inbox_{student_id}",
+        help="このユーザーの未読メッセージを既読にします"
+    ):
+        mark_messages_as_read(student_id)
+        _get_latest_received_messages_cached.clear()
+        st.session_state[f"marked_read_inbox_{student_id}"] = True
+        st.rerun()
+    
+    st.markdown("---")
     
     # ✅ user_chat.pyのパターン：st.formで送信処理
     with st.form(key=f"inbox_send_form_{student_id}", clear_on_submit=True):
@@ -349,10 +358,6 @@ def render_message(msg, student_id, jst):
     ts_jst = ts.astimezone(jst) if ts else None
     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
     read_by = msg.get("read_by", [])
-    
-    # HTMLエスケープ
-    text_escaped = html.escape(str(text))
-    ts_str_escaped = html.escape(str(ts_str))
 
     if sender in ["admin", "先生", "講師"]:
         # 管理者メッセージ（左側）
@@ -370,7 +375,7 @@ def render_message(msg, student_id, jst):
                     display:inline-block;
                     word-break:break-word;
                     white-space:pre-wrap;
-                ">{text_escaped}</div>
+                ">{text}</div>
             </div>
             <div style="
                 margin-left:8px;
@@ -380,7 +385,7 @@ def render_message(msg, student_id, jst):
                 flex-direction:column;
                 align-items:flex-start;
             ">
-                <span>{ts_str_escaped}</span>
+                <span>{ts_str}</span>
                 <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
             </div>
             """,
@@ -403,8 +408,8 @@ def render_message(msg, student_id, jst):
                   white-space:pre-wrap;
                   color:#111;
                   text-align:left;
-                ">{text_escaped}</div>
-                <div style="font-size:0.8em;color:#666;">{ts_str_escaped}</div>
+                ">{text}</div>
+                <div style="font-size:0.8em;color:#666;">{ts_str}</div>
               </div>
             </div>
             """,
