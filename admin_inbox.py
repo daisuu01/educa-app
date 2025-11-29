@@ -340,6 +340,10 @@ def render_message(msg, student_id, jst):
     ts_jst = ts.astimezone(jst) if ts else None
     ts_str = ts_jst.strftime("%Y-%m-%d %H:%M") if ts_jst else ""
     read_by = msg.get("read_by", [])
+    
+    # HTMLエスケープ
+    text_escaped = html.escape(str(text))
+    ts_str_escaped = html.escape(str(ts_str))
 
     if sender in ["admin", "先生", "講師"]:
         # 管理者メッセージ（左側）
@@ -357,7 +361,7 @@ def render_message(msg, student_id, jst):
                     display:inline-block;
                     word-break:break-word;
                     white-space:pre-wrap;
-                ">{text}</div>
+                ">{text_escaped}</div>
             </div>
             <div style="
                 margin-left:8px;
@@ -367,7 +371,7 @@ def render_message(msg, student_id, jst):
                 flex-direction:column;
                 align-items:flex-start;
             ">
-                <span>{ts_str}</span>
+                <span>{ts_str_escaped}</span>
                 <span style="color:{guardian_color}; margin-top:2px;">{guardian_read}</span>
             </div>
             """,
@@ -390,8 +394,8 @@ def render_message(msg, student_id, jst):
                   white-space:pre-wrap;
                   color:#111;
                   text-align:left;
-                ">{text}</div>
-                <div style="font-size:0.8em;color:#666;">{ts_str}</div>
+                ">{text_escaped}</div>
+                <div style="font-size:0.8em;color:#666;">{ts_str_escaped}</div>
               </div>
             </div>
             """,
