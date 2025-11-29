@@ -235,6 +235,9 @@ def show_admin_inbox():
         st.session_state["inbox_page"] = 0
 
     messages = get_latest_received_messages()
+    
+    # デバッグ情報
+    st.write(f"🔍 DEBUG: 取得したメッセージ数: {len(messages)}")
 
     if not messages:
         st.info("📭 現在、受信メッセージはありません。")
