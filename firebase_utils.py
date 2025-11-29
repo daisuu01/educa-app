@@ -341,8 +341,8 @@ def upload_file_to_storage(uploaded_file, folder_path: str) -> dict:
         dict: {"url": ダウンロードURL, "filename": ファイル名, "size": ファイルサイズ}
     """
     try:
-        # Firebase Storageのバケットを取得
-        bucket = storage.bucket()
+        # Firebase Storageのバケットを取得（バケット名を明示的に指定）
+        bucket = storage.bucket("educa-app2.appspot.com")
         
         # ファイル名にタイムスタンプとUUIDを追加してユニークにする
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
