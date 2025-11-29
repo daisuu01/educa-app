@@ -219,6 +219,11 @@ def show_admin_inbox():
         grade = m["grade"] or "未設定"
         class_name = m["class"] or "-"
         text = m.get("text", "")
+        
+        # デバッグ: textの中身を確認
+        if "<" in str(text) or ">" in str(text):
+            st.warning(f"⚠️ DEBUG: メッセージにHTMLタグが含まれています: {repr(text[:100])}")
+        
         ts = m.get("timestamp")
         student_id = m["id"]
 
@@ -273,11 +278,13 @@ def show_admin_inbox():
         )
 
         # ✅ expanderで折りたたみ式チャット
-        # エクスパンダーを開いたら自動的に確認済みにする
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
-            # エクスパンダーが開かれたので、確認済みにする
+            # 確認済みボタンを表示（未確認の場合のみ）
             if not checked_status:
-                set_checked(student_id, True)
+                if st.button("✅ 確認済みにする", key=f"confirm_{student_id}", help="このメッセージを確認済みにします"):
+                    set_checked(student_id, True)
+                    st.rerun()
+                st.markdown("---")
             show_chat_in_inbox(student_id, m["name"])
 
 
