@@ -316,7 +316,7 @@ def show_chat_in_inbox(student_id, student_name):
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # 既読ボタン - user_chat.pyの実装を参考に一意のkeyを設定
+        # ✅ user_chat.pyのパターンに合わせる：シンプルなボタン + st.rerun()
         if st.button(
             "📖 既読にする",
             key=f"mark_read_inbox_{student_id}",
@@ -326,8 +326,7 @@ def show_chat_in_inbox(student_id, student_name):
             mark_messages_as_read(student_id)
             # キャッシュをクリアして未読カウントを更新
             _get_latest_received_messages_cached.clear()
-            # ✅ トースト通知で成功を表示（ページ再実行なし）
-            st.toast("✅ 既読にしました", icon="✅")
+            st.rerun()
     
     with col2:
         if st.button(
@@ -343,9 +342,7 @@ def show_chat_in_inbox(student_id, student_name):
                     # ✅ キャッシュクリアして最新メッセージを反映
                     _get_latest_received_messages_cached.clear()
                     st.session_state[f"send_count_inbox_{student_id}"] += 1  # カウンターを増やしてkeyを変更
-                    # ✅ トースト通知で成功を表示（ページ再実行なし）
-                    st.toast("✅ 送信しました", icon="📨")
-                    # ✅ 5秒後に自動更新されてメッセージが表示される
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ 送信エラー: {e}")
             else:
