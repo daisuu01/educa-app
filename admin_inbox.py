@@ -367,10 +367,6 @@ def show_chat_in_inbox(student_id, student_name):
                     st.error(f"❌ 送信エラー: {e}")
             else:
                 st.warning("⚠️ メッセージを入力してください")
-            except Exception as e:
-                st.error(f"❌ 送信エラー: {e}")
-        else:
-            st.warning("⚠️ メッセージを入力してください")
     
     st.markdown("---")
 
