@@ -272,14 +272,20 @@ def show_admin_inbox():
             unsafe_allow_html=True
         )
 
+        # ✅ チェックボックスで確認状態を管理
+        checked = st.checkbox(
+            "✅ 確認済み",
+            value=checked_status,
+            key=f"check_{student_id}",
+            help="確認したらチェックを入れてください"
+        )
+        
+        # チェック状態が変わったら保存
+        if checked != checked_status:
+            set_checked(student_id, checked)
+        
         # ✅ expanderで折りたたみ式チャット
         with st.expander(f"💬 {name} とのチャット履歴", expanded=False):
-            # 確認済みボタンを表示（未確認の場合のみ）
-            if not checked_status:
-                if st.button("✅ 確認済みにする", key=f"confirm_{student_id}", help="このメッセージを確認済みにします"):
-                    set_checked(student_id, True)
-                    st.rerun()
-                st.markdown("---")
             show_chat_in_inbox(student_id, m["name"])
 
 
