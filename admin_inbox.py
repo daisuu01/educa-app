@@ -326,21 +326,27 @@ def show_chat_in_inbox(student_id, student_name):
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # 既読ボタンの状態を管理
-        read_button_key = f"mark_read_btn_{student_id}"
-        if st.button("📖 既読にする", use_container_width=True, key=read_button_key):
-            try:
-                mark_messages_as_read(student_id)
-                # キャッシュをクリアして未読カウントを更新
-                _get_latest_received_messages_cached.clear()
-                # ✅ 成功メッセージを即座に表示（リロードなし）
-                st.success("✅ 既読にしました（受信ボックス一覧は次回更新時に反映されます）")
-            except Exception as e:
-                st.error(f"❌ 既読処理エラー: {e}")
+        # 既読ボタン - user_chat.pyの実装を参考に一意のkeyを設定
+        if st.button(
+            "📖 既読にする",
+            key=f"mark_read_inbox_{student_id}",
+            use_container_width=True,
+            help="このユーザーの未読メッセージを既読にします"
+        ):
+            mark_messages_as_read(student_id)
+            # キャッシュをクリアして未読カウントを更新
+            _get_latest_received_messages_cached.clear()
+            st.session_state[f"marked_read_inbox_{student_id}"] = True
+            st.rerun()
     
     with col2:
-        send_button_key = f"btn_inbox_{student_id}"
-        if st.button("📨 送信", type="primary", use_container_width=True, key=send_button_key):
+        if st.button(
+            "📨 送信",
+            key=f"send_inbox_{student_id}",
+            type="primary",
+            use_container_width=True,
+            help="メッセージを送信します"
+        ):
             if text and text.strip():
                 try:
                     send_message("個人", student_id, None, None, text)
