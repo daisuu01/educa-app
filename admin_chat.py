@@ -467,12 +467,22 @@ def show_admin_chat(initial_student_id=None):
     """, unsafe_allow_html=True)
 
     # -------------------------
-    # 🔸 自動更新（Inbox遷移時は除外）
+    # 🔸 自動更新（Inbox遷移時・フォーム送信時は除外）
     # -------------------------
-    if not st.session_state.get("just_opened_from_inbox"):
+    disable_refresh = (
+        st.session_state.get("just_opened_from_inbox") or 
+        st.session_state.get("form_submitting", False)
+    )
+    
+    if not disable_refresh:
         st_autorefresh(interval=5000, key="admin_chat_refresh")
-    else:
+    
+    if st.session_state.get("just_opened_from_inbox"):
         st.session_state["just_opened_from_inbox"] = False
+    
+    # フォーム送信フラグをリセット
+    if st.session_state.get("form_submitting"):
+        st.session_state["form_submitting"] = False
 
     # -------------------------
     # 🔸 Inbox から引き継いだ ID
@@ -694,15 +704,16 @@ def show_admin_chat(initial_student_id=None):
             st.subheader("📨 メッセージ送信（個人）")
             with st.form(f"send_form_personal_{selected_id}", clear_on_submit=True):
                 text = st.text_area("メッセージを入力", height=80, key=f"text_personal_{selected_id}")
-                send_clicked = st.form_submit_button("送信", use_container_width=True)
+                send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
                 
                 # ✅ フォーム内で送信処理を実行
                 if send_clicked:
-                    if selected_id and text.strip():
+                    if selected_id and text and text.strip():
+                        st.session_state["form_submitting"] = True  # 自動更新を一時停止
                         send_message("個人", selected_id, grade, class_name, text)
                         st.success("✅ 送信しました")
                         st.rerun()
-                    elif not text.strip():
+                    elif not text or not text.strip():
                         st.warning("⚠️ メッセージを入力してください")
 
     # ============================================================
@@ -796,11 +807,12 @@ def show_admin_chat(initial_student_id=None):
         st.subheader("📨 メッセージ送信（学年）")
         with st.form(f"send_form_grade_{grade}", clear_on_submit=True):
             text = st.text_area("メッセージを入力", height=80, key=f"text_grade_{grade}")
-            send_clicked = st.form_submit_button("送信", use_container_width=True)
+            send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
             
             # ✅ フォーム内で送信処理を実行
             if send_clicked:
-                if text.strip():
+                if text and text.strip():
+                    st.session_state["form_submitting"] = True  # 自動更新を一時停止
                     send_message("学年", None, grade, None, text)
                     st.success("✅ 送信しました")
                     st.rerun()
@@ -913,11 +925,12 @@ def show_admin_chat(initial_student_id=None):
             st.subheader("📨 メッセージ送信（クラス）")
             with st.form(f"send_form_class_{class_name}", clear_on_submit=True):
                 text = st.text_area("メッセージを入力", height=80, key=f"text_class_{class_name}")
-                send_clicked = st.form_submit_button("送信", use_container_width=True)
+                send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
                 
                 # ✅ フォーム内で送信処理を実行
                 if send_clicked:
-                    if text.strip():
+                    if text and text.strip():
+                        st.session_state["form_submitting"] = True  # 自動更新を一時停止
                         send_message("クラス", None, None, class_name, text)
                         st.success("✅ 送信しました")
                         st.rerun()
@@ -1004,11 +1017,12 @@ def show_admin_chat(initial_student_id=None):
         st.subheader("📨 メッセージ送信（全員）")
         with st.form("send_form_all", clear_on_submit=True):
             text = st.text_area("メッセージを入力", height=80, key="text_all")
-            send_clicked = st.form_submit_button("送信", use_container_width=True)
+            send_clicked = st.form_submit_button("送信", type="primary", use_container_width=True)
             
             # ✅ フォーム内で送信処理を実行
             if send_clicked:
-                if text.strip():
+                if text and text.strip():
+                    st.session_state["form_submitting"] = True  # 自動更新を一時停止
                     send_message("全員", None, None, None, text)
                     st.success("✅ 送信しました")
                     st.rerun()
